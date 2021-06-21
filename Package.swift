@@ -3,20 +3,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "MVTTools",
+    name: "mvt-tools",
     products: [
         .library(
             name: "MVTTools",
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(name: "GISTools", url: "https://github.com/Outdooractive/gis-tools", from: "0.2.0"),
-        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.17.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.1"),
+        .package(url: "https://github.com/apple/swift-protobuf", from: "1.17.0"),
     ],
     targets: [
         .target(
             name: "MVTTools",
-            dependencies: ["GISTools", "SwiftProtobuf"]),
+            dependencies: [
+                .product(name: "GISTools", package: "gis-tools"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+            ]),
         .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
