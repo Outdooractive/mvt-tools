@@ -1,0 +1,378 @@
+#if !os(Linux)
+import CoreLocation
+#endif
+import Foundation
+import GISTools
+import struct GISTools.Polygon
+
+extension VectorTile {
+
+    // MARK: - Writing vector tiles
+
+    static func tileDataFor(
+        layers: [String: LayerContainer],
+        x: Int,
+        y: Int,
+        z: Int,
+        projection: TileProjection = .epsg4326)
+        -> Data?
+    {
+        var tile = VectorTile_Tile()
+
+        let extent: UInt32 = 4096
+        let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+
+        switch projection {
+        case .tile:
+            projectionFunction = passThroughToTile
+        case .epsg3857:
+            projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
+        case .epsg4326:
+            projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
+        }
+
+        var vectorTileLayers: [VectorTile_Tile.Layer] = []
+
+        for (layerName, layerContainer) in layers {
+            var layer: VectorTile_Tile.Layer = encodeVersion2(
+                features: layerContainer.features,
+                extent: extent,
+                projectionFunction: projectionFunction)
+            layer.name = layerName
+
+            vectorTileLayers.append(layer)
+        }
+
+        tile.layers = vectorTileLayers
+
+        return try? tile.serializedData()
+    }
+
+    static func encodeVersion2(
+        features: [Feature],
+        extent: UInt32,
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
+        -> VectorTile_Tile.Layer
+    {
+        var layer = VectorTile_Tile.Layer()
+        layer.version = 2
+        layer.extent = extent
+
+        var vectorTileFeatures: [VectorTile_Tile.Feature] = []
+
+        var keys: [String] = []
+        var keyPositions: [String: UInt32] = [:]
+
+        var values: [VectorTile_Tile.Value] = []
+        var valuePositions: [AnyHashable: UInt32] = [:]
+
+        for feature in features {
+            guard var vectorTileFeature = self.vectorTileFeature(from: feature, projectionFunction: projectionFunction) else { continue }
+
+            var tags: [UInt32] = []
+
+            for (propertyKey, propertyValue) in feature.properties {
+                let keyIndex: UInt32 = keyPositions[propertyKey] ?? {
+                    keys.append(propertyKey)
+
+                    let index = UInt32(keys.count - 1)
+                    keyPositions[propertyKey] = index
+
+                    return index
+                }()
+
+                // Encode arrays and dictionaries as JSON encoded strings
+                var hashablePropertyValue: AnyHashable
+                if let array = propertyValue as? Array<Any> {
+                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { continue }
+                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
+                }
+                else if let dictionary = propertyValue as? [String: Any] {
+                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { continue }
+                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
+                }
+                else if propertyValue is AnyHashable {
+                    hashablePropertyValue = propertyValue as! AnyHashable
+                }
+                else {
+                    // TODO: Check this
+                    continue
+                }
+
+                let valueIndex: UInt32 = valuePositions[hashablePropertyValue] ?? {
+                    var encodedPropertyValue = VectorTile_Tile.Value()
+
+                    switch hashablePropertyValue {
+                    case let string as String:
+                        encodedPropertyValue.stringValue = string
+                    case let int as Int:
+                        encodedPropertyValue.intValue = Int64(int)
+                    case let bool as Bool:
+                        encodedPropertyValue.boolValue = bool
+                    case let double as Double:
+                        encodedPropertyValue.doubleValue = double
+                    case let float as Float:
+                        encodedPropertyValue.floatValue = float
+                    case let uint as UInt64:
+                        encodedPropertyValue.uintValue = uint
+                    case let sint as Int64:
+                        encodedPropertyValue.sintValue = sint
+                    default:
+                        encodedPropertyValue.stringValue = ""
+                    }
+
+                    values.append(encodedPropertyValue)
+
+                    let index = UInt32(values.count - 1)
+                    valuePositions[hashablePropertyValue] = index
+
+                    return index
+                }()
+
+                tags.append(keyIndex)
+                tags.append(valueIndex)
+            }
+
+            vectorTileFeature.tags = tags
+
+            vectorTileFeatures.append(vectorTileFeature)
+        }
+
+        layer.features = vectorTileFeatures
+        layer.keys = keys
+        layer.values = values
+
+        return layer
+    }
+
+    static func vectorTileFeature(
+        from feature: Feature,
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
+        -> VectorTile_Tile.Feature?
+    {
+        var geometryIntegers: [UInt32]?
+        var geometryType: VectorTile_Tile.GeomType?
+
+        switch feature.geometry {
+        case let point as Point:
+            geometryType = .point
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: [[point.coordinate]],
+                ofType: .point,
+                projectionFunction: projectionFunction)
+
+        case let multiPoint as MultiPoint:
+            geometryType = .point
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: multiPoint.coordinates.map({ [$0] }),
+                ofType: .point,
+                projectionFunction: projectionFunction)
+
+        case let lineString as LineString:
+            geometryType = .linestring
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: [lineString.coordinates],
+                ofType: .linestring,
+                projectionFunction: projectionFunction)
+
+        case let multiLineString as MultiLineString:
+            geometryType = .linestring
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: multiLineString.coordinates,
+                ofType: .linestring,
+                projectionFunction: projectionFunction)
+
+        case let polygon as Polygon:
+            geometryType = .polygon
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: polygon.coordinates,
+                ofType: .polygon,
+                projectionFunction: projectionFunction)
+
+        case let multiPolygon as MultiPolygon:
+            geometryType = .polygon
+            let multiCoordinates: [[Coordinate3D]] = Array(multiPolygon.polygons.map({ $0.coordinates }).joined())
+            geometryIntegers = self.geometryIntegers(
+                fromMultiCoordinates: multiCoordinates,
+                ofType: .polygon,
+                projectionFunction: projectionFunction)
+
+        default:
+            return nil
+        }
+
+        if let geometryIntegers = geometryIntegers,
+            let geometryType = geometryType
+        {
+            var vectorTileFeature = VectorTile_Tile.Feature()
+            vectorTileFeature.type = geometryType
+            vectorTileFeature.geometry = geometryIntegers
+
+            if let featureId = feature.id,
+                let featureIdAsInt = UInt64(featureId)
+            {
+                vectorTileFeature.id = featureIdAsInt
+            }
+
+            return vectorTileFeature
+        }
+
+        return nil
+    }
+
+    private static let commandIdMoveTo: UInt32 = 1
+    private static let commandIdLineTo: UInt32 = 2
+    private static let commandIdClosePath: UInt32 = 7
+
+    static func geometryIntegers(
+        fromMultiCoordinates multiCoordinates: [[Coordinate3D]],
+        ofType featureType: VectorTile_Tile.GeomType,
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
+        -> [UInt32]?
+    {
+        var geometryIntegers: [UInt32] = []
+
+        var dx: Int = 0
+        var dy: Int = 0
+
+        var commandId: UInt32 = 0
+        var commandCount: UInt32 = 0
+        var commandInteger: UInt32 = 0
+
+        // Encode points
+        if featureType == .point {
+            commandId = VectorTile.commandIdMoveTo
+            commandCount = UInt32(multiCoordinates.count)
+            commandInteger = (commandId & 0x7) | (commandCount << 3)
+            geometryIntegers.append(commandInteger)
+
+            for coordinates in multiCoordinates {
+                guard let moveToCoordinate = coordinates.first else { continue }
+
+                let (x, y) = projectionFunction(moveToCoordinate)
+                geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
+                geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                dx = x
+                dy = y
+            }
+
+            return geometryIntegers
+        }
+
+        // Else: linestrings or polygons
+        guard featureType == .linestring || featureType == .polygon else { return nil }
+
+        for coordinates in multiCoordinates {
+            guard coordinates.count > 1,
+                  let moveToCoordinate = coordinates.first
+            else { continue }
+
+            commandId = VectorTile.commandIdMoveTo
+            commandCount = 1
+            commandInteger = (commandId & 0x7) | (commandCount << 3)
+            geometryIntegers.append(commandInteger)
+
+            let (x, y) = projectionFunction(moveToCoordinate)
+            geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
+            geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+            dx = x
+            dy = y
+
+            if featureType == .linestring
+                || coordinates.get(at: 0) != coordinates.get(at: -1)
+            {
+                commandId = VectorTile.commandIdLineTo
+                commandCount = UInt32(coordinates.count - 1)
+                commandInteger = (commandId & 0x7) | (commandCount << 3)
+                geometryIntegers.append(commandInteger)
+
+                for coordinate in coordinates[1...] {
+                    let (x, y) = projectionFunction(coordinate)
+                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
+                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                    dx = x
+                    dy = y
+                }
+            }
+            else {
+                commandId = VectorTile.commandIdLineTo
+                commandCount = UInt32(coordinates.count - 2)
+                commandInteger = (commandId & 0x7) | (commandCount << 3)
+                geometryIntegers.append(commandInteger)
+
+                for coordinate in coordinates[1 ..<  coordinates.count - 1] {
+                    let (x, y) = projectionFunction(coordinate)
+                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
+                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                    dx = x
+                    dy = y
+                }
+            }
+
+            if featureType == .polygon {
+                commandId = VectorTile.commandIdClosePath
+                commandCount = 1
+                commandInteger = (commandId & 0x7) | (commandCount << 3)
+                geometryIntegers.append(commandInteger)
+            }
+        }
+
+        return geometryIntegers
+    }
+
+    private static func zigZagEncode(_ n: Int) -> Int {
+        return (n >> 31) ^ (n << 1)
+    }
+
+    // MARK: - Projections
+
+    static func passThroughToTile(
+        coordinate: Coordinate3D)
+        -> (x: Int, y: Int)
+    {
+        return (x: Int(coordinate.longitude), y: Int(coordinate.latitude))
+    }
+
+    static func projectFromEpsg3857(
+        x: Int,
+        y: Int,
+        z: Int,
+        extent: Int)
+        -> ((Coordinate3D) -> (x: Int, y: Int))
+    {
+        let extent: Double = Double(extent)
+        let bounds = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+
+        let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
+        let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
+        let longitudeSpan: Double = abs(bounds.northEast.longitude - bounds.southWest.longitude)
+
+        return { (coordinate) -> (Int, Int) in
+            let projectedX: Int = Int(((coordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
+            let projectedY: Int = Int(((coordinate.latitude - topLeft.latitude) / latitudeSpan) * extent)
+            return (projectedX, projectedY)
+        }
+    }
+
+    static func projectFromEpsg4326(
+        x: Int,
+        y: Int,
+        z: Int,
+        extent: Int)
+        -> ((Coordinate3D) -> (x: Int, y: Int))
+    {
+        let extent: Double = Double(extent)
+        let bounds = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+
+        let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
+        let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
+        let longitudeSpan: Double = abs(bounds.northEast.longitude - bounds.southWest.longitude)
+
+        return { (coordinate) -> (Int, Int) in
+            let projectedX: Int = Int(((coordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
+            let projectedY: Int = Int(((coordinate.latitude - topLeft.latitude) / latitudeSpan) * extent)
+            return (projectedX, projectedY)
+        }
+    }
+
+}
