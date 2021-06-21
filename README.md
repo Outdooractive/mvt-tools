@@ -2,18 +2,57 @@
 
 Vector tiles reader/writer for Swift
 
-## 1. Dependencies (for development)
+## Installation
+
+### Swift Package Manager
+
+```swift
+.package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.2.1"),
+```
+
+and
+
+```swift
+dependencies: [
+    .product(name: "MVTTools", package: "mvt-tools"),
+]),
+```
+
+## Features
+
+TODO
+
+## Usage
+
+```swift
+import MVTTools
+```
+
+## Contributing
+
+Please create an issue or open a pull request with a fix
+
+### Dependencies (for development)
 
 ```
 brew install protobuf swift-protobuf swiftlint
 ```
 
-## 2. TODO
+## TODOs and future improvements
 
 - Documentation (!)
 - Tests
+- Decode V1 tiles
+- Clipping
+- Simplification
+- Locking (when updating/deleting features, indexing)
+- Query option: within/intersects
 
-## 3. Links
+- https://github.com/mapbox/vtcomposite
+- https://github.com/mapbox/geosimplify-js
+- https://github.com/mapbox/vt2geojson (command line tool?)
+
+## Links
 
 - Vector tiles
     - https://github.com/mapbox/vector-tile-spec/tree/master/2.1
@@ -33,18 +72,10 @@ brew install protobuf swift-protobuf swiftlint
 - Other code for inspiration:
     - https://github.com/mapnik/node-mapnik/blob/master/src/mapnik_vector_tile.cpp
 
-## 4. Features
+## License
 
-TODO
+MIT
 
-## 5. Future improvements
+## Author
 
-- Decode V1 tiles
-- Clipping
-- Simplification
-- Locking (when updating/deleting features, indexing)
-- Query option: within/intersects
-
-- https://github.com/mapbox/vtcomposite
-- https://github.com/mapbox/geosimplify-js
-- https://github.com/mapbox/vt2geojson (command line tool?)
+Thomas Rasch, OutdoorActive
