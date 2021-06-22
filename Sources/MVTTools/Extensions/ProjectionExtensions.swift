@@ -5,14 +5,14 @@ import Foundation
 import GISTools
 
 // From https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/
-public struct Projection {
+public extension Projection {
 
     private static let tileSize: Int = 256
     private static let originShift: Double = 2.0 * Double.pi * 6378137.0 / 2.0 // 20037508.342789244
     private static let initialResolution: Double = 2.0 * Double.pi * 6378137.0 / Double(tileSize) // 156543.03392804062 for tileSize 256 pixels
 
     /// Project EPSG:4326 to EPSG:3857
-    public static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
+    static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
         let coordinate = coordinate.normalized()
 
         let x: Double = coordinate.longitude * originShift / 180.0
@@ -23,7 +23,7 @@ public struct Projection {
     }
 
     /// Project EPSG:3857 to EPSG:4326
-    public static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
+    static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
         let longitude: Double = (coordinate.longitude / originShift) * 180.0
         var latitude: Double = (coordinate.latitude / originShift) * 180.0
         latitude = 180.0 / Double.pi * (2.0 * atan(exp(latitude * Double.pi / 180.0)) - Double.pi / 2.0)
@@ -32,7 +32,7 @@ public struct Projection {
     }
 
     /// Tile bounds in EPSG:3857
-    public static func epsg3857TileBounds(
+    static func epsg3857TileBounds(
         x: Int,
         y: Int,
         z: Int)
@@ -48,7 +48,7 @@ public struct Projection {
     }
 
     /// Tile bounds in EPSG:4326
-    public static func epsg4236TileBounds(
+    static func epsg4236TileBounds(
         x: Int,
         y: Int,
         z: Int)
@@ -62,7 +62,7 @@ public struct Projection {
         return BoundingBox(southWest: southWest, northEast: northEast)
     }
 
-    public static func tile(
+    static func tile(
         for coordinate: Coordinate3D,
         atZoom zoom: Int)
         -> (x: Int, y: Int)
