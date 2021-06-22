@@ -6,12 +6,12 @@
         "repositoryURL": "https://github.com/Outdooractive/gis-tools",
         "state": {
           "branch": null,
-          "revision": "a0fd10a2eba26129c16c3ea82eb932379debc8f6",
-          "version": "0.2.1"
+          "revision": "91450ecca696f550b4c5b3cc3662b7b8ac587f44",
+          "version": "0.2.2"
         }
       },
       {
-        "package": "swift-protobuf",
+        "package": "SwiftProtobuf",
         "repositoryURL": "https://github.com/apple/swift-protobuf",
         "state": {
           "branch": null,

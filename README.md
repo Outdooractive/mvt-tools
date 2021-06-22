@@ -2,20 +2,17 @@
 
 Vector tiles reader/writer for Swift
 
-## Installation
-
-### Swift Package Manager
-
-```swift
-.package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.2.1"),
-```
-
-and
+## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .product(name: "MVTTools", package: "mvt-tools"),
-]),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.2.2"),
+],
+targets: [
+    .target(name: "MyTarget", dependencies: [
+        .product(name: "MVTTools", package: "mvt-tools"),
+    ]),
+]
 ```
 
 ## Features
@@ -32,7 +29,7 @@ import MVTTools
 
 Please create an issue or open a pull request with a fix
 
-### Dependencies (for development)
+## Dependencies (for development)
 
 ```
 brew install protobuf swift-protobuf swiftlint
@@ -61,7 +58,7 @@ brew install protobuf swift-protobuf swiftlint
 
 - Libraries
     - https://github.com/apple/swift-protobuf
-    - https://github.com/Outdooractive/swift-turf
+    - https://github.com/Outdooractive/gis-tools
 
 - Sample data for testing:
     - https://github.com/mapbox/mvt-fixtures
