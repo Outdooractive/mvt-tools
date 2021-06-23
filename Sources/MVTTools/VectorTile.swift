@@ -7,25 +7,6 @@ import struct GISTools.Polygon
 
 public struct VectorTile {
 
-    // MARK: -
-
-    public enum TileProjection: CustomStringConvertible {
-        /// The unmodifed vector tile coordinates
-        case tile
-        /// EPSG:3857 - web mercator
-        case epsg3857
-        /// EPSG:4326 - geodetic
-        case epsg4326
-
-        public var description: String {
-            switch self {
-            case .tile: return "None"
-            case .epsg3857: return "EPSG:3857"
-            case .epsg4326: return "EPSG:4326"
-            }
-        }
-    }
-
     // MARK: - Properties
     // MARK: Public
 
@@ -38,7 +19,7 @@ public struct VectorTile {
         layerNames.contains(name)
     }
 
-    public let projection: TileProjection
+    public let projection: Projection
 
     public var isEmpty: Bool {
         return layers.isEmpty
@@ -78,7 +59,7 @@ public struct VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: TileProjection = .epsg4326)
+        projection: Projection = .epsg4326)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
 
@@ -94,7 +75,7 @@ public struct VectorTile {
         self.layerNames = []
 
         switch projection {
-        case .tile:
+        case .noSRID:
             self.boundingBox = BoundingBox(
                 southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
                 northEast: Coordinate3D(latitude: 4096, longitude: 4096))
@@ -112,7 +93,7 @@ public struct VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: TileProjection = .epsg4326,
+        projection: Projection = .epsg4326,
         layerWhitelist: [String]? = nil)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
@@ -140,7 +121,7 @@ public struct VectorTile {
         self.layerNames = Array(layers.keys)
 
         switch projection {
-        case .tile:
+        case .noSRID:
             self.boundingBox = BoundingBox(
                 southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
                 northEast: Coordinate3D(latitude: 4096, longitude: 4096))
@@ -158,7 +139,7 @@ public struct VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: TileProjection = .epsg4326,
+        projection: Projection = .epsg4326,
         layerWhitelist: [String]? = nil)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
@@ -187,7 +168,7 @@ public struct VectorTile {
         self.layerNames = Array(layers.keys)
 
         switch projection {
-        case .tile:
+        case .noSRID:
             self.boundingBox = BoundingBox(
                 southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
                 northEast: Coordinate3D(latitude: 4096, longitude: 4096))

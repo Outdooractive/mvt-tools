@@ -12,7 +12,7 @@ public extension Projection {
     private static let initialResolution: Double = 2.0 * Double.pi * 6378137.0 / Double(tileSize) // 156543.03392804062 for tileSize 256 pixels
 
     /// Project EPSG:4326 to EPSG:3857
-    static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
+    internal static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
         let coordinate = coordinate.normalized()
 
         let x: Double = coordinate.longitude * originShift / 180.0
@@ -23,7 +23,7 @@ public extension Projection {
     }
 
     /// Project EPSG:3857 to EPSG:4326
-    static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
+    internal static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
         let longitude: Double = (coordinate.longitude / originShift) * 180.0
         var latitude: Double = (coordinate.latitude / originShift) * 180.0
         latitude = 180.0 / Double.pi * (2.0 * atan(exp(latitude * Double.pi / 180.0)) - Double.pi / 2.0)

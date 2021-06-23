@@ -14,7 +14,7 @@ extension VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: TileProjection = .epsg4326,
+        projection: Projection = .epsg4326,
         layerWhitelist: Set<String>? = nil)
         -> [String: LayerContainer]?
     {
@@ -36,7 +36,7 @@ extension VectorTile {
                 lastExtent = extent
 
                 switch projection {
-                case .tile:
+                case .noSRID:
                     projectionFunction = passThroughFromTile
                 case .epsg3857:
                     projectionFunction = projectToEpsg3857(x: x, y: y, z: z, extent: extent)

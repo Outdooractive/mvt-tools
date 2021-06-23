@@ -46,7 +46,7 @@ extension VectorTile {
         tolerance: CLLocationDistance,
         layerName: String? = nil,
         featureFilter: ((Feature) -> Bool)? = nil,
-        projection: TileProjection = .epsg4326)
+        projection: Projection = .epsg4326)
         -> [QueryResult]
     {
         if projection != self.projection {
@@ -70,7 +70,7 @@ extension VectorTile {
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
         featureFilter: ((Feature) -> Bool)? = nil,
-        projection: TileProjection = .epsg4326)
+        projection: Projection = .epsg4326)
         -> [QueryResult]
     {
         if projection != self.projection {
@@ -133,7 +133,7 @@ extension VectorTile {
         layerName: String? = nil,
         featureFilter: ((Feature) -> Bool)? = nil,
         includeDuplicates: Bool = true,
-        projection: TileProjection = .epsg4326)
+        projection: Projection = .epsg4326)
         -> (features: [String: Feature], results: [QueryManyResult])
     {
         if projection != self.projection {
@@ -220,11 +220,11 @@ extension VectorTile {
     private static func queryBoundingBox(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
-        projection: TileProjection)
+        projection: Projection)
         -> BoundingBox
     {
         switch projection {
-        case .tile, .epsg3857:
+        case .noSRID, .epsg3857:
             return BoundingBox(
                 southWest: Coordinate3D(
                     latitude: coordinate.latitude - tolerance,

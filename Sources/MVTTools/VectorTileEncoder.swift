@@ -14,7 +14,7 @@ extension VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: TileProjection = .epsg4326)
+        projection: Projection = .epsg4326)
         -> Data?
     {
         var tile = VectorTile_Tile()
@@ -23,7 +23,7 @@ extension VectorTile {
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
 
         switch projection {
-        case .tile:
+        case .noSRID:
             projectionFunction = passThroughToTile
         case .epsg3857:
             projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
