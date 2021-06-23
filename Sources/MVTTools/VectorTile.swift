@@ -318,7 +318,10 @@ extension VectorTile {
 extension VectorTile: CustomStringConvertible {
 
     public var description: String {
-        return "<Tile @ x: \(x), y: \(y), z: \(z), projection: \(projection), indexed: \(isIndexed), layers: \(layerNames.joined(separator: ",")), boundingBox: \(boundingBox)>"
+        let layersAndCount = layers.map({ "\($0):\($1.features.count)" })
+            .sorted()
+            .joined(separator: ", ")
+        return "<Tile@x: \(x), y: \(y), z: \(z), projection: \(projection), indexed: \(isIndexed), \(boundingBox), layers: \(layersAndCount)>"
     }
 
 }
