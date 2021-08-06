@@ -4,13 +4,16 @@ import PackageDescription
 
 let package = Package(
     name: "mvt-tools",
+    platforms: [
+        .macOS(.v10_15)
+    ],
     products: [
         .library(
             name: "MVTTools",
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.3"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.5"),
         .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.17.0"),
     ],
     targets: [
