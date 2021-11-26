@@ -89,7 +89,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(coordinates6, "Failed to parse a MULTIPOLYGON")
         XCTAssertEqual(coordinates6, result6)
 
-        let rings: [Ring] = coordinates6.map { Ring($0) }
+        let rings: [Ring] = coordinates6.map { Ring($0)! }
         XCTAssertTrue(rings[0].isUnprojectedClockwise, "First polygon ring is not oriented clockwise")
         XCTAssertTrue(rings[1].isUnprojectedClockwise, "Second polygon ring is not oriented clockwise")
         XCTAssertTrue(rings[2].isUnprojectedCounterClockwise, "Third polygon ring is not oriented counter-clockwise")
@@ -129,7 +129,7 @@ final class DecoderTests: XCTestCase {
         let result2: MultiPoint = MultiPoint([
             Coordinate3D(latitude: 7.0, longitude: 5.0),
             Coordinate3D(latitude: 2.0, longitude: 3.0)
-        ])
+        ])!
         XCTAssertEqual(multiPoint2, result2)
         XCTAssertEqual(boundingBox2, result2.calculateBoundingBox())
 
@@ -150,7 +150,7 @@ final class DecoderTests: XCTestCase {
             Coordinate3D(latitude: 2.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 10.0),
-        ])
+        ])!
         XCTAssertEqual(lineString3, result3)
         XCTAssertEqual(boundingBox3, result3.calculateBoundingBox())
 
@@ -174,7 +174,7 @@ final class DecoderTests: XCTestCase {
         ], [
             Coordinate3D(latitude: 1.0, longitude: 1.0),
             Coordinate3D(latitude: 5.0, longitude: 3.0),
-        ]])
+        ]])!
         XCTAssertEqual(multiLineString4, result4)
         XCTAssertEqual(boundingBox4, result4.calculateBoundingBox())
 

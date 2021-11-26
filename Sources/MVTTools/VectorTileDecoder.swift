@@ -162,16 +162,19 @@ extension VectorTile {
             }
             else {
                 let flattened: [Coordinate3D] = Array(multiCoordinates.joined())
-                feature = Feature(MultiPoint(flattened), calculateBoundingBox: true)
+                guard let multiPoint = MultiPoint(flattened) else { return nil }
+                feature = Feature(multiPoint, calculateBoundingBox: true)
             }
 
         case .linestring:
             if multiCoordinates.count == 1 {
                 let coordinates = multiCoordinates[0]
-                feature = Feature(LineString(coordinates), calculateBoundingBox: true)
+                guard let lineString = LineString(coordinates) else { return nil }
+                feature = Feature(lineString, calculateBoundingBox: true)
             }
             else {
-                feature = Feature(MultiLineString(multiCoordinates), calculateBoundingBox: true)
+                guard let multiLineString = MultiLineString(multiCoordinates) else { return nil }
+                feature = Feature(multiLineString, calculateBoundingBox: true)
             }
 
         case .polygon:
@@ -183,7 +186,7 @@ extension VectorTile {
             else {
                 var polygons: [Polygon] = []
 
-                let rings: [Ring] = multiCoordinates.map { Ring($0) }
+                let rings: [Ring] = multiCoordinates.compactMap { Ring($0) }
                 var currentRings: [Ring] = []
 
                 for ring in rings {

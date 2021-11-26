@@ -99,7 +99,7 @@ final class EncoderTests: XCTestCase {
         let multiPoint = Feature(MultiPoint([
             Coordinate3D(latitude: 7.0, longitude: 5.0),
             Coordinate3D(latitude: 2.0, longitude: 3.0)
-        ]))
+        ])!)
         let multiPointFeature = VectorTile.vectorTileFeature(from: multiPoint, projectionFunction: VectorTile.passThroughToTile)
         XCTAssertNotNil(multiPointFeature, "Failed to encode a MULTIPOINT")
 
@@ -112,7 +112,7 @@ final class EncoderTests: XCTestCase {
             Coordinate3D(latitude: 2.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 10.0),
-        ]))
+        ])!)
         let lineStringFeature = VectorTile.vectorTileFeature(from: lineString, projectionFunction: VectorTile.passThroughToTile)
         XCTAssertNotNil(lineStringFeature, "Failed to encode a LINESTRING")
 
@@ -128,7 +128,7 @@ final class EncoderTests: XCTestCase {
             ], [
                 Coordinate3D(latitude: 1.0, longitude: 1.0),
                 Coordinate3D(latitude: 5.0, longitude: 3.0),
-            ]]))
+            ]])!)
         let multiLineStringFeature = VectorTile.vectorTileFeature(from: multiLineString, projectionFunction: VectorTile.passThroughToTile)
         XCTAssertNotNil(multiLineStringFeature, "Failed to encode a MULTILINESTRING")
 

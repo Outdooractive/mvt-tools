@@ -13,8 +13,8 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.7"),
-        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.17.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.18"),
+        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.18.0"),
     ],
     targets: [
         .target(
