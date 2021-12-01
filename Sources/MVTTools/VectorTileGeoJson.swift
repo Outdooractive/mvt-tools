@@ -56,14 +56,14 @@ extension VectorTile {
     // MARK: - GeoJSON support
 
     public mutating func addGeoJson(geoJson: GeoJson, layerName: String? = nil) {
-        guard let features = geoJson.flattened()?.features else { return }
+        guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
         appendFeatures(features, to: layerName)
     }
 
     public mutating func setGeoJson(geoJson: GeoJson, layerName: String? = nil) {
-        guard let features = geoJson.flattened()?.features else { return }
+        guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
         setFeatures(features, for: layerName)
