@@ -25,7 +25,7 @@ extension VectorTile {
             }
         }
 
-        let json = FeatureCollection(allFeatures).asJson()
+        let json = FeatureCollection(allFeatures).asJson
 
         var options: JSONSerialization.WritingOptions = []
         if prettyPrinted {
