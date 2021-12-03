@@ -4,15 +4,17 @@ import CoreLocation
 import Foundation
 import GISTools
 
+// MARK: Static functions
+
 extension VectorTile {
 
-    // MARK: - Static functions
-
+    /// Read a tile from `data` and return its layer names
     public static func layerNames(from data: Data) -> [String]? {
         guard let tile = try? VectorTile_Tile(serializedData: data) else { return nil }
         return tile.layers.map { $0.name }
     }
 
+    /// Read a tile from `url` and return its layer names
     public static func layerNames(at url: URL) -> [String]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return layerNames(from: data)
@@ -28,6 +30,8 @@ extension VectorTile {
     //      raster_features: 0,
     //      version: 2 } ],
     //    errors: false }
+
+    /// Read a tile from `data` and return some information about the tile
     public static func tileInfo(from data: Data) -> [String: Any]? {
         guard let tile = try? VectorTile_Tile(serializedData: data) else { return nil }
 
@@ -66,6 +70,7 @@ extension VectorTile {
         ]
     }
 
+    /// Read a tile from `url` and return some information about the tile
     public static func tileInfo(at url: URL) -> [String: Any]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return tileInfo(from: data)

@@ -5,9 +5,9 @@ import Foundation
 import GISTools
 import struct GISTools.Polygon
 
-extension VectorTile {
+// MARK: Reading vector tiles
 
-    // MARK: - Reading vector tiles
+extension VectorTile {
 
     static func loadTileFrom(
         data: Data,

@@ -23,6 +23,7 @@ extension VectorTile {
 
     // MARK: - Indexing
 
+    /// Create an R-Tree index on this tile for faster querying
     public mutating func createIndex() {
         for layerName in layerNames {
             guard var layerContainer = layers[layerName],
@@ -39,6 +40,8 @@ extension VectorTile {
 
     // MARK: - Searching
 
+    /// Search for content in this tile around `coordinate`
+    ///
     /// Note: The meaning of *tolerance* depends on the projection.
     /// For *epsg3857* and *epsg4326*, it will be meters. For *tile*, it's a value in the tile's coordinate space.
     public func query(
@@ -66,6 +69,7 @@ extension VectorTile {
             projection: projection)
     }
 
+    /// Search for content in this tile inside of `queryBoundingBox`
     public func query(
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
@@ -125,6 +129,8 @@ extension VectorTile {
         return result
     }
 
+    /// Search for content in this tile at `coordinates`
+    ///
     /// Note: The meaning of *tolerance* depends on the projection.
     /// For *epsg3857* and *epsg4326*, it will be meters. For *tile*, it's a value in the tile's coordinate space.
     public func queryMany(

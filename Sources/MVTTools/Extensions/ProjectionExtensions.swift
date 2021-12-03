@@ -5,7 +5,7 @@ import Foundation
 import GISTools
 
 // From https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/
-public extension Projection {
+extension Projection {
 
     private static let tileSize: Int = 256
     private static let originShift: Double = 2.0 * Double.pi * 6378137.0 / 2.0 // 20037508.342789244
@@ -32,7 +32,7 @@ public extension Projection {
     }
 
     /// Tile bounds in EPSG:3857
-    static func epsg3857TileBounds(
+    public static func epsg3857TileBounds(
         x: Int,
         y: Int,
         z: Int)
@@ -48,7 +48,7 @@ public extension Projection {
     }
 
     /// Tile bounds in EPSG:4326
-    static func epsg4236TileBounds(
+    public static func epsg4236TileBounds(
         x: Int,
         y: Int,
         z: Int)
@@ -62,7 +62,7 @@ public extension Projection {
         return BoundingBox(southWest: southWest, northEast: northEast)
     }
 
-    static func tile(
+    public static func tile(
         for coordinate: Coordinate3D,
         atZoom zoom: Int)
         -> (x: Int, y: Int)

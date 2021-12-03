@@ -5,28 +5,40 @@ import Foundation
 import GISTools
 import struct GISTools.Polygon
 
+/// `VectorTile` holds the contents of one vector tile as GeoJSON.
+/// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
 public struct VectorTile {
 
     // MARK: - Properties
     // MARK: Public
 
+    /// The tile's x coordinate
     public let x: Int
+    /// The tile's y coordinate
     public let y: Int
+    /// The tile's zoom level
     public let z: Int
 
+    /// The layer names in the tile
     public private(set) var layerNames: [String]
+
+    /// Check if the tile contains a specific layer
     public func hasLayer(_ name: String) -> Bool {
         layerNames.contains(name)
     }
 
+    /// The tile's projection
     public let projection: Projection
 
+    /// A Boolean value indicating whether the tile is empty.
     public var isEmpty: Bool {
         return layers.isEmpty
     }
 
+    /// A Boolean value indicating whether the tile is indexed, for faster querying
     public internal(set) var isIndexed: Bool = false
 
+    /// The tile's bounding box
     public var boundingBox: BoundingBox
 
     // MARK: Private/Internal
@@ -44,6 +56,7 @@ public struct VectorTile {
 
     var layers: [String: LayerContainer] = [:]
 
+    /// Option to print parse failures to the console
     public var printParseFailures: Bool = {
         var isDebugBuild: Bool = false
         assert({
@@ -55,6 +68,7 @@ public struct VectorTile {
 
     // MARK: - Initializers
 
+    /// Create an empty vector tile at `z`/`x`/`y`
     public init?(
         x: Int,
         y: Int,
@@ -88,6 +102,7 @@ public struct VectorTile {
         }
     }
 
+    /// Create a vector tile from `data`, which must be in MVT format
     public init?(
         data: Data,
         x: Int,
@@ -134,6 +149,7 @@ public struct VectorTile {
         }
     }
 
+    /// Create a vector tile by reading it from `url`, which must be in MVT format
     public init?(
         contentsOf url: URL,
         x: Int,
@@ -188,11 +204,13 @@ public struct VectorTile {
 extension VectorTile {
 
     // TODO: Compression
+    /// Returns the tile's content as MVT data
     public func data() -> Data? {
         return VectorTile.tileDataFor(layers: layers, x: x, y: y, z: z, projection: projection)
     }
 
     // TODO: Compression
+    /// Writes the tile's content to `url` in MVT format
     @discardableResult
     public func write(to url: URL) -> Bool {
         guard let data: Data = self.data() else { return false }
@@ -207,11 +225,13 @@ extension VectorTile {
         return true
     }
 
+    /// Removes all content from the tile
     public mutating func clear() {
         layers = [:]
         layerNames = []
     }
 
+    /// Creates a new tile by extracting the named layers from this tile
     public func extract(layerNames: [String]) -> VectorTile? {
         guard var newTile = VectorTile(x: x, y: y, z: z, projection: projection) else { return nil }
 
@@ -231,6 +251,7 @@ extension VectorTile {
         return layers[layerName]?.features
     }
 
+    /// Replace or add a layer with `features`
     @discardableResult
     public mutating func setFeatures(_ features: [Feature], for layerName: String) -> Bool {
         let features: [Feature] = features.map { (feature) in
@@ -264,6 +285,7 @@ extension VectorTile {
         return true
     }
 
+    /// Append `features` to a layer, or create a new layer if it doesn't already exist
     @discardableResult
     public mutating func appendFeatures(_ features: [Feature], to layerName: String) -> Bool {
         var allFeatures: [Feature] = []
@@ -306,6 +328,9 @@ extension VectorTile {
 
     // TODO: removeFeatures()
 
+    /// Remove a layer from the tile
+    ///
+    /// - returns: The removed layers' previous content
     @discardableResult
     public mutating func removeLayer(_ layerName: String) -> [Feature]? {
         let removedFeatures: LayerContainer? = layers.removeValue(forKey: layerName)
@@ -317,6 +342,7 @@ extension VectorTile {
 
 extension VectorTile: CustomStringConvertible {
 
+    /// A textual description
     public var description: String {
         let layersAndCount = layers.map({ "\($0):\($1.features.count)" })
             .sorted()

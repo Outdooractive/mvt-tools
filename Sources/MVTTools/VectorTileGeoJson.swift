@@ -4,10 +4,11 @@ import CoreLocation
 import Foundation
 import GISTools
 
+// MARK: GeoJSON write support
+
 extension VectorTile {
 
-    // MARK: - GeoJSON write support
-
+    /// Export the tile's content as GeoJSON
     public func toGeoJson(
         layerNames: [String] = [],
         prettyPrinted: Bool = false)
@@ -34,6 +35,7 @@ extension VectorTile {
         return try? JSONSerialization.data(withJSONObject: json, options: options)
     }
 
+    /// Write the tile's content as GeoJSON to `url`
     @discardableResult
     public func writeGeoJson(
         to url: URL,
@@ -55,6 +57,7 @@ extension VectorTile {
 
     // MARK: - GeoJSON support
 
+    /// Add some GeoJSON to this tile
     public mutating func addGeoJson(geoJson: GeoJson, layerName: String? = nil) {
         guard let features = geoJson.flattened?.features else { return }
 
@@ -62,6 +65,7 @@ extension VectorTile {
         appendFeatures(features, to: layerName)
     }
 
+    /// Replace some GeoJSON in this tile
     public mutating func setGeoJson(geoJson: GeoJson, layerName: String? = nil) {
         guard let features = geoJson.flattened?.features else { return }
 
