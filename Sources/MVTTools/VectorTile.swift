@@ -32,16 +32,20 @@ public struct VectorTile {
 
     /// A Boolean value indicating whether the tile is empty.
     public var isEmpty: Bool {
-        return layers.isEmpty
+        layers.isEmpty
     }
 
     /// A Boolean value indicating whether the tile is indexed, for faster querying
-    public internal(set) var isIndexed: Bool = false
+    public var isIndexed: Bool {
+        indexSortOption != nil
+    }
 
     /// The tile's bounding box
     public var boundingBox: BoundingBox
 
     // MARK: Private/Internal
+
+    internal var indexSortOption: RTreeSortOption?
 
     struct LayerContainer {
         var features: [Feature]
@@ -73,7 +77,8 @@ public struct VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: Projection = .epsg4326)
+        projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
 
@@ -100,6 +105,10 @@ public struct VectorTile {
         case .epsg4326:
             self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
         }
+
+        if let sortOption = sortOption {
+            createIndex(sortOption: sortOption)
+        }
     }
 
     /// Create a vector tile from `data`, which must be in MVT format
@@ -109,6 +118,7 @@ public struct VectorTile {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
@@ -147,6 +157,10 @@ public struct VectorTile {
         case .epsg4326:
             self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
         }
+
+        if let sortOption = sortOption {
+            createIndex(sortOption: sortOption)
+        }
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MVT format
@@ -156,6 +170,7 @@ public struct VectorTile {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil)
     {
         guard x >= 0, y >= 0, z >= 0 else { return nil }
@@ -194,6 +209,10 @@ public struct VectorTile {
 
         case .epsg4326:
             self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+        }
+
+        if let sortOption = sortOption {
+            createIndex(sortOption: sortOption)
         }
     }
 
@@ -275,8 +294,8 @@ extension VectorTile {
             features: features,
             boundingBox: layerBoundingBox)
 
-        if isIndexed {
-            newLayerContainer.rTree = RTree(features)
+        if let indexSortOption = indexSortOption {
+            newLayerContainer.rTree = RTree(features, sortOption: indexSortOption)
         }
 
         layers[layerName] = newLayerContainer
@@ -316,8 +335,8 @@ extension VectorTile {
             boundingBox: layerBoundingBox)
 
         // TODO: Improve this, don't update the complete index
-        if isIndexed {
-            newLayerContainer.rTree = RTree(features)
+        if let indexSortOption = indexSortOption {
+            newLayerContainer.rTree = RTree(features, sortOption: indexSortOption)
         }
 
         layers[layerName] = newLayerContainer

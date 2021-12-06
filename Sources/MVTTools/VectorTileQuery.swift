@@ -8,34 +8,31 @@ extension VectorTile {
 
     public typealias QueryResult = (
         layerName: String,
-        feature: Feature
-    )
+        feature: Feature)
 
     public typealias QueryManyResult = (
         coordinate: Coordinate3D,
-        results: [QueryManyLayerAndId]
-    )
+        results: [QueryManyLayerAndId])
 
     public typealias QueryManyLayerAndId = (
         layerName: String,
-        featureId: String
-    )
+        featureId: String)
 
     // MARK: - Indexing
 
     /// Create an R-Tree index on this tile for faster querying
-    public mutating func createIndex() {
+    public mutating func createIndex(sortOption: RTreeSortOption = .hilbert) {
         for layerName in layerNames {
             guard var layerContainer = layers[layerName],
                   !layerContainer.features.isEmpty
             else { continue }
 
-            layerContainer.rTree = RTree(layerContainer.features)
+            layerContainer.rTree = RTree(layerContainer.features, sortOption: sortOption)
 
             layers[layerName] = layerContainer
         }
 
-        isIndexed = true
+        indexSortOption = sortOption
     }
 
     // MARK: - Searching
@@ -94,9 +91,9 @@ extension VectorTile {
 
         for layerName in queryLayerNames {
             guard let layerFeatureContainer = layers[layerName],
-                let boundingBox = layerFeatureContainer.boundingBox,
-                boundingBox.intersects(queryBoundingBox)
-                else { continue }
+                  let boundingBox = layerFeatureContainer.boundingBox,
+                  boundingBox.intersects(queryBoundingBox)
+            else { continue }
 
             let resultFeatures: [Feature]
 
@@ -105,7 +102,7 @@ extension VectorTile {
                 resultFeatures = rTree.search(inBoundingBox: queryBoundingBox)
             }
             else {
-                resultFeatures = layerFeatureContainer.features.filter({ (feature) in
+                resultFeatures = layerFeatureContainer.features.filter({ feature in
                     // First check the feature's bounding box
                     guard feature.boundingBox?.intersects(queryBoundingBox) ?? false else { return false }
 
@@ -121,8 +118,7 @@ extension VectorTile {
 
                 result.append((
                     layerName: layerName,
-                    feature: feature
-                ))
+                    feature: feature))
             }
         }
 
@@ -147,8 +143,8 @@ extension VectorTile {
             return (features: [:], results: [])
         }
 
-        let queryBoundingBoxes: [BoundingBox] = coordinates.map { (coordinate) in
-            return VectorTile.queryBoundingBox(
+        let queryBoundingBoxes: [BoundingBox] = coordinates.map { coordinate in
+            VectorTile.queryBoundingBox(
                 at: coordinate,
                 tolerance: tolerance,
                 projection: projection)
@@ -170,9 +166,9 @@ extension VectorTile {
 
             for layerName in queryLayerNames {
                 guard let layerFeatureContainer = layers[layerName],
-                    let boundingBox = layerFeatureContainer.boundingBox,
-                    boundingBox.intersects(queryBoundingBox)
-                    else { break }
+                      let boundingBox = layerFeatureContainer.boundingBox,
+                      boundingBox.intersects(queryBoundingBox)
+                else { break }
 
                 let resultFeatures: [Feature]
 
@@ -181,7 +177,7 @@ extension VectorTile {
                     resultFeatures = rTree.search(inBoundingBox: queryBoundingBox)
                 }
                 else {
-                    resultFeatures = layerFeatureContainer.features.filter({ (feature) in
+                    resultFeatures = layerFeatureContainer.features.filter({ feature in
                         // First check the feature's bounding box
                         guard feature.boundingBox?.intersects(queryBoundingBox) ?? false else { return false }
 
@@ -207,8 +203,7 @@ extension VectorTile {
 
                     currentResult.append((
                         layerName: layerName,
-                        featureId: featureId
-                    ))
+                        featureId: featureId))
                 }
             }
 
@@ -230,7 +225,7 @@ extension VectorTile {
         -> BoundingBox
     {
         switch projection {
-        case .noSRID, .epsg3857:
+        case .epsg3857, .noSRID:
             return BoundingBox(
                 southWest: Coordinate3D(
                     latitude: coordinate.latitude - tolerance,
@@ -241,8 +236,8 @@ extension VectorTile {
 
         case .epsg4326:
             // Length of one minute at this latitude
-            let oneDegreeLongitudeDistanceInMeters: Double = cos(coordinate.longitude * Double.pi / 180.0) * 111000.0
-            let oneDegreeLatitudeDistanceInMeters: Double = 111000.0
+            let oneDegreeLongitudeDistanceInMeters: Double = cos(coordinate.longitude * Double.pi / 180.0) * 111_000.0
+            let oneDegreeLatitudeDistanceInMeters = 111_000.0
 
             let longitudeDistance: Double = (tolerance / oneDegreeLongitudeDistanceInMeters)
             let latitudeDistance: Double = (tolerance / oneDegreeLatitudeDistanceInMeters)

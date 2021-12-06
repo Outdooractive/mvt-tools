@@ -47,6 +47,8 @@ final class VectorTileTests: XCTestCase {
             return
         }
 
+        XCTAssertFalse(tile.isIndexed)
+
         measure {
             let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
             XCTAssertNotNil(result)
@@ -59,12 +61,12 @@ final class VectorTileTests: XCTestCase {
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
-        guard var tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14) else {
+        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14, indexed: .random) else {
             XCTAssert(false, "Unable to parse the vector tile \(tileName)")
             return
         }
 
-        tile.createIndex()
+        XCTAssertTrue(tile.isIndexed)
 
         measure {
             let resultWithIndex = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
