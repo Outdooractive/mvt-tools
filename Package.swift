@@ -5,7 +5,8 @@ import PackageDescription
 let package = Package(
     name: "mvt-tools",
     platforms: [
-        .macOS(.v10_15)
+        .iOS(.v13),
+        .macOS(.v10_15),
     ],
     products: [
         .library(
@@ -13,7 +14,7 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.31"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.32"),
         .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.18.0"),
     ],
     targets: [
