@@ -61,7 +61,7 @@ final class VectorTileTests: XCTestCase {
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
-        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14, indexed: .random) else {
+        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14, indexed: .hilbert) else {
             XCTAssert(false, "Unable to parse the vector tile \(tileName)")
             return
         }
