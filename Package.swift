@@ -14,7 +14,7 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.45"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.2.49"),
         .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.18.0"),
     ],
     targets: [
@@ -23,6 +23,10 @@ let package = Package(
             dependencies: [
                 .product(name: "GISTools", package: "gis-tools"),
                 .byName(name: "SwiftProtobuf"),
+            ],
+            swiftSettings: [
+                // Remove when updating to Swift 6
+                .unsafeFlags(["-Xfrontend", "-warn-concurrency", "-Xfrontend", "-enable-actor-data-race-checks"], .when(configuration: .debug))
             ]),
         .testTarget(
             name: "MVTToolsTests",
