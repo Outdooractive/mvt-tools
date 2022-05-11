@@ -224,15 +224,25 @@ extension VectorTile {
 
     // TODO: Compression
     /// Returns the tile's content as MVT data
-    public func data() -> Data? {
-        return VectorTile.tileDataFor(layers: layers, x: x, y: y, z: z, projection: projection)
+    public func data(options: VectorTileExportOptions? = nil) -> Data? {
+        return VectorTile.tileDataFor(
+            layers: layers,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            options: options ?? VectorTileExportOptions())
     }
 
     // TODO: Compression
     /// Writes the tile's content to `url` in MVT format
     @discardableResult
-    public func write(to url: URL) -> Bool {
-        guard let data: Data = self.data() else { return false }
+    public func write(
+        to url: URL,
+        options: VectorTileExportOptions? = nil)
+        -> Bool
+    {
+        guard let data: Data = self.data(options: options) else { return false }
 
         do {
             try data.write(to: url)
