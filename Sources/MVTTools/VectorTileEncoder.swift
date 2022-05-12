@@ -35,12 +35,31 @@ extension VectorTile {
             clipBoundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
         }
 
-        if let boundingBoxToExpand = clipBoundingBox,
-           options.bufferSize != 0
+        var bufferSize: Int = 0
+        switch options.bufferSize {
+        case let .extent(extent):
+            bufferSize = extent
+        case let .pixel(pixel):
+            bufferSize = (pixel / options.tileSize) * options.extent
+        }
+
+        var simplifyDistance: CLLocationDistance = 0.0
+        switch options.simplifyFeatures {
+        case .no:
+            simplifyDistance = 0.0
+        case let .extent(extent):
+            let tileBoundsInMeters = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(options.extent) * Double(extent)
+        case let .meters(meters):
+            simplifyDistance = meters
+        }
+
+        if bufferSize != 0,
+           let boundingBoxToExpand = clipBoundingBox
         {
             let sqrt2 = 2.0.squareRoot()
             let diagonal = Double(extent) * sqrt2
-            let bufferDiagonal = Double(options.bufferSize) * sqrt2
+            let bufferDiagonal = Double(bufferSize) * sqrt2
             let factor = bufferDiagonal / diagonal
 
             let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
@@ -54,7 +73,12 @@ extension VectorTile {
         for (layerName, layerContainer) in layers {
             let layerFeatures: [Feature]
             if let clipBoundingBox = clipBoundingBox {
-                layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox) })
+                if simplifyDistance > 0.0 {
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox)?.simplified(tolerance: simplifyDistance) })
+                }
+                else {
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox) })
+                }
             }
             else {
                 layerFeatures = layerContainer.features
@@ -73,10 +97,13 @@ extension VectorTile {
 
         let serializedData = try? tile.serializedData()
 
-        if options.compression,
+        if options.compression != .no,
            let serializedData = serializedData
         {
-            let value = max(0, min(9, options.compressionLevel))
+            var value = 6 // default
+            if case let .level(compressionLevel) = options.compression {
+                value = max(0, min(9, compressionLevel))
+            }
             let level = CompressionLevel(rawValue: Int32(value))
             return (try? serializedData.gzipped(level: level)) ?? serializedData
         }

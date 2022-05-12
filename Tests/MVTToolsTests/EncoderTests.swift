@@ -204,7 +204,7 @@ final class EncoderTests: XCTestCase {
             XCTAssert(false, "Unable to parse the vector tile \(tileName)")
             return
         }
-        guard let compressed = tile.data(options: VectorTileExportOptions(compression: true)) else {
+        guard let compressed = tile.data(options: VectorTileExportOptions(compression: .default)) else {
             XCTAssert(false, "Unable to get compressed tile data")
             return
         }
@@ -223,7 +223,7 @@ final class EncoderTests: XCTestCase {
             return
         }
 
-        let bufferedTileData = tile.data(options: VectorTileExportOptions(bufferSize: 0))!
+        let bufferedTileData = tile.data(options: VectorTileExportOptions(bufferSize: .extent(0)))!
         let bufferedTile = VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14)!
 
         let features: [Point] = bufferedTile.features(for: "building_label")!.compactMap({ $0.geometry as? Point })
@@ -238,11 +238,17 @@ final class EncoderTests: XCTestCase {
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
-        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14) else {
+        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["road"]) else {
             XCTAssert(false, "Unable to parse the vector tile \(tileName)")
             return
         }
 
+        let simplifiedTileData = tile.data(options: VectorTileExportOptions(bufferSize: .extent(4096), simplifyFeatures: .extent(1024)))!
+        let simplifiedTile = VectorTile(data: simplifiedTileData, x: 8716, y: 8015, z: 14)!
+
+        XCTAssertEqual(tile.features(for: "road")!.count, simplifiedTile.features(for: "road")!.count)
+
+//        print(simplifiedTile.toGeoJson(prettyPrinted: true)!.utf8EncodedString() ?? "")
     }
 
     static var allTests = [
