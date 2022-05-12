@@ -7,12 +7,12 @@ import GISTools
 // From https://www.maptiler.com/google-maps-coordinates-tile-bounds-projection/
 extension Projection {
 
-    private static let tileSize: Int = 256
-    private static let originShift: Double = 2.0 * Double.pi * 6378137.0 / 2.0 // 20037508.342789244
-    private static let initialResolution: Double = 2.0 * Double.pi * 6378137.0 / Double(tileSize) // 156543.03392804062 for tileSize 256 pixels
+    private static let tileSize = 256
+    private static let originShift = 2.0 * Double.pi * 6_378_137.0 / 2.0 // 20037508.342789244
+    private static let initialResolution = 2.0 * Double.pi * 6_378_137.0 / Double(tileSize) // 156543.03392804062 for tileSize 256 pixels
 
     /// Project EPSG:4326 to EPSG:3857
-    internal static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
+    static func projectToEpsg3857(coordinate: Coordinate3D) -> Coordinate3D {
         let coordinate = coordinate.normalized()
 
         let x: Double = coordinate.longitude * originShift / 180.0
@@ -23,7 +23,7 @@ extension Projection {
     }
 
     /// Project EPSG:3857 to EPSG:4326
-    internal static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
+    static func projectToEpsg4326(coordinate: Coordinate3D) -> Coordinate3D {
         let longitude: Double = (coordinate.longitude / originShift) * 180.0
         var latitude: Double = (coordinate.latitude / originShift) * 180.0
         latitude = 180.0 / Double.pi * (2.0 * atan(exp(latitude * Double.pi / 180.0)) - Double.pi / 2.0)
@@ -62,6 +62,7 @@ extension Projection {
         return BoundingBox(southWest: southWest, northEast: northEast)
     }
 
+    /// *x* and *y* for a tile at a coordinate and zoom.
     public static func tile(
         for coordinate: Coordinate3D,
         atZoom zoom: Int)
@@ -77,7 +78,7 @@ extension Projection {
         longitude = (longitude / 360.0) + 0.5
         latitude = 0.5 - ((log(tan((Double.pi / 4.0) + ((0.5 * Double.pi * latitude) / 180.0))) / Double.pi) / 2.0)
 
-        let scale: Double = Double(1 << zoom)
+        let scale = Double(1 << zoom)
 
         return (
             x: Int(floor(longitude * scale)),
@@ -94,8 +95,8 @@ extension Projection {
     {
         let resolution: Double = initialResolution / pow(2.0, Double(z))
 
-        let x: Double = Double(px) * resolution - originShift
-        let y: Double = Double(py) * resolution - originShift
+        let x = Double(px) * resolution - originShift
+        let y = Double(py) * resolution - originShift
 
         return Coordinate3D(latitude: y, longitude: x)
     }
