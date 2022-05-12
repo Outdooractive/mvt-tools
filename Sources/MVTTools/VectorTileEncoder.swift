@@ -14,28 +14,78 @@ extension VectorTile {
         x: Int,
         y: Int,
         z: Int,
-        projection: Projection = .epsg4326)
+        projection: Projection = .epsg4326,
+        options: VectorTileExportOptions)
         -> Data?
     {
         var tile = VectorTile_Tile()
 
-        let extent: UInt32 = 4096
+        let extent: UInt32 = UInt32(options.extent)
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+        var clipBoundingBox: BoundingBox?
 
         switch projection {
         case .noSRID:
-            projectionFunction = passThroughToTile
+            projectionFunction = passThroughToTile()
         case .epsg3857:
             projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
+            clipBoundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
         case .epsg4326:
             projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
+            clipBoundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+        }
+
+        var bufferSize: Int = 0
+        switch options.bufferSize {
+        case let .extent(extent):
+            bufferSize = extent
+        case let .pixel(pixel):
+            bufferSize = (pixel / options.tileSize) * options.extent
+        }
+
+        var simplifyDistance: CLLocationDistance = 0.0
+        switch options.simplifyFeatures {
+        case .no:
+            simplifyDistance = 0.0
+        case let .extent(extent):
+            let tileBoundsInMeters = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(options.extent) * Double(extent)
+        case let .meters(meters):
+            simplifyDistance = meters
+        }
+
+        if bufferSize != 0,
+           let boundingBoxToExpand = clipBoundingBox
+        {
+            let sqrt2 = 2.0.squareRoot()
+            let diagonal = Double(extent) * sqrt2
+            let bufferDiagonal = Double(bufferSize) * sqrt2
+            let factor = bufferDiagonal / diagonal
+
+            let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
+            let distance = diagonalLength * factor
+
+            clipBoundingBox = boundingBoxToExpand.expand(distance: distance)
         }
 
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
 
         for (layerName, layerContainer) in layers {
+            let layerFeatures: [Feature]
+            if let clipBoundingBox = clipBoundingBox {
+                if simplifyDistance > 0.0 {
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox)?.simplified(tolerance: simplifyDistance) })
+                }
+                else {
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox) })
+                }
+            }
+            else {
+                layerFeatures = layerContainer.features
+            }
+
             var layer: VectorTile_Tile.Layer = encodeVersion2(
-                features: layerContainer.features,
+                features: layerFeatures,
                 extent: extent,
                 projectionFunction: projectionFunction)
             layer.name = layerName
@@ -45,7 +95,21 @@ extension VectorTile {
 
         tile.layers = vectorTileLayers
 
-        return try? tile.serializedData()
+        let serializedData = try? tile.serializedData()
+
+        if options.compression != .no,
+           let serializedData = serializedData
+        {
+            var value = 6 // default
+            if case let .level(compressionLevel) = options.compression {
+                value = max(0, min(9, compressionLevel))
+            }
+            let level = CompressionLevel(rawValue: Int32(value))
+            return (try? serializedData.gzipped(level: level)) ?? serializedData
+        }
+        else {
+            return serializedData
+        }
     }
 
     static func encodeVersion2(
@@ -326,11 +390,12 @@ extension VectorTile {
 
     // MARK: - Projections
 
-    static func passThroughToTile(
-        coordinate: Coordinate3D)
-        -> (x: Int, y: Int)
-    {
-        return (x: Int(coordinate.longitude), y: Int(coordinate.latitude))
+    static func passThroughToTile() -> ((Coordinate3D) -> (x: Int, y: Int)) {
+        return { (coordinate) -> (Int, Int) in
+            let x = Int(coordinate.longitude)
+            let y = Int(coordinate.latitude)
+            return (x: x, y: y)
+        }
     }
 
     static func projectFromEpsg3857(
@@ -349,7 +414,7 @@ extension VectorTile {
 
         return { (coordinate) -> (Int, Int) in
             let projectedX: Int = Int(((coordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
-            let projectedY: Int = Int(((coordinate.latitude - topLeft.latitude) / latitudeSpan) * extent)
+            let projectedY: Int = Int(((topLeft.latitude - coordinate.latitude) / latitudeSpan) * extent)
             return (projectedX, projectedY)
         }
     }
@@ -370,7 +435,7 @@ extension VectorTile {
 
         return { (coordinate) -> (Int, Int) in
             let projectedX: Int = Int(((coordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
-            let projectedY: Int = Int(((coordinate.latitude - topLeft.latitude) / latitudeSpan) * extent)
+            let projectedY: Int = Int(((topLeft.latitude - coordinate.latitude) / latitudeSpan) * extent)
             return (projectedX, projectedY)
         }
     }

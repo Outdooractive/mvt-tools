@@ -224,15 +224,25 @@ extension VectorTile {
 
     // TODO: Compression
     /// Returns the tile's content as MVT data
-    public func data() -> Data? {
-        return VectorTile.tileDataFor(layers: layers, x: x, y: y, z: z, projection: projection)
+    public func data(options: VectorTileExportOptions? = nil) -> Data? {
+        return VectorTile.tileDataFor(
+            layers: layers,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            options: options ?? VectorTileExportOptions())
     }
 
     // TODO: Compression
     /// Writes the tile's content to `url` in MVT format
     @discardableResult
-    public func write(to url: URL) -> Bool {
-        guard let data: Data = self.data() else { return false }
+    public func write(
+        to url: URL,
+        options: VectorTileExportOptions? = nil)
+        -> Bool
+    {
+        guard let data: Data = self.data(options: options) else { return false }
 
         do {
             try data.write(to: url)
@@ -336,7 +346,7 @@ extension VectorTile {
 
         // TODO: Improve this, don't update the complete index
         if let indexSortOption = indexSortOption {
-            newLayerContainer.rTree = RTree(features, sortOption: indexSortOption)
+            newLayerContainer.rTree = RTree(allFeatures, sortOption: indexSortOption)
         }
 
         layers[layerName] = newLayerContainer
@@ -345,7 +355,34 @@ extension VectorTile {
         return true
     }
 
-    // TODO: removeFeatures()
+    /// Remove features from a layer.
+    @discardableResult
+    public mutating func removeFeatures(fromLayer layerName: String, where shouldBeRemoved: (Feature) -> Bool) -> Bool {
+        guard let layerContainer = layers[layerName] else { return false }
+
+        var allFeatures = layerContainer.features
+        allFeatures.removeAll(where: shouldBeRemoved)
+
+        let boundingBoxes: [BoundingBox] = allFeatures.compactMap({ $0.boundingBox })
+        var layerBoundingBox: BoundingBox?
+        if !boundingBoxes.isEmpty {
+            layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
+        }
+
+        var newLayerContainer = LayerContainer(
+            features: allFeatures,
+            boundingBox: layerBoundingBox)
+
+        // TODO: Improve this, don't update the complete index
+        if let indexSortOption = indexSortOption {
+            newLayerContainer.rTree = RTree(allFeatures, sortOption: indexSortOption)
+        }
+
+        layers[layerName] = newLayerContainer
+        layerNames = Array(layers.keys)
+
+        return true
+    }
 
     /// Remove a layer from the tile
     ///

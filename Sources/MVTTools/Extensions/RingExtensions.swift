@@ -13,6 +13,8 @@ extension Ring {
         return !isClockwise
     }
 
+    /// Note: Vector tiles have a flipped y axis, so
+    /// clockwise/counterClockwise are reverted
     var isUnprojectedCounterClockwise: Bool {
         return !isCounterClockwise
     }

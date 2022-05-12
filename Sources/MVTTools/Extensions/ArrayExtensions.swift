@@ -2,7 +2,7 @@ import Foundation
 
 extension Array {
 
-    /// Adds a new element at the end of the array, if it's not *nil*
+    /// Adds a new element at the end of the array if it's not *nil*.
     mutating func append(ifNotNil element: Element?) {
         guard let element = element else { return }
         append(element)
@@ -22,7 +22,7 @@ extension Array {
 
     // MARK: -
 
-    /// Fetches an element from the array, or returns nil if the index is out of bounds.
+    /// Fetches an element from the array, or returns *nil* if the index is out of bounds.
     ///
     /// - parameter index: The index in the array. May be negative. In this case, -1 will be the last element, -2 the second-to-last, and so on.
     func get(at index: Int) -> Element? {
