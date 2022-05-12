@@ -26,7 +26,7 @@ let package = Package(
             ],
             swiftSettings: [
                 // Remove when updating to Swift 6
-                .unsafeFlags(["-Xfrontend", "-warn-concurrency", "-Xfrontend", "-enable-actor-data-race-checks"], .when(configuration: .debug))
+//                .unsafeFlags(["-Xfrontend", "-warn-concurrency", "-Xfrontend", "-enable-actor-data-race-checks"], .when(configuration: .debug))
             ]),
         .testTarget(
             name: "MVTToolsTests",
