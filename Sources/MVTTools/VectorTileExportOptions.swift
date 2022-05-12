@@ -52,4 +52,14 @@ public struct VectorTileExportOptions {
     /// Simplify features before encoding them (default: **no**).
     public var simplifyFeatures: SimplifyFeaturesOptions = .no
 
+    public init(
+        bufferSize: BufferSizeOptions = .extent(0),
+        compression: CompressionOptions = .no,
+        simplifyFeatures: SimplifyFeaturesOptions = .no)
+    {
+        self.bufferSize = bufferSize
+        self.compression = compression
+        self.simplifyFeatures = simplifyFeatures
+    }
+
 }
