@@ -41,7 +41,7 @@ public struct VectorTile {
     }
 
     /// The tile's bounding box
-    public var boundingBox: BoundingBox
+    public var boundingBox: ProjectedBoundingBox
 
     // MARK: Private/Internal
 
@@ -95,9 +95,9 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = BoundingBox(
-                southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
-                northEast: Coordinate3D(latitude: 4096, longitude: 4096))
+            self.boundingBox = ProjectedBoundingBox(
+                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
+                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
             self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
@@ -147,9 +147,9 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = BoundingBox(
-                southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
-                northEast: Coordinate3D(latitude: 4096, longitude: 4096))
+            self.boundingBox = ProjectedBoundingBox(
+                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
+                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
             self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
@@ -200,9 +200,9 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = BoundingBox(
-                southWest: Coordinate3D(latitude: 0.0, longitude: 0.0),
-                northEast: Coordinate3D(latitude: 4096, longitude: 4096))
+            self.boundingBox = ProjectedBoundingBox(
+                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
+                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
             self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)

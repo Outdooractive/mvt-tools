@@ -22,7 +22,7 @@ extension VectorTile {
 
         let extent: UInt32 = UInt32(options.extent)
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
-        var clipBoundingBox: BoundingBox?
+        var clipBoundingBox: ProjectedBoundingBox?
 
         switch projection {
         case .noSRID:
@@ -72,12 +72,12 @@ extension VectorTile {
 
         for (layerName, layerContainer) in layers {
             let layerFeatures: [Feature]
-            if let clipBoundingBox = clipBoundingBox {
+            if let clippedToBoundingBox = clipBoundingBox?.boundingBox {
                 if simplifyDistance > 0.0 {
-                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox)?.simplified(tolerance: simplifyDistance) })
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
                 }
                 else {
-                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox) })
+                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox ) })
                 }
             }
             else {
