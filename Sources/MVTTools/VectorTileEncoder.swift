@@ -40,7 +40,7 @@ extension VectorTile {
         case let .extent(extent):
             bufferSize = extent
         case let .pixel(pixel):
-            bufferSize = (pixel / options.tileSize) * options.extent
+            bufferSize = Int((Double(pixel) / Double(options.tileSize)) * Double(options.extent))
         }
 
         var simplifyDistance: CLLocationDistance = 0.0
