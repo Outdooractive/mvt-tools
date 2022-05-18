@@ -124,12 +124,38 @@ final class VectorTileTests: XCTestCase {
         XCTAssertEqual(layers.count, 23)
     }
 
+    func testMerge() {
+        var tile1 = VectorTile(x: 0, y: 0, z: 0)!
+        var tile2 = VectorTile(x: 0, y: 0, z: 0)!
+        var tile3 = VectorTile(x: 0, y: 0, z: 0)!
+
+        let feature1 = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
+        let feature2 = Feature(Point(Coordinate3D(latitude: -10.0, longitude: -10.0)))
+
+        XCTAssertEqual(tile1.features(for: "test1")?.count ?? 0, 0)
+        XCTAssertEqual(tile1.features(for: "test2")?.count ?? 0, 0)
+
+        tile1.appendFeatures([feature1], to: "test1")
+        tile2.appendFeatures([feature2], to: "test1")
+        tile3.appendFeatures([feature2], to: "test2")
+
+        XCTAssertEqual(tile1.features(for: "test1")!.count, 1)
+        XCTAssertTrue(tile1.merge(tile2))
+        XCTAssertEqual(tile1.features(for: "test1")!.count, 2)
+
+        XCTAssertEqual(tile1.features(for: "test2")?.count ?? 0, 0)
+        XCTAssertTrue(tile1.merge(tile3))
+        XCTAssertEqual(tile1.features(for: "test1")!.count, 2)
+        XCTAssertEqual(tile1.features(for: "test2")!.count, 1)
+    }
+
     static var allTests = [
         ("testLoadMvt", testLoadMvt),
         ("testQuery", testQuery),
         ("testQueryWithIndex", testQueryWithIndex),
         ("testWriteMvt", testWriteMvt),
         ("testTileInfo", testTileInfo),
+        ("testMerge", testMerge),
     ]
 
 }

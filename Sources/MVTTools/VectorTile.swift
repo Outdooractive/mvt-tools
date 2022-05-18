@@ -222,7 +222,6 @@ public struct VectorTile {
 
 extension VectorTile {
 
-    // TODO: Compression
     /// Returns the tile's content as MVT data
     public func data(options: VectorTileExportOptions? = nil) -> Data? {
         return VectorTile.tileDataFor(
@@ -234,7 +233,6 @@ extension VectorTile {
             options: options ?? VectorTileExportOptions())
     }
 
-    // TODO: Compression
     /// Writes the tile's content to `url` in MVT format
     @discardableResult
     public func write(
