@@ -9,6 +9,7 @@ import GISTools
 extension VectorTile {
 
     /// Merge another vector tile into this tile.
+    @discardableResult
     public mutating func merge(_ other: VectorTile) -> Bool {
         guard other.x == x,
               other.y == y,
