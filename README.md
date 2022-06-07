@@ -6,7 +6,7 @@ Vector tiles reader/writer for Swift
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.2.2"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.3.6"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -75,4 +75,4 @@ MIT
 
 ## Author
 
-Thomas Rasch, OutdoorActive
+Thomas Rasch, Outdooractive
