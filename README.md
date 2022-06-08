@@ -3,13 +3,13 @@
 
 # MVTTools
 
-Vector tiles reader/writer for Swift
+Mapnik vector tiles (MVT) reader/writer for Swift.
 
 ## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.3.6"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.3.8"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -20,12 +20,58 @@ targets: [
 
 ## Features
 
-TODO
+- Load and write Mapnik Vector Tiles from/to disk or data objects
+- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
+- Can dump a tile as a GeoJSON object
+- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
+- Fast search (supports indexing), either within a bounding box or with center and radius
+- Extract selected layers into a new tile
+- Merge two tiles into one
+- Can extract some infos from tiles like feature count, etc.
 
 ## Usage
 
+### Load
+
 ```swift
 import MVTTools
+
+// Load
+let mvtData = Data(contentsOf: URL(fileURLWithPath: "14_8716_8015.vector.mvt"))!
+let tile = VectorTile(data: mvtData, x: 8716, y: 8015, z: 14, indexed: .hilbert)!
+
+print(tile.isIndexed)
+print(tile.layerNames.sorted())
+
+let tileAsGeoJsonData: Data? = tile.toGeoJson(prettyPrinted: true)
+...
+
+let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
+...
+```
+
+### Write
+
+```swift
+import MVTTools
+
+var tile = VectorTile(x: 8716, y: 8015, z: 14)!
+var feature = Feature(Point(Coordinate3D(latitude: 3.870163, longitude: 11.518585)))
+feature.properties = [
+    "test": 1,
+    "test2": 5.567,
+    "test3": [1, 2, 3],
+    "test4": [
+        "sub1": 1,
+        "sub2": 2
+    ]
+]
+
+tile.setFeatures([feature], for: "test")
+
+// Also have a look at ``VectorTileExportOptions``
+let tileData = tile.data()
+...
 ```
 
 ## Contributing
@@ -43,8 +89,6 @@ brew install protobuf swift-protobuf swiftlint
 - Documentation (!)
 - Tests
 - Decode V1 tiles
-- Clipping
-- Simplification
 - Locking (when updating/deleting features, indexing)
 - Query option: within/intersects
 
