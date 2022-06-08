@@ -3,6 +3,7 @@ import CoreLocation
 #endif
 import Foundation
 import GISTools
+import Gzip
 import struct GISTools.Polygon
 
 // MARK: Writing vector tiles
