@@ -37,6 +37,54 @@ extension VectorTile {
 
     // MARK: - Searching
 
+    /// Search for `term` in feature properties
+    public func query(
+        term: String,
+        layerName: String? = nil,
+        featureFilter: ((Feature) -> Bool)? = nil,
+        projection: Projection = .epsg4326)
+        -> [QueryResult]
+    {
+        if projection != self.projection {
+            assertionFailure("Reprojection is currently not supported")
+            return []
+        }
+
+        let queryLayerNames: [String]
+        if let layerName = layerName {
+            queryLayerNames = [layerName]
+        }
+        else {
+            queryLayerNames = layerNames
+        }
+
+        var result: [QueryResult] = []
+
+        for layerName in queryLayerNames {
+            guard let layerFeatureContainer = layers[layerName] else { continue }
+
+            let resultFeatures: [Feature] = layerFeatureContainer.features.filter({ feature in
+                for value in feature.properties.values.compactMap({ $0 as? String }) {
+                    if value.contains(term) {
+                        return true
+                    }
+                }
+
+                return false
+            })
+
+            for feature in resultFeatures {
+                guard featureFilter?(feature) ?? true else { continue }
+
+                result.append((
+                    layerName: layerName,
+                    feature: feature))
+            }
+        }
+
+        return result
+    }
+
     /// Search for content in this tile around `coordinate`
     ///
     /// Note: The meaning of *tolerance* depends on the projection.
