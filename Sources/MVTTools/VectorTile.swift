@@ -286,7 +286,7 @@ extension VectorTile {
             feature.updateBoundingBox(onlyIfNecessary: true)
 
             if feature.id == nil {
-                feature.id = UUID().uuidString
+                feature.id = .string(UUID().uuidString)
             }
 
             return feature
@@ -326,7 +326,7 @@ extension VectorTile {
             feature.updateBoundingBox(onlyIfNecessary: true)
 
             if feature.id == nil {
-                feature.id = UUID().uuidString
+                feature.id = .string(UUID().uuidString)
             }
 
             return feature

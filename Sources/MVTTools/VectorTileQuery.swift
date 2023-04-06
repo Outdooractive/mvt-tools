@@ -16,7 +16,7 @@ extension VectorTile {
 
     public typealias QueryManyLayerAndId = (
         layerName: String,
-        featureId: String)
+        featureId: Feature.Identifier)
 
     // MARK: - Indexing
 
@@ -184,7 +184,7 @@ extension VectorTile {
         featureFilter: ((Feature) -> Bool)? = nil,
         includeDuplicates: Bool = true,
         projection: Projection = .epsg4326)
-        -> (features: [String: Feature], results: [QueryManyResult])
+        -> (features: [Feature.Identifier: Feature], results: [QueryManyResult])
     {
         if projection != self.projection {
             assertionFailure("Reprojection is currently not supported")
@@ -207,7 +207,7 @@ extension VectorTile {
         }
 
         var results: [QueryManyResult] = []
-        var features: [String: Feature] = [:]
+        var features: [Feature.Identifier: Feature] = [:]
 
         for (index, queryBoundingBox) in queryBoundingBoxes.enumerated() {
             var currentResult: [QueryManyLayerAndId] = []

@@ -128,7 +128,7 @@ extension VectorTile {
                 properties[key] = value
             }
             layerFeature.properties = properties
-            layerFeature.id = (feature.hasID
+            layerFeature.id = .string(feature.hasID
                 ? String(feature.id)
                 : UUID().uuidString)
 

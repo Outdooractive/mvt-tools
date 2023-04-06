@@ -273,10 +273,10 @@ extension VectorTile {
             vectorTileFeature.type = geometryType
             vectorTileFeature.geometry = geometryIntegers
 
-            if let featureId = feature.id,
-                let featureIdAsInt = UInt64(featureId)
+            if case let .int(int) = feature.id,
+               let converted = UInt64(exactly: int)
             {
-                vectorTileFeature.id = featureIdAsInt
+                vectorTileFeature.id = converted
             }
 
             return vectorTileFeature
