@@ -1,4 +1,4 @@
-// swift-tools-version:5.6
+// swift-tools-version:5.7
 
 import PackageDescription
 
@@ -19,10 +19,10 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.3.4"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "0.5.3"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", from: "5.2.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.1.2"),
-        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.19.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.2"),
+        .package(name: "SwiftProtobuf", url: "https://github.com/apple/swift-protobuf", from: "1.21.0"),
     ],
     targets: [
         .executableTarget(

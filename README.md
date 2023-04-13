@@ -9,7 +9,7 @@ Mapnik vector tiles (MVT) reader/writer for Swift.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.3.8"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "0.4.0"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
