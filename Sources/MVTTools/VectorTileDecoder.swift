@@ -311,7 +311,7 @@ extension VectorTile {
         -> ((Int, Int) -> Coordinate3D)
     {
         let extent: Double = Double(extent)
-        let bounds = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+        let bounds = MapTile(x: x, y: y, z: z).epsg3857TileBounds
 
         let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
         let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
@@ -332,7 +332,7 @@ extension VectorTile {
         -> ((Int, Int) -> Coordinate3D)
     {
         let extent: Double = Double(extent)
-        let bounds = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+        let bounds = MapTile(x: x, y: y, z: z).epsg4236TileBounds
 
         let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
         let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)

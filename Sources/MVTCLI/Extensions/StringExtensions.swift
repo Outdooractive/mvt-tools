@@ -8,7 +8,7 @@ extension String {
         _ pattern: String,
         caseInsensitive: Bool = false,
         treatAsOneLine: Bool = false)
-    -> [String]
+        -> [String]
     {
         var options = NSRegularExpression.Options()
 

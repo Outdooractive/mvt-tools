@@ -30,10 +30,10 @@ extension VectorTile {
             projectionFunction = passThroughToTile()
         case .epsg3857:
             projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
-            clipBoundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            clipBoundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
         case .epsg4326:
             projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
-            clipBoundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+            clipBoundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
         }
 
         var bufferSize: Int = 0
@@ -49,7 +49,7 @@ extension VectorTile {
         case .no:
             simplifyDistance = 0.0
         case let .extent(extent):
-            let tileBoundsInMeters = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            let tileBoundsInMeters = MapTile(x: x, y: y, z: z).epsg3857TileBounds
             simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(options.extent) * Double(extent)
         case let .meters(meters):
             simplifyDistance = meters
@@ -407,7 +407,7 @@ extension VectorTile {
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
         let extent: Double = Double(extent)
-        let bounds = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+        let bounds = MapTile(x: x, y: y, z: z).epsg3857TileBounds
 
         let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
         let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
@@ -428,7 +428,7 @@ extension VectorTile {
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
         let extent: Double = Double(extent)
-        let bounds = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+        let bounds = MapTile(x: x, y: y, z: z).epsg4236TileBounds
 
         let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
         let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)

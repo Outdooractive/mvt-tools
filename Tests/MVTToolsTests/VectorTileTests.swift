@@ -149,13 +149,4 @@ final class VectorTileTests: XCTestCase {
         XCTAssertEqual(tile1.features(for: "test2")!.count, 1)
     }
 
-    static var allTests = [
-        ("testLoadMvt", testLoadMvt),
-        ("testQuery", testQuery),
-        ("testQueryWithIndex", testQueryWithIndex),
-        ("testWriteMvt", testWriteMvt),
-        ("testTileInfo", testTileInfo),
-        ("testMerge", testMerge),
-    ]
-
 }

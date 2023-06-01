@@ -227,7 +227,7 @@ final class EncoderTests: XCTestCase {
         let bufferedTile = VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14)!
 
         let features: [Point] = bufferedTile.features(for: "building_label")!.compactMap({ $0.geometry as? Point })
-        let bounds = Projection.epsg4236TileBounds(x: 8716, y: 8015, z: 14)
+        let bounds = MapTile(x: 8716, y: 8015, z: 14).epsg4236TileBounds
 
         XCTAssertGreaterThan(features.count, 0)
         XCTAssertTrue(features.allSatisfy({ bounds.contains($0.coordinate) }))
@@ -250,14 +250,6 @@ final class EncoderTests: XCTestCase {
 
 //        print(simplifiedTile.toGeoJson(prettyPrinted: true)!.utf8EncodedString() ?? "")
     }
-
-    static var allTests = [
-        ("testFeatureGeometryEncoder", testFeatureGeometryEncoder),
-        ("testFeatureConversion", testFeatureConversion),
-        ("testCompressOption", testCompressOption),
-        ("testBufferSizeOption", testBufferSizeOption),
-        ("testSimplifyOption", testSimplifyOption),
-    ]
 
 }
 

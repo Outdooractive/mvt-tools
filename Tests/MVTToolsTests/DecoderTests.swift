@@ -237,9 +237,4 @@ final class DecoderTests: XCTestCase {
         XCTAssertEqual(boundingBox6, result6.calculateBoundingBox())
     }
 
-    static var allTests = [
-        ("testFeatureGeometryDecoder", testFeatureGeometryDecoder),
-        ("testFeatureConversion", testFeatureConversion),
-    ]
-
 }

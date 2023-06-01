@@ -19,6 +19,11 @@ public struct VectorTile {
     /// The tile's zoom level
     public let z: Int
 
+    /// The tile coordinates as a ``MapTile``.
+    public var mapTile: MapTile {
+        MapTile(x: x, y: y, z: z)
+    }
+
     /// The layer names in the tile
     public private(set) var layerNames: [String]
 
@@ -72,7 +77,7 @@ public struct VectorTile {
 
     // MARK: - Initializers
 
-    /// Create an empty vector tile at `z`/`x`/`y`
+    /// Create an empty vector tile at `z`/`x`/`y`.
     public init?(
         x: Int,
         y: Int,
@@ -100,10 +105,10 @@ public struct VectorTile {
                 northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
-            self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
 
         case .epsg4326:
-            self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
         }
 
         if let sortOption = sortOption {
@@ -111,7 +116,16 @@ public struct VectorTile {
         }
     }
 
-    /// Create a vector tile from `data`, which must be in MVT format
+    /// Create an empty vector tile at some map tile coordinate.
+    public init?(
+        tile: MapTile,
+        projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil)
+    {
+        self.init(x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption)
+    }
+
+    /// Create a vector tile from `data`, which must be in MVT format, at `z`/`x`/`y`.
     public init?(
         data: Data,
         x: Int,
@@ -152,10 +166,10 @@ public struct VectorTile {
                 northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
-            self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
 
         case .epsg4326:
-            self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
         }
 
         if let sortOption = sortOption {
@@ -163,7 +177,18 @@ public struct VectorTile {
         }
     }
 
-    /// Create a vector tile by reading it from `url`, which must be in MVT format
+    /// Create a vector tile from `data`, which must be in MVT format, at some tile coordinate.
+    public init?(
+        data: Data,
+        tile: MapTile,
+        projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil,
+        layerWhitelist: [String]? = nil)
+    {
+        self.init(data: data, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist)
+    }
+
+    /// Create a vector tile by reading it from `url`, which must be in MVT format, at `z`/`x`/`y`.
     public init?(
         contentsOf url: URL,
         x: Int,
@@ -205,15 +230,26 @@ public struct VectorTile {
                 northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
 
         case .epsg3857:
-            self.boundingBox = Projection.epsg3857TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
 
         case .epsg4326:
-            self.boundingBox = Projection.epsg4236TileBounds(x: x, y: y, z: z)
+            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
         }
 
         if let sortOption = sortOption {
             createIndex(sortOption: sortOption)
         }
+    }
+
+    /// Create a vector tile by reading it from `url`, which must be in MVT format, at some tile coordinate.
+    public init?(
+        contentsOf url: URL,
+        tile: MapTile,
+        projection: Projection = .epsg4326,
+        indexed sortOption: RTreeSortOption? = nil,
+        layerWhitelist: [String]? = nil)
+    {
+        self.init(contentsOf: url, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist)
     }
 
 }

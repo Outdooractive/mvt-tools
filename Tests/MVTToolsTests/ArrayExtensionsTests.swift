@@ -50,10 +50,4 @@ final class ArrayExtensionsTests: XCTestCase {
         XCTAssertNil(array.get(at: -8))
     }
 
-    static var allTests = [
-        ("testPairs", testPairs),
-        ("testSmallPairs", testSmallPairs),
-        ("testGet", testGet),
-    ]
-
 }
