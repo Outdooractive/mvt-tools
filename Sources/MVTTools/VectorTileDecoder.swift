@@ -324,6 +324,7 @@ extension VectorTile {
         }
     }
 
+    // Note: Need to project 4326 to 3857 first
     static func projectToEpsg4326(
         x: Int,
         y: Int,

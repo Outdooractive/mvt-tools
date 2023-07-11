@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Outdooractive/gis-tools",
       "state" : {
-        "revision" : "11bbaa35668f9b1aba7df1a0aeeb82867eece498",
-        "version" : "0.6.4"
+        "revision" : "f496ead69aff20cd27c28f43450d5c2b914e4c67",
+        "version" : "0.6.5"
       }
     },
     {
