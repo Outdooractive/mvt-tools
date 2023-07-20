@@ -46,7 +46,7 @@ public struct VectorTile {
     }
 
     /// The tile's bounding box
-    public var boundingBox: ProjectedBoundingBox
+    public var boundingBox: BoundingBox
 
     // MARK: Private/Internal
 
@@ -100,15 +100,12 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = ProjectedBoundingBox(
-                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
-                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
+            self.boundingBox = BoundingBox(
+                southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
+                northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
 
-        case .epsg3857:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
-
-        case .epsg4326:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
+        case .epsg3857, .epsg4326:
+            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         if let sortOption = sortOption {
@@ -161,15 +158,12 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = ProjectedBoundingBox(
-                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
-                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
+            self.boundingBox = BoundingBox(
+                southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
+                northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
 
-        case .epsg3857:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
-
-        case .epsg4326:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
+        case .epsg3857, .epsg4326:
+            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         if let sortOption = sortOption {
@@ -225,15 +219,12 @@ public struct VectorTile {
 
         switch projection {
         case .noSRID:
-            self.boundingBox = ProjectedBoundingBox(
-                southWest: ProjectedCoordinate(latitude: 0.0, longitude: 0.0, projection: .noSRID),
-                northEast: ProjectedCoordinate(latitude: 4096, longitude: 4096, projection: .noSRID))
+            self.boundingBox = BoundingBox(
+                southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
+                northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
 
-        case .epsg3857:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
-
-        case .epsg4326:
-            self.boundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
+        case .epsg3857, .epsg4326:
+            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         if let sortOption = sortOption {

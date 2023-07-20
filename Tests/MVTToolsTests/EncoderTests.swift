@@ -227,7 +227,7 @@ final class EncoderTests: XCTestCase {
         let bufferedTile = VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14)!
 
         let features: [Point] = bufferedTile.features(for: "building_label")!.compactMap({ $0.geometry as? Point })
-        let bounds = MapTile(x: 8716, y: 8015, z: 14).epsg4236TileBounds
+        let bounds = MapTile(x: 8716, y: 8015, z: 14).boundingBox(projection: .epsg4326)
 
         XCTAssertGreaterThan(features.count, 0)
         XCTAssertTrue(features.allSatisfy({ bounds.contains($0.coordinate) }))
