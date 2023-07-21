@@ -23,17 +23,17 @@ extension VectorTile {
 
         let extent: UInt32 = UInt32(options.extent)
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
-        var clipBoundingBox: ProjectedBoundingBox?
+        var clipBoundingBox: BoundingBox?
 
         switch projection {
         case .noSRID:
             projectionFunction = passThroughToTile()
         case .epsg3857:
             projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
-            clipBoundingBox = MapTile(x: x, y: y, z: z).epsg3857TileBounds
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
         case .epsg4326:
             projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
-            clipBoundingBox = MapTile(x: x, y: y, z: z).epsg4236TileBounds
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
         }
 
         var bufferSize: Int = 0
@@ -49,7 +49,7 @@ extension VectorTile {
         case .no:
             simplifyDistance = 0.0
         case let .extent(extent):
-            let tileBoundsInMeters = MapTile(x: x, y: y, z: z).epsg3857TileBounds
+            let tileBoundsInMeters = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
             simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(options.extent) * Double(extent)
         case let .meters(meters):
             simplifyDistance = meters
@@ -73,7 +73,7 @@ extension VectorTile {
 
         for (layerName, layerContainer) in layers {
             let layerFeatures: [Feature]
-            if let clippedToBoundingBox = clipBoundingBox?.boundingBox {
+            if let clippedToBoundingBox = clipBoundingBox {
                 if simplifyDistance > 0.0 {
                     layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
                 }
@@ -393,9 +393,7 @@ extension VectorTile {
 
     static func passThroughToTile() -> ((Coordinate3D) -> (x: Int, y: Int)) {
         return { (coordinate) -> (Int, Int) in
-            let x = Int(coordinate.longitude)
-            let y = Int(coordinate.latitude)
-            return (x: x, y: y)
+            return (x: Int(coordinate.x), y: Int(coordinate.y))
         }
     }
 
@@ -407,15 +405,15 @@ extension VectorTile {
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
         let extent: Double = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).epsg3857TileBounds
+        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
-        let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
-        let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
-        let longitudeSpan: Double = abs(bounds.northEast.longitude - bounds.southWest.longitude)
+        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
+        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
+        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
 
         return { (coordinate) -> (Int, Int) in
-            let projectedX: Int = Int(((coordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
-            let projectedY: Int = Int(((topLeft.latitude - coordinate.latitude) / latitudeSpan) * extent)
+            let projectedX: Int = Int(((coordinate.x - topLeft.x) / xSpan) * extent)
+            let projectedY: Int = Int(((topLeft.y - coordinate.y) / ySpan) * extent)
             return (projectedX, projectedY)
         }
     }
@@ -428,16 +426,16 @@ extension VectorTile {
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
         let extent: Double = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).epsg3857TileBounds
+        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
-        let topLeft = Coordinate3D(latitude: bounds.northEast.latitude, longitude: bounds.southWest.longitude)
-        let latitudeSpan: Double = abs(bounds.northEast.latitude - bounds.southWest.latitude)
-        let longitudeSpan: Double = abs(bounds.northEast.longitude - bounds.southWest.longitude)
+        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
+        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
+        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
 
         return { (coordinate) -> (Int, Int) in
-            let projectedCoordinate = coordinate.projectedToEpsg3857
-            let projectedX: Int = Int(((projectedCoordinate.longitude - topLeft.longitude) / longitudeSpan) * extent)
-            let projectedY: Int = Int(((topLeft.latitude - projectedCoordinate.latitude) / latitudeSpan) * extent)
+            let projectedCoordinate = coordinate.projected(to: .epsg3857)
+            let projectedX: Int = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
+            let projectedY: Int = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
             return (projectedX, projectedY)
         }
     }
