@@ -262,6 +262,14 @@ extension VectorTile_Tile.GeomType: CaseIterable {
 
 #endif  // swift(>=4.2)
 
+#if swift(>=5.5) && canImport(_Concurrency)
+extension VectorTile_Tile: @unchecked Sendable {}
+extension VectorTile_Tile.GeomType: @unchecked Sendable {}
+extension VectorTile_Tile.Value: @unchecked Sendable {}
+extension VectorTile_Tile.Feature: @unchecked Sendable {}
+extension VectorTile_Tile.Layer: @unchecked Sendable {}
+#endif  // swift(>=5.5) && canImport(_Concurrency)
+
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
 fileprivate let _protobuf_package = "vector_tile"
@@ -355,27 +363,31 @@ extension VectorTile_Tile.Value: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
   }
 
   func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if let v = self._stringValue {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._stringValue {
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
-    }
-    if let v = self._floatValue {
+    } }()
+    try { if let v = self._floatValue {
       try visitor.visitSingularFloatField(value: v, fieldNumber: 2)
-    }
-    if let v = self._doubleValue {
+    } }()
+    try { if let v = self._doubleValue {
       try visitor.visitSingularDoubleField(value: v, fieldNumber: 3)
-    }
-    if let v = self._intValue {
+    } }()
+    try { if let v = self._intValue {
       try visitor.visitSingularInt64Field(value: v, fieldNumber: 4)
-    }
-    if let v = self._uintValue {
+    } }()
+    try { if let v = self._uintValue {
       try visitor.visitSingularUInt64Field(value: v, fieldNumber: 5)
-    }
-    if let v = self._sintValue {
+    } }()
+    try { if let v = self._sintValue {
       try visitor.visitSingularSInt64Field(value: v, fieldNumber: 6)
-    }
-    if let v = self._boolValue {
+    } }()
+    try { if let v = self._boolValue {
       try visitor.visitSingularBoolField(value: v, fieldNumber: 7)
-    }
+    } }()
     try visitor.visitExtensionFields(fields: _protobuf_extensionFieldValues, start: 8, end: 536870912)
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -419,15 +431,19 @@ extension VectorTile_Tile.Feature: SwiftProtobuf.Message, SwiftProtobuf._Message
   }
 
   func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if let v = self._id {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._id {
       try visitor.visitSingularUInt64Field(value: v, fieldNumber: 1)
-    }
+    } }()
     if !self.tags.isEmpty {
       try visitor.visitPackedUInt32Field(value: self.tags, fieldNumber: 2)
     }
-    if let v = self._type {
+    try { if let v = self._type {
       try visitor.visitSingularEnumField(value: v, fieldNumber: 3)
-    }
+    } }()
     if !self.geometry.isEmpty {
       try visitor.visitPackedUInt32Field(value: self.geometry, fieldNumber: 4)
     }
@@ -483,9 +499,13 @@ extension VectorTile_Tile.Layer: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
   }
 
   func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
-    if let v = self._name {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    try { if let v = self._name {
       try visitor.visitSingularStringField(value: v, fieldNumber: 1)
-    }
+    } }()
     if !self.features.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.features, fieldNumber: 2)
     }
@@ -495,12 +515,12 @@ extension VectorTile_Tile.Layer: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
     if !self.values.isEmpty {
       try visitor.visitRepeatedMessageField(value: self.values, fieldNumber: 4)
     }
-    if let v = self._extent {
+    try { if let v = self._extent {
       try visitor.visitSingularUInt32Field(value: v, fieldNumber: 5)
-    }
-    if let v = self._version {
+    } }()
+    try { if let v = self._version {
       try visitor.visitSingularUInt32Field(value: v, fieldNumber: 15)
-    }
+    } }()
     try visitor.visitExtensionFields(fields: _protobuf_extensionFieldValues, start: 16, end: 536870912)
     try unknownFields.traverse(visitor: &visitor)
   }
