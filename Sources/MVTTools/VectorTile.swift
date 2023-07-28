@@ -336,7 +336,7 @@ extension VectorTile {
     @discardableResult
     public mutating func setFeatures(_ features: [Feature], for layerName: String) -> Bool {
         let features: [Feature] = features.map { (feature) in
-            var feature = feature
+            var feature = feature.projected(to: projection)
             feature.updateBoundingBox(onlyIfNecessary: true)
 
             if feature.id == nil {
@@ -376,7 +376,7 @@ extension VectorTile {
         }
 
         allFeatures.append(contentsOf: features.map({ (feature) in
-            var feature = feature
+            var feature = feature.projected(to: projection)
             feature.updateBoundingBox(onlyIfNecessary: true)
 
             if feature.id == nil {

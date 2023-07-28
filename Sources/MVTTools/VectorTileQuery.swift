@@ -41,15 +41,9 @@ extension VectorTile {
     public func query(
         term: String,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil,
-        projection: Projection = .epsg4326)
+        featureFilter: ((Feature) -> Bool)? = nil)
         -> [QueryResult]
     {
-        if projection != self.projection {
-            assertionFailure("Reprojection is currently not supported")
-            return []
-        }
-
         let queryLayerNames: [String]
         if let layerName = layerName {
             queryLayerNames = [layerName]
@@ -93,15 +87,9 @@ extension VectorTile {
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil,
-        projection: Projection = .epsg4326)
+        featureFilter: ((Feature) -> Bool)? = nil)
         -> [QueryResult]
     {
-        if projection != self.projection {
-            assertionFailure("Reprojection is currently not supported")
-            return []
-        }
-
         let queryBoundingBox = VectorTile.queryBoundingBox(
             at: coordinate,
             tolerance: tolerance,
@@ -110,23 +98,16 @@ extension VectorTile {
         return query(
             in: queryBoundingBox,
             layerName: layerName,
-            featureFilter: featureFilter,
-            projection: projection)
+            featureFilter: featureFilter)
     }
 
     /// Search for content in this tile inside of `queryBoundingBox`
     public func query(
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil,
-        projection: Projection = .epsg4326)
+        featureFilter: ((Feature) -> Bool)? = nil)
         -> [QueryResult]
     {
-        if projection != self.projection {
-            assertionFailure("Reprojection is currently not supported")
-            return []
-        }
-
         let queryLayerNames: [String]
         if let layerName = layerName {
             queryLayerNames = [layerName]
@@ -182,15 +163,9 @@ extension VectorTile {
         tolerance: CLLocationDistance,
         layerName: String? = nil,
         featureFilter: ((Feature) -> Bool)? = nil,
-        includeDuplicates: Bool = true,
-        projection: Projection = .epsg4326)
+        includeDuplicates: Bool = true)
         -> (features: [Feature.Identifier: Feature], results: [QueryManyResult])
     {
-        if projection != self.projection {
-            assertionFailure("Reprojection is currently not supported")
-            return (features: [:], results: [])
-        }
-
         let queryBoundingBoxes: [BoundingBox] = coordinates.map { coordinate in
             VectorTile.queryBoundingBox(
                 at: coordinate,
@@ -276,11 +251,13 @@ extension VectorTile {
         case .epsg3857, .noSRID:
             return BoundingBox(
                 southWest: Coordinate3D(
-                    latitude: coordinate.latitude - tolerance,
-                    longitude: coordinate.longitude - tolerance),
+                    x: coordinate.longitude - tolerance,
+                    y: coordinate.latitude - tolerance,
+                    projection: projection),
                 northEast: Coordinate3D(
-                    latitude: coordinate.latitude + tolerance,
-                    longitude: coordinate.longitude + tolerance))
+                    x: coordinate.longitude + tolerance,
+                    y: coordinate.latitude + tolerance,
+                    projection: projection))
 
         case .epsg4326:
             // Length of one minute at this latitude
