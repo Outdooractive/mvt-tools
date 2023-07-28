@@ -13,9 +13,15 @@ extension VectorTile {
     public mutating func merge(_ other: VectorTile) -> Bool {
         guard other.x == x,
               other.y == y,
-              other.z == z,
-              other.projection == projection
-        else { return false }
+              other.z == z
+        else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to merge, other has different coordinate \(other.z)/\(other.x)/\(other.y)")
+            return false
+        }
+
+        if other.projection != projection {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Other has different projection \(projection)")
+        }
 
         for layerName in other.layerNames {
             guard let features = other.features(for: layerName) else { continue }

@@ -4,6 +4,7 @@ import CoreLocation
 import Foundation
 import GISTools
 import struct GISTools.Polygon
+import Logging
 
 // MARK: Reading vector tiles
 
@@ -15,10 +16,14 @@ extension VectorTile {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        layerWhitelist: Set<String>? = nil)
+        layerWhitelist: Set<String>?,
+        logger: Logger?)
         -> [String: LayerContainer]?
     {
-        guard let tile = try? VectorTile_Tile(serializedData: data) else { return nil }
+        guard let tile = try? VectorTile_Tile(serializedData: data) else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to create a vector tile from data")
+            return nil
+        }
 
         var layers: [String: LayerContainer] = [:]
 
@@ -60,7 +65,7 @@ extension VectorTile {
                     boundingBox: layerBoundingBox)
 
             default:
-                print("Layer \(name) has unknown version \(version)")
+                (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Layer \(name) has unknown version \(version)")
             }
         }
 

@@ -4,6 +4,7 @@ import CoreLocation
 import Foundation
 import GISTools
 import struct GISTools.Polygon
+import Logging
 
 /// `VectorTile` holds the contents of one vector tile as GeoJSON.
 /// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
@@ -11,6 +12,9 @@ public struct VectorTile {
 
     // MARK: - Properties
     // MARK: Public
+
+    /// A global logger instance for logging errors
+    public static var logger: Logger?
 
     /// The tile's x coordinate
     public let x: Int
@@ -65,15 +69,8 @@ public struct VectorTile {
 
     var layers: [String: LayerContainer] = [:]
 
-    /// Option to print parse failures to the console
-    public var printParseFailures: Bool = {
-        var isDebugBuild: Bool = false
-        assert({
-            isDebugBuild = true
-            return true
-        }())
-        return isDebugBuild
-    }()
+    /// For logging errors
+    var logger: Logger?
 
     // MARK: - Initializers
 
@@ -83,17 +80,25 @@ public struct VectorTile {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil)
+        indexed sortOption: RTreeSortOption? = nil,
+        logger: Logger? = nil)
     {
-        guard x >= 0, y >= 0, z >= 0 else { return nil }
+        guard x >= 0, y >= 0, z >= 0 else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
+            return nil
+        }
 
         let maximumTileCoordinate: Int = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate { return nil }
+        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
+            return nil
+        }
 
         self.x = x
         self.y = y
         self.z = z
         self.projection = projection
+        self.logger = logger
 
         self.layers = [:]
         self.layerNames = []
@@ -117,9 +122,10 @@ public struct VectorTile {
     public init?(
         tile: MapTile,
         projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil)
+        indexed sortOption: RTreeSortOption? = nil,
+        logger: Logger? = nil)
     {
-        self.init(x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption)
+        self.init(x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, logger: logger)
     }
 
     /// Create a vector tile from `data`, which must be in MVT format, at `z`/`x`/`y`.
@@ -130,17 +136,25 @@ public struct VectorTile {
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil)
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
     {
-        guard x >= 0, y >= 0, z >= 0 else { return nil }
+        guard x >= 0, y >= 0, z >= 0 else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
+            return nil
+        }
 
         let maximumTileCoordinate: Int = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate { return nil }
+        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
+            return nil
+        }
 
         self.x = x
         self.y = y
         self.z = z
         self.projection = projection
+        self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
         let layerWhitelistSet: Set<String>?
@@ -151,7 +165,7 @@ public struct VectorTile {
             layerWhitelistSet = nil
         }
 
-        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet) else { return nil }
+        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil }
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)
@@ -177,9 +191,10 @@ public struct VectorTile {
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil)
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
     {
-        self.init(data: data, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist)
+        self.init(data: data, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist, logger: logger)
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MVT format, at `z`/`x`/`y`.
@@ -190,17 +205,25 @@ public struct VectorTile {
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil)
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
     {
-        guard x >= 0, y >= 0, z >= 0 else { return nil }
+        guard x >= 0, y >= 0, z >= 0 else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
+            return nil
+        }
 
         let maximumTileCoordinate: Int = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate { return nil }
+        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
+            return nil
+        }
 
         self.x = x
         self.y = y
         self.z = z
         self.projection = projection
+        self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
         let layerWhitelistSet: Set<String>?
@@ -211,8 +234,11 @@ public struct VectorTile {
             layerWhitelistSet = nil
         }
 
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet) else { return nil}
+        guard let data = try? Data(contentsOf: url) else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
+            return nil
+        }
+        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil}
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)
@@ -238,9 +264,10 @@ public struct VectorTile {
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil)
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
     {
-        self.init(contentsOf: url, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist)
+        self.init(contentsOf: url, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist, logger: logger)
     }
 
 }
