@@ -13,11 +13,11 @@ extension CLI {
         @OptionGroup
         var options: Options
 
-        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance'.")
+        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
         var searchTerm: String
 
-        @Option(name: .customLong("layer"), help: "Search only in this layer.")
-        var layerName: String?
+        @Option(name: .shortAndLong, help: "Search only in this layer.")
+        var layer: String?
 
         mutating func run() async throws {
             var coordinate: Coordinate3D?
@@ -44,7 +44,12 @@ extension CLI {
                   let z = options.z
             else { throw "Something went wrong during argument parsing" }
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z) else {
+            var layerWhitelist: [String]?
+            if let layer {
+                layerWhitelist = [layer]
+            }
+
+            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
                 throw "Failed to parse the tile at \(options.path)"
             }
 
@@ -52,12 +57,12 @@ extension CLI {
             if let coordinate = coordinate,
                let tolerance = tolerance
             {
-                print("Searching around \(coordinate), tolerance: \(tolerance)...")
-                result = search(around: coordinate, tolerance: tolerance, layerName: layerName, in: tile)
+                print("Searching around \(coordinate), tolerance: \(tolerance)m ...")
+                result = search(around: coordinate, tolerance: tolerance, in: tile)
             }
             else {
                 print("Searching for '\(searchTerm)'...")
-                result = search(term: searchTerm, layerName: layerName, in: tile)
+                result = search(term: searchTerm, in: tile)
             }
 
             if let result = result,

@@ -12,7 +12,7 @@ extension CLI {
         var options: Options
 
         mutating func run() async throws {
-            let url = try options.parseUrl()
+            let url = try options.parseUrl(extractCoordinate: false)
 
             guard let tileInfo = VectorTile.tileInfo(at: url),
                   var layers = tileInfo["layers"] as? [[String: Any]]

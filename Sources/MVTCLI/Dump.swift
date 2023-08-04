@@ -11,6 +11,9 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @Option(name: .shortAndLong, help: "Dump only the specified layer")
+        var layer: String?
+
         mutating func run() async throws {
             let url = try options.parseUrl()
 
@@ -19,7 +22,12 @@ extension CLI {
                   let z = options.z
             else { throw "Something went wrong during argument parsing" }
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z) else {
+            var layerWhitelist: [String]?
+            if let layer {
+                layerWhitelist = [layer]
+            }
+
+            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
                 throw "Failed to parse the tile at \(options.path)"
             }
 

@@ -1,0 +1,76 @@
+import ArgumentParser
+import Foundation
+import MVTTools
+
+extension CLI {
+    
+    struct Merge: AsyncParsableCommand {
+
+        static var configuration = CommandConfiguration(abstract: "Merge two or more vector tiles.")
+        
+        @OptionGroup
+        var options: Options
+
+        @Option(name: .shortAndLong, help: "Merge only the specified layer")
+        var layer: String?
+
+        @Option(name: .shortAndLong, help: "Additional PBFs to merge")
+        var merge: [String]
+
+        @Option(name: .shortAndLong, help: "Output file")
+        var output: String
+
+        mutating func run() async throws {
+            let url = try options.parseUrl()
+
+            guard let x = options.x,
+                  let y = options.y,
+                  let z = options.z
+            else { throw "Something went wrong during argument parsing" }
+
+            let outputUrl = URL(fileURLWithPath: output)
+            if (try? outputUrl.checkResourceIsReachable()) ?? false {
+                throw "Output file must not exist"
+            }
+
+            var layerWhitelist: [String]?
+            if let layer {
+                layerWhitelist = [layer]
+            }
+
+            guard var tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
+                throw "Failed to parse the tile at \(options.path)"
+            }
+
+            for path in merge {
+                let otherUrl: URL
+                if path.hasPrefix("http") {
+                    guard let parsedUrl = URL(string: path) else {
+                        throw "\(path) is not a valid URL"
+                    }
+                    otherUrl = parsedUrl
+                }
+                else {
+                    otherUrl = URL(fileURLWithPath: path)
+                    guard try otherUrl.checkResourceIsReachable() else {
+                        throw "The file '\(path)' doesn't exist."
+                    }
+                }
+
+                guard let otherTile = VectorTile(contentsOf: otherUrl, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
+                    throw "Failed to parse the tile at \(path)"
+                }
+
+                tile.merge(otherTile)
+            }
+
+            let exportOptions = VectorTileExportOptions(
+                bufferSize: .extent(512),
+                compression: .level(9),
+                simplifyFeatures: .no)
+            tile.write(to: outputUrl, options: exportOptions)
+        }
+        
+    }
+    
+}
