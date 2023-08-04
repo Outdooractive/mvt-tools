@@ -158,7 +158,7 @@ public struct VectorTile {
 
         // Note: A plain array might actually be faster for few entries -> check this
         let layerWhitelistSet: Set<String>?
-        if let layerWhitelist = layerWhitelist {
+        if let layerWhitelist {
             layerWhitelistSet = Set(layerWhitelist)
         }
         else {
@@ -227,7 +227,7 @@ public struct VectorTile {
 
         // Note: A plain array might actually be faster for few entries -> check this
         let layerWhitelistSet: Set<String>?
-        if let layerWhitelist = layerWhitelist {
+        if let layerWhitelist {
             layerWhitelistSet = Set(layerWhitelist)
         }
         else {
@@ -238,7 +238,8 @@ public struct VectorTile {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
             return nil
         }
-        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil}
+
+        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil }
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)

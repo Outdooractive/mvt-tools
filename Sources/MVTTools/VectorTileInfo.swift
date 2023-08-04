@@ -10,7 +10,7 @@ extension VectorTile {
 
     /// Read a tile from `data` and return its layer names
     public static func layerNames(from data: Data) -> [String]? {
-        guard let tile = try? VectorTile_Tile(serializedData: data) else { return nil }
+        guard let tile = vectorTile(from: data) else { return nil }
         return tile.layers.map { $0.name }
     }
 
@@ -33,7 +33,7 @@ extension VectorTile {
 
     /// Read a tile from `data` and return some information about the tile
     public static func tileInfo(from data: Data) -> [String: Any]? {
-        guard let tile = try? VectorTile_Tile(serializedData: data) else { return nil }
+        guard let tile = vectorTile(from: data) else { return nil }
 
         var layers: [[String: Any]] = []
 

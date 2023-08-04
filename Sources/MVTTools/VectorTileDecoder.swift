@@ -10,6 +10,15 @@ import Logging
 
 extension VectorTile {
 
+    static func vectorTile(from data: Data) -> VectorTile_Tile? {
+        var data = data
+        if data.isGzipped {
+            data = (try? data.gunzipped()) ?? data
+        }
+
+        return try? VectorTile_Tile(serializedData: data)
+    }
+
     static func loadTileFrom(
         data: Data,
         x: Int,
@@ -20,7 +29,11 @@ extension VectorTile {
         logger: Logger?)
         -> [String: LayerContainer]?
     {
-        guard let tile = try? VectorTile_Tile(serializedData: data) else {
+        if data.isGzipped {
+            (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Input data is gzipped")
+        }
+
+        guard let tile = vectorTile(from: data) else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to create a vector tile from data")
             return nil
         }

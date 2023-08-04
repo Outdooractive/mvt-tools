@@ -20,7 +20,7 @@ targets: [
 
 ## Features
 
-- Load and write Mapnik Vector Tiles from/to disk or data objects
+- Load and write Mapnik Vector Tiles from/to disk or data objects (also handles gzipped input)
 - Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
 - Can dump a tile as a GeoJSON object
 - Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
