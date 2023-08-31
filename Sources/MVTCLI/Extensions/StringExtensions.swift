@@ -4,7 +4,7 @@ extension String: Error {}
 
 extension String {
 
-    public func extractingGroupsUsingPattern(
+    func extractingGroupsUsingPattern(
         _ pattern: String,
         caseInsensitive: Bool = false,
         treatAsOneLine: Bool = false)

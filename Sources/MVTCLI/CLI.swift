@@ -9,7 +9,7 @@ struct CLI: AsyncParsableCommand {
     static let logger: Logger = Logger(label: "mvttool")
 
     static var configuration = CommandConfiguration(
-        commandName: "mvttool",
+        commandName: "mvt",
         abstract: "A utility for inspecting and working with vector tiles.",
         version: "1.0.0",
         subcommands: [Dump.self, Info.self, Merge.self, Query.self],
@@ -19,20 +19,20 @@ struct CLI: AsyncParsableCommand {
 
 struct Options: ParsableArguments {
 
-    @Option(help: "Tile zoom level - if it can't be extracted from the path.")
+    @Option(name: .short, help: "Tile zoom level - if it can't be extracted from the path")
     var z: Int?
 
-    @Option(help: "Tile x coordinate - if it can't be extracted from the path.")
+    @Option(name: .short, help: "Tile x coordinate - if it can't be extracted from the path")
     var x: Int?
 
-    @Option(help: "Tile y coordinate - if it can't be extracted from the path.")
+    @Option(name: .short, help: "Tile y coordinate - if it can't be extracted from the path")
     var y: Int?
 
     @Flag(name: .shortAndLong, help: "Print some debug info")
     var verbose: Bool = false
 
     @Argument(
-        help: "The MVT resource (file or URL). The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'.",
+        help: "The MVT resource (file or URL). The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'",
         completion: .file(extensions: ["pbf", "mvt"]))
     var path: String
 
