@@ -87,7 +87,7 @@ extension VectorTile {
 
     static func parseVersion2(
         layer: VectorTile_Tile.Layer,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))§§
         -> [Feature]
     {
         let keys: [String] = layer.keys
@@ -121,7 +121,7 @@ extension VectorTile {
                 return Double(value.floatValue)
             }
             else if value.hasUintValue {
-                return UInt(value.uintValue)
+                return UInt64(value.uintValue)
             }
             else if value.hasSintValue {
                 return Int(value.sintValue)
