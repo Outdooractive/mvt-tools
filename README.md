@@ -18,6 +18,27 @@ targets: [
 ]
 ```
 
+## Command line tool
+
+You can install the command line tool `mvt` locally to `/usr/local/bin` with
+
+```bash
+# ./install_mvt.sh
+
+# mvt -h
+OVERVIEW: A utility for inspecting and working with vector tiles.
+
+USAGE: mvt <subcommand>
+
+SUBCOMMANDS:
+  dump (default)          Print the vector tile as GeoJSON
+  info                    Print information about the vector tile
+  merge                   Merge two or more vector tiles
+  query                   Query the features in a vector tile
+  export                  Export the vector tile as GeoJSON
+  import                  Import some GeoJSONs to a vector tile
+```
+
 ## Features
 
 - Load and write Mapnik Vector Tiles from/to disk or data objects (also handles gzipped input)
@@ -28,6 +49,7 @@ targets: [
 - Extract selected layers into a new tile
 - Merge two tiles into one
 - Can extract some infos from tiles like feature count, etc.
+- Command line tool
 
 ## Usage
 
@@ -94,7 +116,6 @@ brew install protobuf swift-protobuf swiftlint
 
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js
-- https://github.com/mapbox/vt2geojson (command line tool?)
 
 ## Links
 
@@ -115,6 +136,7 @@ brew install protobuf swift-protobuf swiftlint
 
 - Other code for inspiration:
     - https://github.com/mapnik/node-mapnik/blob/master/src/mapnik_vector_tile.cpp
+    - https://github.com/mapbox/vt2geojson
 
 ## License
 
