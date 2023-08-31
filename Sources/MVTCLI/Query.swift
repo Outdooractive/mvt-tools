@@ -8,15 +8,15 @@ extension CLI {
 
     struct Query: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Query the features in a vector tile.")
+        static var configuration = CommandConfiguration(abstract: "Query the features in a vector tile")
 
-        @Option(name: .shortAndLong, help: "Search only in this layer.")
+        @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated)")
         var layer: [String] = []
 
         @OptionGroup
         var options: Options
 
-        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
+        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'")
         var searchTerm: String
 
         mutating func run() async throws {

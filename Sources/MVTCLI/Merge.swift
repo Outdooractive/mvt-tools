@@ -6,19 +6,21 @@ extension CLI {
     
     struct Merge: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Merge two or more vector tiles.")
+        static var configuration = CommandConfiguration(abstract: "Merge two or more vector tiles")
         
+        @Option(name: .shortAndLong, help: "Output file")
+        var output: String
+
         @Option(name: .shortAndLong, help: "Merge only the specified layer (can be repeated)")
         var layer: [String] = []
 
         @OptionGroup
         var options: Options
 
-        @Option(name: .shortAndLong, help: "Additional PBFs to merge")
-        var merge: [String] = []
-
-        @Option(name: .shortAndLong, help: "Output file")
-        var output: String
+        @Argument(
+            help: "Additional MVT resources to merge (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt"]))
+        var other: [String] = []
 
         mutating func run() async throws {
             let url = try options.parseUrl()
@@ -39,7 +41,7 @@ extension CLI {
                 throw "Failed to parse the tile at \(options.path)"
             }
 
-            for path in merge {
+            for path in other {
                 let otherUrl: URL
                 if path.hasPrefix("http") {
                     guard let parsedUrl = URL(string: path) else {
