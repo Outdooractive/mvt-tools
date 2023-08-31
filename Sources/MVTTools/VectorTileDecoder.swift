@@ -109,7 +109,7 @@ extension VectorTile {
                 return string
             }
             else if value.hasIntValue {
-                return Int(value.intValue)
+                return Int64(value.intValue)
             }
             else if value.hasBoolValue {
                 return value.boolValue
@@ -124,7 +124,7 @@ extension VectorTile {
                 return UInt64(value.uintValue)
             }
             else if value.hasSintValue {
-                return Int(value.sintValue)
+                return Int64(value.sintValue)
             }
             else {
                 return ""
