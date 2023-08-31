@@ -11,13 +11,16 @@ struct CLI: AsyncParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "mvt",
         abstract: "A utility for inspecting and working with vector tiles.",
-        version: "1.0.0",
-        subcommands: [Dump.self, Info.self, Merge.self, Query.self],
+        version: "1.2.3",
+        subcommands: [Dump.self, Info.self, Merge.self, Query.self, Export.self, Import.self],
         defaultSubcommand: Dump.self)
 
 }
 
 struct Options: ParsableArguments {
+
+    @Flag(name: .shortAndLong, help: "Print some debug info")
+    var verbose: Bool = false
 
     @Option(name: .short, help: "Tile zoom level - if it can't be extracted from the path")
     var z: Int?
@@ -28,16 +31,17 @@ struct Options: ParsableArguments {
     @Option(name: .short, help: "Tile y coordinate - if it can't be extracted from the path")
     var y: Int?
 
-    @Flag(name: .shortAndLong, help: "Print some debug info")
-    var verbose: Bool = false
-
     @Argument(
         help: "The MVT resource (file or URL). The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'",
         completion: .file(extensions: ["pbf", "mvt"]))
     var path: String
 
     // Try to parse x/y/z from the path/URL
-    mutating func parseUrl(extractCoordinate: Bool = true) throws -> URL {
+    mutating func parseUrl(
+        extractCoordinate: Bool = true,
+        checkExistence: Bool = true)
+        throws -> URL
+    {
         let url: URL
         if path.hasPrefix("http") {
             guard let parsedUrl = URL(string: path) else {
@@ -47,8 +51,10 @@ struct Options: ParsableArguments {
         }
         else {
             url = URL(fileURLWithPath: path)
-            guard try url.checkResourceIsReachable() else {
-                throw "The file '\(path)' doesn't exist."
+            if checkExistence {
+                guard try url.checkResourceIsReachable() else {
+                    throw "The file '\(path)' doesn't exist."
+                }
             }
         }
 

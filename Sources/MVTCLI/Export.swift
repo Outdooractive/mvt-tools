@@ -4,12 +4,18 @@ import MVTTools
 
 extension CLI {
 
-    struct Dump: AsyncParsableCommand {
+    struct Export: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON")
+        static var configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON")
 
-        @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
+        @Option(name: .shortAndLong, help: "Output file")
+        var output: String
+
+        @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated)")
         var layer: [String] = []
+
+        @Flag(name: .shortAndLong, help: "Format the output GeoJSON")
+        var prettyPrint: Bool = false
 
         @OptionGroup
         var options: Options
@@ -22,18 +28,22 @@ extension CLI {
                   let z = options.z
             else { throw "Something went wrong during argument parsing" }
 
+            let outputUrl = URL(fileURLWithPath: output)
+            if (try? outputUrl.checkResourceIsReachable()) ?? false {
+                throw "Output file must not exist"
+            }
+
             let layerWhitelist = layer.nonempty
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
                 throw "Failed to parse the tile at \(options.path)"
             }
 
-            guard let data = tile.toGeoJson(prettyPrinted: true) else {
+            guard let data = tile.toGeoJson(prettyPrinted: prettyPrint) else {
                 throw "Failed to extract the tile data as GeoJSON"
             }
 
-            print(String(data: data, encoding: .utf8) ?? "", terminator: "")
-            print()
+            try data.write(to: outputUrl, options: .atomic)
         }
 
     }
