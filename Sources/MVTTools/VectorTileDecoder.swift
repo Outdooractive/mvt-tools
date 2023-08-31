@@ -121,7 +121,7 @@ extension VectorTile {
                 return Double(value.floatValue)
             }
             else if value.hasUintValue {
-                return UInt(value.uintValue)
+                return UInt64(value.uintValue)
             }
             else if value.hasSintValue {
                 return Int(value.sintValue)
