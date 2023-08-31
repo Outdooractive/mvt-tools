@@ -87,7 +87,7 @@ extension VectorTile {
 
     static func parseVersion2(
         layer: VectorTile_Tile.Layer,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))§§
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
         -> [Feature]
     {
         let keys: [String] = layer.keys
