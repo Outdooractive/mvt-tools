@@ -10,14 +10,14 @@ extension CLI {
 
         static var configuration = CommandConfiguration(abstract: "Query the features in a vector tile.")
 
+        @Option(name: .shortAndLong, help: "Search only in this layer.")
+        var layer: [String] = []
+
         @OptionGroup
         var options: Options
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
         var searchTerm: String
-
-        @Option(name: .shortAndLong, help: "Search only in this layer.")
-        var layer: String?
 
         mutating func run() async throws {
             var coordinate: Coordinate3D?
@@ -44,10 +44,7 @@ extension CLI {
                   let z = options.z
             else { throw "Something went wrong during argument parsing" }
 
-            var layerWhitelist: [String]?
-            if let layer {
-                layerWhitelist = [layer]
-            }
+            let layerWhitelist = layer.nonempty
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
                 throw "Failed to parse the tile at \(options.path)"
@@ -57,11 +54,15 @@ extension CLI {
             if let coordinate = coordinate,
                let tolerance = tolerance
             {
-                print("Searching around \(coordinate), tolerance: \(tolerance)m ...")
+                if options.verbose {
+                    print("Searching around \(coordinate), tolerance: \(tolerance)m ...")
+                }
                 result = search(around: coordinate, tolerance: tolerance, in: tile)
             }
             else {
-                print("Searching for '\(searchTerm)'...")
+                if options.verbose {
+                    print("Searching for '\(searchTerm)'...")
+                }
                 result = search(term: searchTerm, in: tile)
             }
 
@@ -71,8 +72,10 @@ extension CLI {
                 print(output, terminator: "")
                 print()
 
-                let count = result.features.count
-                print("Found \(count) \(count == 1 ? "result" : "results").")
+                if options.verbose {
+                    let count = result.features.count
+                    print("Found \(count) \(count == 1 ? "result" : "results").")
+                }
             }
             else {
                 print("Nothing found!")

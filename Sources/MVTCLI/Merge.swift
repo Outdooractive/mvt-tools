@@ -8,14 +8,14 @@ extension CLI {
 
         static var configuration = CommandConfiguration(abstract: "Merge two or more vector tiles.")
         
+        @Option(name: .shortAndLong, help: "Merge only the specified layer (can be repeated)")
+        var layer: [String] = []
+
         @OptionGroup
         var options: Options
 
-        @Option(name: .shortAndLong, help: "Merge only the specified layer")
-        var layer: String?
-
         @Option(name: .shortAndLong, help: "Additional PBFs to merge")
-        var merge: [String]
+        var merge: [String] = []
 
         @Option(name: .shortAndLong, help: "Output file")
         var output: String
@@ -33,10 +33,7 @@ extension CLI {
                 throw "Output file must not exist"
             }
 
-            var layerWhitelist: [String]?
-            if let layer {
-                layerWhitelist = [layer]
-            }
+            let layerWhitelist = layer.nonempty
 
             guard var tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
                 throw "Failed to parse the tile at \(options.path)"
