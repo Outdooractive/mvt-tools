@@ -241,12 +241,14 @@ extension VectorTile {
         return (features: features, results: results)
     }
 
-    private static func queryBoundingBox(
+    static func queryBoundingBox(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
         projection: Projection)
         -> BoundingBox
     {
+        let tolerance = fabs(tolerance)
+
         switch projection {
         case .epsg3857, .noSRID:
             return BoundingBox(
@@ -261,8 +263,8 @@ extension VectorTile {
 
         case .epsg4326:
             // Length of one minute at this latitude
-            let oneDegreeLongitudeDistanceInMeters: Double = cos(coordinate.longitude * Double.pi / 180.0) * 111_000.0
             let oneDegreeLatitudeDistanceInMeters = 111_000.0
+            let oneDegreeLongitudeDistanceInMeters: Double = fabs(cos(coordinate.longitude * Double.pi / 180.0) * oneDegreeLatitudeDistanceInMeters)
 
             let longitudeDistance: Double = (tolerance / oneDegreeLongitudeDistanceInMeters)
             let latitudeDistance: Double = (tolerance / oneDegreeLatitudeDistanceInMeters)
