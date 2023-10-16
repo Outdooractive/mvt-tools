@@ -45,7 +45,7 @@ extension VectorTile {
         -> [QueryResult]
     {
         let queryLayerNames: [String]
-        if let layerName = layerName {
+        if let layerName {
             queryLayerNames = [layerName]
         }
         else {
@@ -109,7 +109,7 @@ extension VectorTile {
         -> [QueryResult]
     {
         let queryLayerNames: [String]
-        if let layerName = layerName {
+        if let layerName {
             queryLayerNames = [layerName]
         }
         else {
@@ -174,7 +174,7 @@ extension VectorTile {
         }
 
         let queryLayerNames: [String]
-        if let layerName = layerName {
+        if let layerName {
             queryLayerNames = [layerName]
         }
         else {
@@ -260,14 +260,15 @@ extension VectorTile {
                     x: coordinate.longitude + tolerance,
                     y: coordinate.latitude + tolerance,
                     projection: projection))
+            .clamped()
 
         case .epsg4326:
             // Length of one minute at this latitude
             let oneDegreeLatitudeDistanceInMeters = 111_000.0
-            let oneDegreeLongitudeDistanceInMeters: Double = fabs(cos(coordinate.longitude * Double.pi / 180.0) * oneDegreeLatitudeDistanceInMeters)
+            let oneDegreeLongitudeDistanceInMeters = fabs(cos(coordinate.longitude * Double.pi / 180.0) * oneDegreeLatitudeDistanceInMeters)
 
-            let longitudeDistance: Double = (tolerance / oneDegreeLongitudeDistanceInMeters)
-            let latitudeDistance: Double = (tolerance / oneDegreeLatitudeDistanceInMeters)
+            let longitudeDistance = (tolerance / oneDegreeLongitudeDistanceInMeters)
+            let latitudeDistance = (tolerance / oneDegreeLatitudeDistanceInMeters)
 
             return BoundingBox(
                 southWest: Coordinate3D(
@@ -276,6 +277,7 @@ extension VectorTile {
                 northEast: Coordinate3D(
                     latitude: coordinate.latitude + latitudeDistance,
                     longitude: coordinate.longitude + longitudeDistance))
+            .clamped()
         }
     }
 
