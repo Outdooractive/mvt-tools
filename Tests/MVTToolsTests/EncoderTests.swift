@@ -86,38 +86,41 @@ final class EncoderTests: XCTestCase {
 
     func testFeatureConversion() {
         // Point
-        let point = Feature(Point(Coordinate3D(latitude: 17.0, longitude: 25.0)))
+        let point = Feature(Point(Coordinate3D(latitude: 17.0, longitude: 25.0)), id: .int(500))
         let pointFeature = VectorTile.vectorTileFeature(from: point, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(pointFeature, "Failed to encode a POINT")
 
         let pointGeometry: [UInt32] = [9, 50, 34]
         XCTAssertEqual(pointFeature?.geometry, pointGeometry)
         XCTAssertEqual(pointFeature?.type, VectorTile_Tile.GeomType.point)
+        XCTAssertEqual(pointFeature?.id, 500)
 
         // MultiPoint
         let multiPoint = Feature(MultiPoint([
             Coordinate3D(latitude: 7.0, longitude: 5.0),
             Coordinate3D(latitude: 2.0, longitude: 3.0)
-        ])!)
+        ])!, id: .int(501))
         let multiPointFeature = VectorTile.vectorTileFeature(from: multiPoint, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(multiPointFeature, "Failed to encode a MULTIPOINT")
 
         let multiPointGeometry: [UInt32] = [17, 10, 14, 3, 9]
         XCTAssertEqual(multiPointFeature?.geometry, multiPointGeometry)
         XCTAssertEqual(multiPointFeature?.type, VectorTile_Tile.GeomType.point)
+        XCTAssertEqual(multiPointFeature?.id, 501)
 
         // Linestring
         let lineString = Feature(LineString([
             Coordinate3D(latitude: 2.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 2.0),
             Coordinate3D(latitude: 10.0, longitude: 10.0),
-        ])!)
+        ])!, id: .int(502))
         let lineStringFeature = VectorTile.vectorTileFeature(from: lineString, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(lineStringFeature, "Failed to encode a LINESTRING")
 
         let lineStringGeometry: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0]
         XCTAssertEqual(lineStringFeature?.geometry, lineStringGeometry)
         XCTAssertEqual(lineStringFeature?.type, VectorTile_Tile.GeomType.linestring)
+        XCTAssertEqual(lineStringFeature?.id, 502)
 
         // MultiLinestring
         let multiLineString = Feature(MultiLineString([[
@@ -127,13 +130,14 @@ final class EncoderTests: XCTestCase {
             ], [
                 Coordinate3D(latitude: 1.0, longitude: 1.0),
                 Coordinate3D(latitude: 5.0, longitude: 3.0),
-            ]])!)
+            ]])!, id: .int(503))
         let multiLineStringFeature = VectorTile.vectorTileFeature(from: multiLineString, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(multiLineStringFeature, "Failed to encode a MULTILINESTRING")
 
         let multiLineStringGeometry: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8]
         XCTAssertEqual(multiLineStringFeature?.geometry, multiLineStringGeometry)
         XCTAssertEqual(multiLineStringFeature?.type, VectorTile_Tile.GeomType.linestring)
+        XCTAssertEqual(multiLineStringFeature?.id, 503)
 
         // Polygon
         let polygon = Feature(Polygon([[
@@ -141,13 +145,14 @@ final class EncoderTests: XCTestCase {
             Coordinate3D(latitude: 12.0, longitude: 8.0),
             Coordinate3D(latitude: 34.0, longitude: 20.0),
             Coordinate3D(latitude: 6.0, longitude: 3.0),
-            ]])!)
+            ]])!, id: .int(504))
         let polygonFeature = VectorTile.vectorTileFeature(from: polygon, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(polygonFeature, "Failed to encode a POLYGON")
 
         let polygonGeometry: [UInt32] = [9, 6, 12, 18, 10, 12, 24, 44, 15]
         XCTAssertEqual(polygonFeature?.geometry, polygonGeometry)
         XCTAssertEqual(polygonFeature?.type, VectorTile_Tile.GeomType.polygon)
+        XCTAssertEqual(polygonFeature?.id, 504)
 
         // MultiPolygon
         let multiPolygon = Feature(MultiPolygon([[[
@@ -168,23 +173,25 @@ final class EncoderTests: XCTestCase {
                     Coordinate3D(latitude: 17.0, longitude: 17.0),
                     Coordinate3D(latitude: 13.0, longitude: 17.0),
                     Coordinate3D(latitude: 13.0, longitude: 13.0),
-                ]]])!)
+                ]]])!, id: .int(505))
         let multiPolygonFeature = VectorTile.vectorTileFeature(from: multiPolygon, projectionFunction: VectorTile.passThroughToTile())
         XCTAssertNotNil(polygonFeature, "Failed to encode a MULTIPOLYGON")
 
         let multiPolygonGeometry: [UInt32] = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
         XCTAssertEqual(multiPolygonFeature?.geometry, multiPolygonGeometry)
         XCTAssertEqual(multiPolygonFeature?.type, VectorTile_Tile.GeomType.polygon)
+        XCTAssertEqual(multiPolygonFeature?.id, 505)
     }
 
     func testEncodeDecode() {
         var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
-        let point = Point(Coordinate3D(latitude: 25.0, longitude: 25.0))
+        let point = Feature(Point(Coordinate3D(latitude: 25.0, longitude: 25.0)), id: .int(600))
         tile.addGeoJson(geoJson: point, layerName: "test")
 
         let features = tile.features(for: "test")!
         XCTAssertEqual(features.count, 1)
-        XCTAssertEqual(features[0].geometry as! Point, point)
+        XCTAssertEqual(features[0].geometry as! Point, point.geometry as! Point)
+        XCTAssertEqual(features[0].id, .int(600))
 
         let tileData = tile.data()!
         let decodedTile = VectorTile(data: tileData, x: 0, y: 0, z: 0)!
@@ -193,6 +200,7 @@ final class EncoderTests: XCTestCase {
         XCTAssertEqual(decodedTileFeatures.count, 1)
         XCTAssertEqual((decodedTileFeatures[0].geometry as! Point).coordinate.latitude, 25, accuracy: 0.1)
         XCTAssertEqual((decodedTileFeatures[0].geometry as! Point).coordinate.longitude, 25, accuracy: 0.1)
+        XCTAssertEqual(decodedTileFeatures[0].id, .int(600))
     }
 
     func testCompressOption() {
