@@ -66,7 +66,7 @@ extension VectorTile {
             let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
             let distance = diagonalLength * factor
 
-            clipBoundingBox = boundingBoxToExpand.expand(distance: distance)
+            clipBoundingBox = boundingBoxToExpand.expanded(byDistance: distance)
         }
 
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
