@@ -132,9 +132,6 @@ extension VectorTile {
             }
             else {
                 resultFeatures = layerFeatureContainer.features.filter({ feature in
-                    // First check the feature's bounding box
-                    guard feature.boundingBox?.intersects(queryBoundingBox) ?? false else { return false }
-
                     // Check the feature itself
                     guard feature.intersects(queryBoundingBox) else { return false }
 
@@ -201,9 +198,6 @@ extension VectorTile {
                 }
                 else {
                     resultFeatures = layerFeatureContainer.features.filter({ feature in
-                        // First check the feature's bounding box
-                        guard feature.boundingBox?.intersects(queryBoundingBox) ?? false else { return false }
-
                         // Check the feature itself
                         guard feature.intersects(queryBoundingBox) else { return false }
 
@@ -250,33 +244,32 @@ extension VectorTile {
         let tolerance = fabs(tolerance)
 
         switch projection {
-        case .epsg3857, .noSRID:
+        case .noSRID:
             return BoundingBox(
-                southWest: Coordinate3D(
-                    x: coordinate.longitude - tolerance,
-                    y: coordinate.latitude - tolerance,
-                    projection: projection),
-                northEast: Coordinate3D(
-                    x: coordinate.longitude + tolerance,
-                    y: coordinate.latitude + tolerance,
-                    projection: projection))
-            .clamped()
+                coordinates: [
+                    Coordinate3D(
+                        x: coordinate.longitude - tolerance,
+                        y: coordinate.latitude - tolerance,
+                        projection: projection),
+                    Coordinate3D(
+                        x: coordinate.longitude + tolerance,
+                        y: coordinate.latitude + tolerance,
+                        projection: projection),
+                ])!
 
-        case .epsg4326:
-            // Length of one minute at this latitude
-            let oneDegreeLatitudeDistanceInMeters = 111_000.0
-            let oneDegreeLongitudeDistanceInMeters = fabs(cos(coordinate.longitude * Double.pi / 180.0) * oneDegreeLatitudeDistanceInMeters)
-
-            let longitudeDistance = (tolerance / oneDegreeLongitudeDistanceInMeters)
-            let latitudeDistance = (tolerance / oneDegreeLatitudeDistanceInMeters)
-
+        case .epsg3857, .epsg4326:
             return BoundingBox(
-                southWest: Coordinate3D(
-                    latitude: coordinate.latitude - latitudeDistance,
-                    longitude: coordinate.longitude - longitudeDistance),
-                northEast: Coordinate3D(
-                    latitude: coordinate.latitude + latitudeDistance,
-                    longitude: coordinate.longitude + longitudeDistance))
+                coordinates: [
+                    Coordinate3D(
+                        x: coordinate.longitude,
+                        y: coordinate.latitude,
+                        projection: projection),
+                    Coordinate3D(
+                        x: coordinate.longitude,
+                        y: coordinate.latitude,
+                        projection: projection),
+                ],
+                padding: tolerance)!
             .clamped()
         }
     }

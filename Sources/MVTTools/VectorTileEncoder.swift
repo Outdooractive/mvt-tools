@@ -148,11 +148,11 @@ extension VectorTile {
 
                 // Encode arrays and dictionaries as JSON encoded strings
                 var hashablePropertyValue: AnyHashable
-                if let array = propertyValue as? Array<Any> {
+                if let array = propertyValue as? Array<Sendable> {
                     guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { continue }
                     hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
                 }
-                else if let dictionary = propertyValue as? [String: Any] {
+                else if let dictionary = propertyValue as? [String: Sendable] {
                     guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { continue }
                     hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
                 }

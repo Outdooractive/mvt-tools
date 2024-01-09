@@ -31,7 +31,7 @@ final class VectorTileTests: XCTestCase {
 
         let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
         let resultLayerNames: [String] = Set(result.map({ $0.layerName })).sorted()
-        XCTAssertEqual(resultLayerNames, ["barrier_line", "building", "building_label", "road", "road_label"])
+        XCTAssertEqual(resultLayerNames, ["barrier_line", "building", "building_label", "landuse", "road", "road_label"])
 
 //        let string = String(data: tileAsJsonData!, encoding: .utf8)
 //        try? string?.write(to: URL(fileURLWithPath: "/\(NSHomeDirectory())/Desktop/test.json"), atomically: true, encoding: .utf8)

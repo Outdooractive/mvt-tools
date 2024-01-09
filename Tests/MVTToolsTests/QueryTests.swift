@@ -30,7 +30,7 @@ final class QueryTests: XCTestCase {
         measure {
             let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
             XCTAssertNotNil(result)
-            XCTAssertEqual(result.count, 68)
+            XCTAssertEqual(result.count, 107)
         }
     }
 
@@ -49,7 +49,7 @@ final class QueryTests: XCTestCase {
         measure {
             let resultWithIndex = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
             XCTAssertNotNil(resultWithIndex)
-            XCTAssertEqual(resultWithIndex.count, 68)
+            XCTAssertEqual(resultWithIndex.count, 107)
         }
     }
 

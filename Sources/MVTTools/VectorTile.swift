@@ -8,7 +8,7 @@ import Logging
 
 /// `VectorTile` holds the contents of one vector tile as GeoJSON.
 /// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
-public struct VectorTile {
+public struct VectorTile: Sendable {
 
     // MARK: - Properties
     // MARK: Public
