@@ -30,6 +30,10 @@ OVERVIEW: A utility for inspecting and working with vector tiles.
 
 USAGE: mvt <subcommand>
 
+OPTIONS:
+  --version               Show the version.
+  -h, --help              Show help information.
+
 SUBCOMMANDS:
   dump (default)          Print the vector tile as GeoJSON
   info                    Print information about the vector tile
@@ -37,6 +41,8 @@ SUBCOMMANDS:
   query                   Query the features in a vector tile
   export                  Export the vector tile as GeoJSON
   import                  Import some GeoJSONs to a vector tile
+
+  See 'mvt help <subcommand>' for detailed help.
 ```
 
 ## Features
