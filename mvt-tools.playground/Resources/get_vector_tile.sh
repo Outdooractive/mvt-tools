@@ -1,0 +1,1 @@
+wget https://demotiles.maplibre.org/tiles/2/2/1.pbf
