@@ -45,12 +45,6 @@ SUBCOMMANDS:
   See 'mvt help <subcommand>' for detailed help.
 ```
 
-`mvt info` - Print information about the vector tile
-
-```bash
-mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
-```
-
 ---
 
 ## Features
@@ -109,6 +103,63 @@ tile.setFeatures([feature], for: "test")
 let tileData = tile.data()
 ...
 ```
+
+### Playground
+
+On macOS you can use a Swift Playground to inspect the MVTTools API such as `layerNames` & `projection`.
+
+* Load tile using MVTTools
+* Inspect the properties of the `VectorTile`
+
+### `mvt dump`
+
+Print the vector tile as GeoJSON.
+
+`mvt` works with a vector tile from local disk.
+
+Example 1: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
+
+```bash
+mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+```
+
+### `mvt info`
+
+```bash
+mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+```
+
+*Result*
+
+    Name               | Features | Points | LineStrings | Polygons | Unknown | Version
+    --------------------+----------+--------+-------------+----------+---------+--------
+    area_label         | 55       | 55     | 0           | 0        | 0       | 2      
+    barrier_line       | 4219     | 0      | 4219        | 0        | 0       | 2      
+    bridge             | 14       | 0      | 14          | 0        | 0       | 2      
+    building           | 5414     | 0      | 0           | 5414     | 0       | 2      
+    building_label     | 413      | 413    | 0           | 0        | 0       | 2      
+    ...   
+    road               | 502      | 1      | 497         | 4        | 0       | 2      
+    road_label         | 309      | 0      | 309         | 0        | 0       | 2      
+    
+---
+
+`mvt` works with a vector tile served from a web server.
+
+Example 2:  Inspect a MapLibre vector tile at zoom 2, with an extent showing Norway to India.
+
+```bash
+mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
+```
+
+*Result*
+
+    Name      | Features | Points | LineStrings | Polygons | Unknown | Version
+    ----------+----------+--------+-------------+----------+---------+--------
+    centroids | 104      | 104    | 0           | 0        | 0       | 2      
+    countries | 113      | 0      | 0           | 113      | 0       | 2      
+    geolines  | 4        | 0      | 4           | 0        | 0       | 2    
+
 
 ## Contributing
 
