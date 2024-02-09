@@ -45,6 +45,14 @@ SUBCOMMANDS:
   See 'mvt help <subcommand>' for detailed help.
 ```
 
+`mvt info` - Print information about the vector tile
+
+```bash
+mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+```
+
+---
+
 ## Features
 
 - Load and write Mapnik Vector Tiles from/to disk or data objects (also handles gzipped input)
