@@ -1,8 +1,8 @@
 import ArgumentParser
+import CoreLocation
 import Foundation
 import GISTools
 import MVTTools
-import CoreLocation
 
 extension CLI {
 

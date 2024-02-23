@@ -18,6 +18,8 @@ targets: [
 ]
 ```
 
+This package uses the [gis-tools](https://github.com/Outdooractive/gis-tools) library, and is being used by the [mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library, please have a look at them as well.
+
 ## Command line tool
 
 You can install the command line tool `mvt` locally to `/usr/local/bin` with
@@ -184,14 +186,15 @@ brew install protobuf swift-protobuf swiftlint
 
 ## Links
 
+- Libraries
+    - https://github.com/Outdooractive/gis-tools
+    - https://github.com/Outdooractive/mvt-postgis
+    - https://github.com/apple/swift-protobuf
+
 - Vector tiles
     - https://github.com/mapbox/vector-tile-spec/tree/master/2.1
     - https://github.com/mapbox/vector-tile-spec/blob/master/2.1/vector_tile.proto
     - https://docs.mapbox.com/vector-tiles/specification/#format
-
-- Libraries
-    - https://github.com/apple/swift-protobuf
-    - https://github.com/Outdooractive/gis-tools
 
 - Sample data for testing:
     - https://github.com/mapbox/mvt-fixtures
