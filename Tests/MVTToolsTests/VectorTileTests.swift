@@ -111,4 +111,19 @@ final class VectorTileTests: XCTestCase {
         XCTAssertEqual(tile1.features(for: "test2")!.count, 1)
     }
 
+    func testEncodeDecodeBigInt() throws {
+        let feature = try XCTUnwrap(Feature(jsonData: TestData.dataFromFile(name: "bigint_id.geojson")))
+        XCTAssertEqual(feature.id, .uint(18446744073638380036))
+
+        var tile = try XCTUnwrap(VectorTile(x: 10, y: 25, z: 6))
+        tile.setFeatures([feature], for: "test")
+        let tileData = try XCTUnwrap(tile.data())
+        XCTAssertFalse(tileData.isEmpty)
+
+        let tile2 = try XCTUnwrap(VectorTile(data: tileData, x: 10, y: 25, z: 6))
+        let feature2: Feature = try XCTUnwrap(tile2.features(for: "test")?.first)
+
+        XCTAssertEqual(feature.id, feature2.id)
+    }
+
 }
