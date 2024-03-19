@@ -19,10 +19,10 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.2.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", branch: "45_feature_id_overflow"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", from: "5.2.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.1"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.4"),
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.25.2"),
     ],
     targets: [
