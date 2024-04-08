@@ -1,0 +1,37 @@
+{
+      "bbox" : [
+        -120.37960052490236,
+        34.045263375550654,
+        -120.37960052490236,
+        34.045263375550654
+      ],
+      "geometry" : {
+        "coordinates" : [
+          -120.37960052490236,
+          34.045263375550654
+        ],
+        "type" : "Point"
+      },
+      "id" : 18446744073638380036,
+      "properties" : {
+        "class" : "island",
+        "name" : "San Miguel Island",
+        "name_de" : "San Miguel Island",
+        "name_en" : "San Miguel Island",
+        "name_int" : "San Miguel Island",
+        "name:ca" : "illa San Miguel",
+        "name:de" : "San Miguel Island",
+        "name:en" : "San Miguel Island",
+        "name:es" : "Isla San Miguel",
+        "name:et" : "San Migueli saar",
+        "name:fr" : "île San Miguel",
+        "name:it" : "Isola di San Miguel",
+        "name:ja" : "サンミゲル島 (チャンネル諸島)",
+        "name:latin" : "San Miguel Island",
+        "name:nl" : "San Miguel Island",
+        "name:pl" : "San Miguel Island",
+        "name:zh" : "聖米格爾島",
+        "rank" : 3
+      },
+      "type" : "Feature"
+}
