@@ -15,7 +15,7 @@ extension CLI {
         var layer: [String] = []
 
         @Flag(name: .shortAndLong, help: "Format the output GeoJSON")
-        var prettyPrint: Bool = false
+        var prettyPrint = false
 
         @OptionGroup
         var options: Options

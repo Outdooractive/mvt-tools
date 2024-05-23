@@ -28,8 +28,8 @@ extension CLI {
                 if let partLatitude = Double(possibleCoordinateParts[0]),
                    let partLongitude = Double(possibleCoordinateParts[1]),
                    let partTolerance = Double(possibleCoordinateParts[2]),
-                   (-90...90).contains(partLatitude),
-                   (-180...180).contains(partLongitude),
+                   (-90 ... 90).contains(partLatitude),
+                   (-180 ... 180).contains(partLongitude),
                    partTolerance > 0.0
                 {
                     coordinate = Coordinate3D(latitude: partLatitude, longitude: partLongitude)
@@ -51,8 +51,8 @@ extension CLI {
             }
 
             var result: FeatureCollection?
-            if let coordinate = coordinate,
-               let tolerance = tolerance
+            if let coordinate,
+               let tolerance
             {
                 if options.verbose {
                     print("Searching around \(coordinate), tolerance: \(tolerance)m ...")
@@ -66,7 +66,7 @@ extension CLI {
                 result = search(term: searchTerm, in: tile)
             }
 
-            if let result = result,
+            if let result,
                let output = result.asJsonString(prettyPrinted: true)
             {
                 print(output, terminator: "")

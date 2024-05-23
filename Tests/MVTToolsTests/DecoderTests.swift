@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import GISTools
 import struct GISTools.Polygon
@@ -22,7 +22,7 @@ final class DecoderTests: XCTestCase {
         let coordinates2 = VectorTile.multiCoordinatesFrom(geometryIntegers: geometry2, ofType: .point, projectionFunction: VectorTile.passThroughFromTile)
         let result2 = [
             [Coordinate3D(x: 5.0, y: 7.0, projection: .noSRID)],
-            [Coordinate3D(x: 3.0, y: 2.0, projection: .noSRID)]
+            [Coordinate3D(x: 3.0, y: 2.0, projection: .noSRID)],
         ]
         XCTAssertNotNil(coordinates2, "Failed to parse a MULTIPOINT")
         XCTAssertEqual(coordinates2, result2)
@@ -109,7 +109,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(point1, "Failed to parse a POINT")
         XCTAssertNotNil(boundingBox1, "FEATURE(POINT) without bounding box")
 
-        let result1: Point = Point(Coordinate3D(x: 25.0, y: 17.0, projection: .noSRID))
+        let result1 = Point(Coordinate3D(x: 25.0, y: 17.0, projection: .noSRID))
         XCTAssertEqual(point1, result1)
         XCTAssertEqual(boundingBox1, result1.calculateBoundingBox())
 
@@ -126,7 +126,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(multiPoint2, "Failed to parse a MULTIPOINT")
         XCTAssertNotNil(boundingBox2, "FEATURE(MULTIPOINT) without bounding box")
 
-        let result2: MultiPoint = MultiPoint([
+        let result2 = MultiPoint([
             Coordinate3D(x: 5.0, y: 7.0, projection: .noSRID),
             Coordinate3D(x: 3.0, y: 2.0, projection: .noSRID),
         ])!
@@ -146,7 +146,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(lineString3, "Failed to parse a LINESTRING")
         XCTAssertNotNil(boundingBox3, "FEATURE(LINESTRING) without bounding box")
 
-        let result3: LineString = LineString([
+        let result3 = LineString([
             Coordinate3D(x: 2.0, y: 2.0, projection: .noSRID),
             Coordinate3D(x: 2.0, y: 10.0, projection: .noSRID),
             Coordinate3D(x: 10.0, y: 10.0, projection: .noSRID),
@@ -167,7 +167,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(multiLineString4, "Failed to parse a MULTILINESTRING")
         XCTAssertNotNil(boundingBox4, "FEATURE(MULTILINESTRING) without bounding box")
 
-        let result4: MultiLineString = MultiLineString([[
+        let result4 = MultiLineString([[
             Coordinate3D(x: 2.0, y: 2.0, projection: .noSRID),
             Coordinate3D(x: 2.0, y: 10.0, projection: .noSRID),
             Coordinate3D(x: 10.0, y: 10.0, projection: .noSRID),
@@ -214,7 +214,7 @@ final class DecoderTests: XCTestCase {
         XCTAssertNotNil(multiPolygon6, "Failed to parse a MULTIPOLYGON")
         XCTAssertNotNil(boundingBox6, "FEATURE(MULTIPOLYGON) without bounding box")
 
-        let result6: MultiPolygon = MultiPolygon([[[
+        let result6 = MultiPolygon([[[
             Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
             Coordinate3D(x: 10.0, y: 0.0, projection: .noSRID),
             Coordinate3D(x: 10.0, y: 10.0, projection: .noSRID),

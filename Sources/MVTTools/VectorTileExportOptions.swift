@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -36,10 +36,10 @@ public struct VectorTileExportOptions {
     }
 
     /// The grid width and height of one tile. Always 4096.
-    public let extent: Int = 4096
+    public let extent = 4096
 
     /// The tile size in pixels. Always 256.
-    public let tileSize: Int = 256
+    public let tileSize = 256
 
     /// The buffer around the tile, either in pixels (see ``tileSize``) or in the same dimension as ``extent`` (default: **0**).
     public var bufferSize: BufferSizeOptions = .extent(0)

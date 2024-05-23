@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -66,7 +66,7 @@ extension VectorTile {
 
         return [
             "layers": layers,
-            "errors": false
+            "errors": false,
         ]
     }
 

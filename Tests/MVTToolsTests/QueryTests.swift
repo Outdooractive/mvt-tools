@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import GISTools
 import XCTest
@@ -16,7 +16,7 @@ final class QueryTests: XCTestCase {
     }
 
     func testQuery() {
-        let tileName: String = "14_8716_8015.vector.mvt"
+        let tileName = "14_8716_8015.vector.mvt"
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
@@ -35,7 +35,7 @@ final class QueryTests: XCTestCase {
     }
 
     func testQueryWithIndex() {
-        let tileName: String = "14_8716_8015.vector.mvt"
+        let tileName = "14_8716_8015.vector.mvt"
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 

@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -40,15 +40,15 @@ extension VectorTile {
 
         var layers: [String: LayerContainer] = [:]
 
-        var lastExtent: Int = 0
+        var lastExtent = 0
         var projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D) = passThroughFromTile
 
         for layer in tile.layers {
             guard (layerWhitelist?.contains(layer.name) ?? true) else { continue }
 
             let name: String = layer.name
-            let extent: Int = Int(layer.extent)
-            let version: Int = Int(layer.version)
+            let extent = Int(layer.extent)
+            let version = Int(layer.version)
 
             if extent != lastExtent {
                 lastExtent = extent
@@ -100,8 +100,8 @@ extension VectorTile {
 
                 // Maybe an encoded JSON object?
                 if string.hasPrefix("[") || string.hasPrefix("{"),
-                    let data = string.data(using: .utf8),
-                    let object = try? JSONSerialization.jsonObject(with: data)
+                   let data = string.data(using: .utf8),
+                   let object = try? JSONSerialization.jsonObject(with: data)
                 {
                     return object
                 }
@@ -135,7 +135,11 @@ extension VectorTile {
         layerFeatures.reserveCapacity(layer.features.count)
 
         for feature in layer.features {
-            guard var layerFeature: Feature = convertToLayerFeature(geometryIntegers: feature.geometry, ofType: feature.type, projectionFunction: projectionFunction) else { continue }
+            guard var layerFeature: Feature = convertToLayerFeature(
+                geometryIntegers: feature.geometry,
+                ofType: feature.type,
+                projectionFunction: projectionFunction)
+            else { continue }
 
             var properties: [String: Any] = [:]
             for tags in feature.tags.pairs() {
@@ -178,7 +182,7 @@ extension VectorTile {
         switch featureType {
         case .point:
             if multiCoordinates.count == 1,
-                let coordinate = multiCoordinates.first?.first
+               let coordinate = multiCoordinates.first?.first
             {
                 feature = Feature(Point(coordinate), calculateBoundingBox: true)
             }
@@ -245,16 +249,16 @@ extension VectorTile {
         projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
         -> [[Coordinate3D]]
     {
-        var x: Int = 0
-        var y: Int = 0
+        var x = 0
+        var y = 0
 
         var commandId: UInt32 = 0
-        var commandCount: Int = 0
+        var commandCount = 0
 
         var coordinates: [Coordinate3D] = []
         var result: [[Coordinate3D]] = []
 
-        var index: Int = 0
+        var index = 0
         let geometryCount: Int = geometryIntegers.count
 
         while index < geometryCount {
@@ -269,9 +273,7 @@ extension VectorTile {
                 guard featureType != .point,
                       commandCount == 1,
                       coordinates.count > 1
-                else {
-                    break
-                }
+                else { break }
 
                 coordinates.append(coordinates[0])
 
@@ -293,7 +295,7 @@ extension VectorTile {
                 y += VectorTile.zigZagDecode(Int(dy))
 
                 if commandId == VectorTile.commandIdMoveTo,
-                    !coordinates.isEmpty
+                   !coordinates.isEmpty
                 {
                     result.append(coordinates)
                     coordinates = []
@@ -312,7 +314,7 @@ extension VectorTile {
     }
 
     private static func zigZagDecode(_ n: Int) -> Int {
-        return (n >> 1) ^ (-(n & 1))
+        (n >> 1) ^ (-(n & 1))
     }
 
     // MARK: - Projections
@@ -322,7 +324,7 @@ extension VectorTile {
         y: Int)
         -> Coordinate3D
     {
-        return Coordinate3D(x: Double(x), y: Double(y), projection: .noSRID)
+        Coordinate3D(x: Double(x), y: Double(y), projection: .noSRID)
     }
 
     static func projectToEpsg3857(
@@ -332,7 +334,7 @@ extension VectorTile {
         extent: Int)
         -> ((Int, Int) -> Coordinate3D)
     {
-        let extent: Double = Double(extent)
+        let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
         let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
@@ -354,7 +356,7 @@ extension VectorTile {
         extent: Int)
         -> ((Int, Int) -> Coordinate3D)
     {
-        let extent: Double = Double(extent)
+        let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
         let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)

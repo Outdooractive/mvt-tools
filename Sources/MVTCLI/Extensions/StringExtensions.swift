@@ -24,7 +24,7 @@ extension String {
                 options: NSRegularExpression.MatchingOptions(),
                 range: NSRange(startIndex..., in: self),
                 using: { (matchResult, flags, stop) in
-                    guard let matchResult = matchResult else { return }
+                    guard let matchResult else { return }
 
                     for i in 1 ..< matchResult.numberOfRanges {
                         if let range = Range(matchResult.range(at: i), in: self) {

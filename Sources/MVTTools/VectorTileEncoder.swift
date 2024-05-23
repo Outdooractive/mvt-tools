@@ -1,10 +1,10 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
-import Gzip
 import struct GISTools.Polygon
+import Gzip
 
 // MARK: Writing vector tiles
 
@@ -21,7 +21,7 @@ extension VectorTile {
     {
         var tile = VectorTile_Tile()
 
-        let extent: UInt32 = UInt32(options.extent)
+        let extent = UInt32(options.extent)
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
         var clipBoundingBox: BoundingBox?
 
@@ -36,7 +36,7 @@ extension VectorTile {
             clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
         }
 
-        var bufferSize: Int = 0
+        var bufferSize = 0
         switch options.bufferSize {
         case let .extent(extent):
             bufferSize = extent
@@ -72,17 +72,16 @@ extension VectorTile {
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
 
         for (layerName, layerContainer) in layers {
-            let layerFeatures: [Feature]
-            if let clippedToBoundingBox = clipBoundingBox {
+            let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
                 if simplifyDistance > 0.0 {
-                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
+                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
                 }
                 else {
-                    layerFeatures = layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox ) })
+                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox) })
                 }
             }
             else {
-                layerFeatures = layerContainer.features
+                layerContainer.features
             }
 
             var layer: VectorTile_Tile.Layer = encodeVersion2(
@@ -99,7 +98,7 @@ extension VectorTile {
         let serializedData = try? tile.serializedData()
 
         if options.compression != .no,
-           let serializedData = serializedData
+           let serializedData
         {
             var value = 6 // default
             if case let .level(compressionLevel) = options.compression {
@@ -132,7 +131,7 @@ extension VectorTile {
         var valuePositions: [AnyHashable: UInt32] = [:]
 
         for feature in features {
-            guard var vectorTileFeature = self.vectorTileFeature(from: feature, projectionFunction: projectionFunction) else { continue }
+            guard var vectorTileFeature = vectorTileFeature(from: feature, projectionFunction: projectionFunction) else { continue }
 
             var tags: [UInt32] = []
 
@@ -148,7 +147,7 @@ extension VectorTile {
 
                 // Encode arrays and dictionaries as JSON encoded strings
                 var hashablePropertyValue: AnyHashable
-                if let array = propertyValue as? Array<Sendable> {
+                if let array = propertyValue as? [Sendable] {
                     guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { continue }
                     hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
                 }
@@ -266,8 +265,8 @@ extension VectorTile {
             return nil
         }
 
-        if let geometryIntegers = geometryIntegers,
-            let geometryType = geometryType
+        if let geometryIntegers,
+           let geometryType
         {
             var vectorTileFeature = VectorTile_Tile.Feature()
             vectorTileFeature.type = geometryType
@@ -295,8 +294,8 @@ extension VectorTile {
     {
         var geometryIntegers: [UInt32] = []
 
-        var dx: Int = 0
-        var dy: Int = 0
+        var dx = 0
+        var dy = 0
 
         var commandId: UInt32 = 0
         var commandCount: UInt32 = 0
@@ -363,7 +362,7 @@ extension VectorTile {
                 commandInteger = (commandId & 0x7) | (commandCount << 3)
                 geometryIntegers.append(commandInteger)
 
-                for coordinate in coordinates[1 ..<  coordinates.count - 1] {
+                for coordinate in coordinates[1 ..< coordinates.count - 1] {
                     let (x, y) = projectionFunction(coordinate)
                     geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
                     geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
@@ -384,14 +383,14 @@ extension VectorTile {
     }
 
     private static func zigZagEncode(_ n: Int) -> Int {
-        return (n >> 31) ^ (n << 1)
+        (n >> 31) ^ (n << 1)
     }
 
     // MARK: - Projections
 
     static func passThroughToTile() -> ((Coordinate3D) -> (x: Int, y: Int)) {
-        return { (coordinate) -> (Int, Int) in
-            return (x: Int(coordinate.x), y: Int(coordinate.y))
+        { (coordinate) -> (Int, Int) in
+            (x: Int(coordinate.x), y: Int(coordinate.y))
         }
     }
 
@@ -402,7 +401,7 @@ extension VectorTile {
         extent: Int)
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
-        let extent: Double = Double(extent)
+        let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
         let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
@@ -410,8 +409,8 @@ extension VectorTile {
         let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
 
         return { (coordinate) -> (Int, Int) in
-            let projectedX: Int = Int(((coordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY: Int = Int(((topLeft.y - coordinate.y) / ySpan) * extent)
+            let projectedX = Int(((coordinate.x - topLeft.x) / xSpan) * extent)
+            let projectedY = Int(((topLeft.y - coordinate.y) / ySpan) * extent)
             return (projectedX, projectedY)
         }
     }
@@ -423,7 +422,7 @@ extension VectorTile {
         extent: Int)
         -> ((Coordinate3D) -> (x: Int, y: Int))
     {
-        let extent: Double = Double(extent)
+        let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
         let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
@@ -432,8 +431,8 @@ extension VectorTile {
 
         return { (coordinate) -> (Int, Int) in
             let projectedCoordinate = coordinate.projected(to: .epsg3857)
-            let projectedX: Int = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY: Int = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
+            let projectedX = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
+            let projectedY = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
             return (projectedX, projectedY)
         }
     }

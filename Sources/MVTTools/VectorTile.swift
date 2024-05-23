@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -11,6 +11,7 @@ import Logging
 public struct VectorTile: Sendable {
 
     // MARK: - Properties
+
     // MARK: Public
 
     /// A global logger instance for logging errors
@@ -54,7 +55,7 @@ public struct VectorTile: Sendable {
 
     // MARK: Private/Internal
 
-    internal var indexSortOption: RTreeSortOption?
+    var indexSortOption: RTreeSortOption?
 
     struct LayerContainer {
         var features: [Feature]
@@ -88,7 +89,7 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        let maximumTileCoordinate: Int = 1 << z
+        let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
             return nil
@@ -113,7 +114,7 @@ public struct VectorTile: Sendable {
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
-        if let sortOption = sortOption {
+        if let sortOption {
             createIndex(sortOption: sortOption)
         }
     }
@@ -125,7 +126,13 @@ public struct VectorTile: Sendable {
         indexed sortOption: RTreeSortOption? = nil,
         logger: Logger? = nil)
     {
-        self.init(x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, logger: logger)
+        self.init(
+            x: tile.x,
+            y: tile.y,
+            z: tile.z,
+            projection: projection,
+            indexed: sortOption,
+            logger: logger)
     }
 
     /// Create a vector tile from `data`, which must be in MVT format, at `z`/`x`/`y`.
@@ -144,7 +151,7 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        let maximumTileCoordinate: Int = 1 << z
+        let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
             return nil
@@ -157,15 +164,22 @@ public struct VectorTile: Sendable {
         self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>?
-        if let layerWhitelist {
-            layerWhitelistSet = Set(layerWhitelist)
+        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
+            Set(layerWhitelist)
         }
         else {
-            layerWhitelistSet = nil
+            nil
         }
 
-        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil }
+        guard let parsedLayers = VectorTile.loadTileFrom(
+            data: data,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            layerWhitelist: layerWhitelistSet,
+            logger: logger)
+        else { return nil }
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)
@@ -180,7 +194,7 @@ public struct VectorTile: Sendable {
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
-        if let sortOption = sortOption {
+        if let sortOption {
             createIndex(sortOption: sortOption)
         }
     }
@@ -194,7 +208,15 @@ public struct VectorTile: Sendable {
         layerWhitelist: [String]? = nil,
         logger: Logger? = nil)
     {
-        self.init(data: data, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist, logger: logger)
+        self.init(
+            data: data,
+            x: tile.x,
+            y: tile.y,
+            z: tile.z,
+            projection: projection,
+            indexed: sortOption,
+            layerWhitelist: layerWhitelist,
+            logger: logger)
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MVT format, at `z`/`x`/`y`.
@@ -213,7 +235,7 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        let maximumTileCoordinate: Int = 1 << z
+        let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
             return nil
@@ -226,12 +248,11 @@ public struct VectorTile: Sendable {
         self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>?
-        if let layerWhitelist {
-            layerWhitelistSet = Set(layerWhitelist)
+        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
+            Set(layerWhitelist)
         }
         else {
-            layerWhitelistSet = nil
+            nil
         }
 
         guard let data = try? Data(contentsOf: url) else {
@@ -239,7 +260,15 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        guard let parsedLayers = VectorTile.loadTileFrom(data: data, x: x, y: y, z: z, projection: projection, layerWhitelist: layerWhitelistSet, logger: logger) else { return nil }
+        guard let parsedLayers = VectorTile.loadTileFrom(
+            data: data,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            layerWhitelist: layerWhitelistSet,
+            logger: logger)
+        else { return nil }
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)
@@ -254,7 +283,7 @@ public struct VectorTile: Sendable {
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
-        if let sortOption = sortOption {
+        if let sortOption {
             createIndex(sortOption: sortOption)
         }
     }
@@ -268,7 +297,15 @@ public struct VectorTile: Sendable {
         layerWhitelist: [String]? = nil,
         logger: Logger? = nil)
     {
-        self.init(contentsOf: url, x: tile.x, y: tile.y, z: tile.z, projection: projection, indexed: sortOption, layerWhitelist: layerWhitelist, logger: logger)
+        self.init(
+            contentsOf: url,
+            x: tile.x,
+            y: tile.y,
+            z: tile.z,
+            projection: projection,
+            indexed: sortOption,
+            layerWhitelist: layerWhitelist,
+            logger: logger)
     }
 
 }
@@ -279,7 +316,7 @@ extension VectorTile {
 
     /// Returns the tile's content as MVT data
     public func data(options: VectorTileExportOptions? = nil) -> Data? {
-        return VectorTile.tileDataFor(
+        VectorTile.tileDataFor(
             layers: layers,
             x: x,
             y: y,
@@ -295,7 +332,7 @@ extension VectorTile {
         options: VectorTileExportOptions? = nil)
         -> Bool
     {
-        guard let data: Data = self.data(options: options) else { return false }
+        guard let data: Data = data(options: options) else { return false }
 
         do {
             try data.write(to: url)
@@ -330,12 +367,16 @@ extension VectorTile {
 
     /// Returns an array of GeoJson Features
     public func features(for layerName: String) -> [Feature]? {
-        return layers[layerName]?.features
+        layers[layerName]?.features
     }
 
     /// Replace or add a layer with `features`
     @discardableResult
-    public mutating func setFeatures(_ features: [Feature], for layerName: String) -> Bool {
+    public mutating func setFeatures(
+        _ features: [Feature],
+        for layerName: String)
+        -> Bool
+    {
         let features: [Feature] = features.map { (feature) in
             var feature = feature.projected(to: projection)
             feature.updateBoundingBox(onlyIfNecessary: true)
@@ -357,7 +398,7 @@ extension VectorTile {
             features: features,
             boundingBox: layerBoundingBox)
 
-        if let indexSortOption = indexSortOption {
+        if let indexSortOption {
             newLayerContainer.rTree = RTree(features, sortOption: indexSortOption)
         }
 
@@ -369,7 +410,11 @@ extension VectorTile {
 
     /// Append `features` to a layer, or create a new layer if it doesn't already exist
     @discardableResult
-    public mutating func appendFeatures(_ features: [Feature], to layerName: String) -> Bool {
+    public mutating func appendFeatures(
+        _ features: [Feature],
+        to layerName: String)
+        -> Bool
+    {
         var allFeatures: [Feature] = []
 
         if let layerContainer = layers[layerName] {
@@ -398,7 +443,7 @@ extension VectorTile {
             boundingBox: layerBoundingBox)
 
         // TODO: Improve this, don't update the complete index
-        if let indexSortOption = indexSortOption {
+        if let indexSortOption {
             newLayerContainer.rTree = RTree(allFeatures, sortOption: indexSortOption)
         }
 
@@ -410,7 +455,11 @@ extension VectorTile {
 
     /// Remove features from a layer.
     @discardableResult
-    public mutating func removeFeatures(fromLayer layerName: String, where shouldBeRemoved: (Feature) -> Bool) -> Bool {
+    public mutating func removeFeatures(
+        fromLayer layerName: String,
+        where shouldBeRemoved: (Feature) -> Bool)
+        -> Bool
+    {
         guard let layerContainer = layers[layerName] else { return false }
 
         var allFeatures = layerContainer.features
@@ -427,7 +476,7 @@ extension VectorTile {
             boundingBox: layerBoundingBox)
 
         // TODO: Improve this, don't update the complete index
-        if let indexSortOption = indexSortOption {
+        if let indexSortOption {
             newLayerContainer.rTree = RTree(allFeatures, sortOption: indexSortOption)
         }
 

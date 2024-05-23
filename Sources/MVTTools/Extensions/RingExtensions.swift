@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import GISTools
 
@@ -10,13 +10,13 @@ extension Ring {
     /// Note: Vector tiles have a flipped y axis, so
     /// clockwise/counterClockwise are reverted
     var isUnprojectedClockwise: Bool {
-        return !isClockwise
+        !isClockwise
     }
 
     /// Note: Vector tiles have a flipped y axis, so
     /// clockwise/counterClockwise are reverted
     var isUnprojectedCounterClockwise: Bool {
-        return !isCounterClockwise
+        !isCounterClockwise
     }
 
 }

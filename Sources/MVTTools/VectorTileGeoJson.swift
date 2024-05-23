@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -48,7 +48,7 @@ extension VectorTile {
         prettyPrinted: Bool = false)
         -> Bool
     {
-        guard let data: Data = self.toGeoJson(
+        guard let data: Data = toGeoJson(
             layerNames: layerNames,
             additionalFeatureProperties: additionalFeatureProperties,
             prettyPrinted: prettyPrinted)

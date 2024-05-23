@@ -1,5 +1,5 @@
-import XCTest
 import Foundation
+import XCTest
 
 class TestData {
 
@@ -10,7 +10,7 @@ class TestData {
             .appendingPathComponent(name)
 
         do {
-            if !(try path.checkResourceIsReachable()) {
+            if try !(path.checkResourceIsReachable()) {
                 XCTAssert(false, "Fixture \(name) not found.")
                 return ""
             }
@@ -29,7 +29,7 @@ class TestData {
             .appendingPathComponent(name)
 
         do {
-            if !(try path.checkResourceIsReachable()) {
+            if try !(path.checkResourceIsReachable()) {
                 XCTAssert(false, "Fixture \(name) not found.")
                 return Data()
             }

@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
@@ -44,12 +44,11 @@ extension VectorTile {
         featureFilter: ((Feature) -> Bool)? = nil)
         -> [QueryResult]
     {
-        let queryLayerNames: [String]
-        if let layerName {
-            queryLayerNames = [layerName]
+        let queryLayerNames: [String] = if let layerName {
+            [layerName]
         }
         else {
-            queryLayerNames = layerNames
+            layerNames
         }
 
         var result: [QueryResult] = []
@@ -108,12 +107,11 @@ extension VectorTile {
         featureFilter: ((Feature) -> Bool)? = nil)
         -> [QueryResult]
     {
-        let queryLayerNames: [String]
-        if let layerName {
-            queryLayerNames = [layerName]
+        let queryLayerNames: [String] = if let layerName {
+            [layerName]
         }
         else {
-            queryLayerNames = layerNames
+            layerNames
         }
 
         var result: [QueryResult] = []
@@ -124,14 +122,12 @@ extension VectorTile {
                   boundingBox.intersects(queryBoundingBox)
             else { continue }
 
-            let resultFeatures: [Feature]
-
-            if let rTree = layerFeatureContainer.rTree {
+            let resultFeatures: [Feature] = if let rTree = layerFeatureContainer.rTree {
                 // The search will only return features that intersect with the bounding box
-                resultFeatures = rTree.search(inBoundingBox: queryBoundingBox)
+                rTree.search(inBoundingBox: queryBoundingBox)
             }
             else {
-                resultFeatures = layerFeatureContainer.features.filter({ feature in
+                layerFeatureContainer.features.filter({ feature in
                     // Check the feature itself
                     guard feature.intersects(queryBoundingBox) else { return false }
 
@@ -170,12 +166,11 @@ extension VectorTile {
                 projection: projection)
         }
 
-        let queryLayerNames: [String]
-        if let layerName {
-            queryLayerNames = [layerName]
+        let queryLayerNames: [String] = if let layerName {
+            [layerName]
         }
         else {
-            queryLayerNames = layerNames
+            layerNames
         }
 
         var results: [QueryManyResult] = []
@@ -190,14 +185,12 @@ extension VectorTile {
                       boundingBox.intersects(queryBoundingBox)
                 else { break }
 
-                let resultFeatures: [Feature]
-
-                if let rTree = layerFeatureContainer.rTree {
+                let resultFeatures: [Feature] = if let rTree = layerFeatureContainer.rTree {
                     // The search will only return features that intersect with the bounding box
-                    resultFeatures = rTree.search(inBoundingBox: queryBoundingBox)
+                    rTree.search(inBoundingBox: queryBoundingBox)
                 }
                 else {
-                    resultFeatures = layerFeatureContainer.features.filter({ feature in
+                    layerFeatureContainer.features.filter({ feature in
                         // Check the feature itself
                         guard feature.intersects(queryBoundingBox) else { return false }
 
@@ -270,7 +263,7 @@ extension VectorTile {
                         projection: projection),
                 ],
                 padding: tolerance)!
-            .clamped()
+                .clamped()
         }
     }
 

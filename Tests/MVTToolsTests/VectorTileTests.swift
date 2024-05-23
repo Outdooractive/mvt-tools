@@ -1,5 +1,5 @@
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import GISTools
 import struct GISTools.Polygon
@@ -10,7 +10,7 @@ import XCTest
 final class VectorTileTests: XCTestCase {
 
     func testLoadMvt() {
-        let tileName: String = "14_8716_8015.vector.mvt"
+        let tileName = "14_8716_8015.vector.mvt"
         let tileLayerNames: [String] = ["landuse", "waterway", "water", "aeroway", "barrier_line", "building", "landuse_overlay", "tunnel", "road", "bridge", "admin", "country_label_line", "country_label", "marine_label", "state_label", "place_label", "water_label", "area_label", "rail_station_label", "airport_label", "road_label", "waterway_label", "building_label"].sorted()
 
         let mvt = TestData.dataFromFile(name: tileName)
@@ -50,8 +50,8 @@ final class VectorTileTests: XCTestCase {
             "test3": [1, 2, 3],
             "test4": [
                 "sub1": 1,
-                "sub2": 2
-            ]
+                "sub2": 2,
+            ],
         ]
 
         tile.setFeatures([feature], for: "test")
@@ -62,7 +62,7 @@ final class VectorTileTests: XCTestCase {
     }
 
     func testTileInfo() {
-        let tileName: String = "14_8716_8015.vector.mvt"
+        let tileName = "14_8716_8015.vector.mvt"
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
@@ -113,7 +113,7 @@ final class VectorTileTests: XCTestCase {
 
     func testEncodeDecodeBigInt() throws {
         let feature = try XCTUnwrap(Feature(jsonData: TestData.dataFromFile(name: "bigint_id.geojson")))
-        XCTAssertEqual(feature.id, .uint(18446744073638380036))
+        XCTAssertEqual(feature.id, .uint(18_446_744_073_638_380_036))
 
         var tile = try XCTUnwrap(VectorTile(x: 10, y: 25, z: 6))
         tile.setFeatures([feature], for: "test")

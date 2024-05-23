@@ -3,11 +3,13 @@ import Foundation
 extension Array {
 
     var nonempty: Self? {
-        self.isEmpty ? nil : self
+        isEmpty ? nil : self
     }
 
     func get(at index: Int) -> Element? {
-        guard index >= -count && index < count else { return nil }
+        guard index >= -count,
+              index < count
+        else { return nil }
 
         if index >= 0 {
             return self[index]

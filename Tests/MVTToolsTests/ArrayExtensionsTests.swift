@@ -29,7 +29,7 @@ final class ArrayExtensionsTests: XCTestCase {
 
     func testSmallPairs() {
         let empty: [Int] = []
-        let small: [Int] = [1]
+        let small = [1]
 
         let emptyPairs = empty.pairs()
         let smallPairs = small.pairs()
