@@ -105,7 +105,7 @@ feature.properties = [
 
 tile.setFeatures([feature], for: "test")
 
-// Also have a look at ``VectorTileExportOptions``
+// Also have a look at ``VectorTile.ExportOptions``
 let tileData = tile.data()
 ...
 ```

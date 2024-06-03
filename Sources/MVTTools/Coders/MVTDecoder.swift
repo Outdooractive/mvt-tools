@@ -8,10 +8,10 @@ import Logging
 
 // MARK: Reading vector tiles
 
-extension VectorTile {
+enum MVTDecoder {
 
-    static func vectorTile(from data: Data) -> VectorTile_Tile? {
-        var data = data
+    static func vectorTile(from mvtData: Data) -> VectorTile_Tile? {
+        var data = mvtData
         if data.isGzipped {
             data = (try? data.gunzipped()) ?? data
         }
@@ -19,26 +19,26 @@ extension VectorTile {
         return try? VectorTile_Tile(serializedData: data)
     }
 
-    static func loadTileFrom(
-        data: Data,
+    static func layers(
+        from mvtData: Data,
         x: Int,
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
         layerWhitelist: Set<String>?,
         logger: Logger?)
-        -> [String: LayerContainer]?
+        -> [String: VectorTile.LayerContainer]?
     {
-        if data.isGzipped {
+        if mvtData.isGzipped {
             (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Input data is gzipped")
         }
 
-        guard let tile = vectorTile(from: data) else {
+        guard let tile = vectorTile(from: mvtData) else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to create a vector tile from data")
             return nil
         }
 
-        var layers: [String: LayerContainer] = [:]
+        var layers: [String: VectorTile.LayerContainer] = [:]
 
         var lastExtent = 0
         var projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D) = passThroughFromTile
@@ -73,7 +73,7 @@ extension VectorTile {
                     layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
                 }
 
-                layers[name] = LayerContainer(
+                layers[name] = VectorTile.LayerContainer(
                     features: layerFeatures,
                     boundingBox: layerBoundingBox)
 
@@ -269,7 +269,7 @@ extension VectorTile {
             commandCount = Int(commandInteger >> 3)
 
             // ClosePath has no parameter
-            if commandId == VectorTile.commandIdClosePath {
+            if commandId == MVTDecoder.commandIdClosePath {
                 guard featureType != .point,
                       commandCount == 1,
                       coordinates.count > 1
@@ -291,10 +291,10 @@ extension VectorTile {
                 let dx: UInt32 = geometryIntegers[index]
                 let dy: UInt32 = geometryIntegers[index + 1]
 
-                x += VectorTile.zigZagDecode(Int(dx))
-                y += VectorTile.zigZagDecode(Int(dy))
+                x += MVTDecoder.zigZagDecode(Int(dx))
+                y += MVTDecoder.zigZagDecode(Int(dy))
 
-                if commandId == VectorTile.commandIdMoveTo,
+                if commandId == MVTDecoder.commandIdMoveTo,
                    !coordinates.isEmpty
                 {
                     result.append(coordinates)

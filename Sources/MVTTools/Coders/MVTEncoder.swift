@@ -8,15 +8,15 @@ import Gzip
 
 // MARK: Writing vector tiles
 
-extension VectorTile {
+enum MVTEncoder {
 
-    static func tileDataFor(
-        layers: [String: LayerContainer],
+    static func mvtDataFor(
+        layers: [String: VectorTile.LayerContainer],
         x: Int,
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        options: VectorTileExportOptions)
+        options: VectorTile.ExportOptions)
         -> Data?
     {
         var tile = VectorTile_Tile()
@@ -303,7 +303,7 @@ extension VectorTile {
 
         // Encode points
         if featureType == .point {
-            commandId = VectorTile.commandIdMoveTo
+            commandId = MVTEncoder.commandIdMoveTo
             commandCount = UInt32(multiCoordinates.count)
             commandInteger = (commandId & 0x7) | (commandCount << 3)
             geometryIntegers.append(commandInteger)
@@ -312,8 +312,8 @@ extension VectorTile {
                 guard let moveToCoordinate = coordinates.first else { continue }
 
                 let (x, y) = projectionFunction(moveToCoordinate)
-                geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
-                geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
+                geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
                 dx = x
                 dy = y
             }
@@ -329,50 +329,50 @@ extension VectorTile {
                   let moveToCoordinate = coordinates.first
             else { continue }
 
-            commandId = VectorTile.commandIdMoveTo
+            commandId = MVTEncoder.commandIdMoveTo
             commandCount = 1
             commandInteger = (commandId & 0x7) | (commandCount << 3)
             geometryIntegers.append(commandInteger)
 
             let (x, y) = projectionFunction(moveToCoordinate)
-            geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
-            geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+            geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
+            geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
             dx = x
             dy = y
 
             if featureType == .linestring
                 || coordinates.get(at: 0) != coordinates.get(at: -1)
             {
-                commandId = VectorTile.commandIdLineTo
+                commandId = MVTEncoder.commandIdLineTo
                 commandCount = UInt32(coordinates.count - 1)
                 commandInteger = (commandId & 0x7) | (commandCount << 3)
                 geometryIntegers.append(commandInteger)
 
                 for coordinate in coordinates[1...] {
                     let (x, y) = projectionFunction(coordinate)
-                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
-                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
+                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
                     dx = x
                     dy = y
                 }
             }
             else {
-                commandId = VectorTile.commandIdLineTo
+                commandId = MVTEncoder.commandIdLineTo
                 commandCount = UInt32(coordinates.count - 2)
                 commandInteger = (commandId & 0x7) | (commandCount << 3)
                 geometryIntegers.append(commandInteger)
 
                 for coordinate in coordinates[1 ..< coordinates.count - 1] {
                     let (x, y) = projectionFunction(coordinate)
-                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(x) - dx)))
-                    geometryIntegers.append(UInt32(VectorTile.zigZagEncode(Int(y) - dy)))
+                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
+                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
                     dx = x
                     dy = y
                 }
             }
 
             if featureType == .polygon {
-                commandId = VectorTile.commandIdClosePath
+                commandId = MVTEncoder.commandIdClosePath
                 commandCount = 1
                 commandInteger = (commandId & 0x7) | (commandCount << 3)
                 geometryIntegers.append(commandInteger)

@@ -63,11 +63,12 @@ extension CLI {
                 tile.merge(otherTile)
             }
 
-            let exportOptions = VectorTileExportOptions(
-                bufferSize: .extent(512),
-                compression: .level(9),
-                simplifyFeatures: .no)
-            tile.write(to: outputUrl, options: exportOptions)
+            tile.write(
+                to: outputUrl,
+                options: .init(
+                    bufferSize: .extent(512),
+                    compression: .level(9),
+                    simplifyFeatures: .no))
         }
 
     }

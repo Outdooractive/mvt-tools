@@ -171,8 +171,8 @@ public struct VectorTile: Sendable {
             nil
         }
 
-        guard let parsedLayers = VectorTile.loadTileFrom(
-            data: data,
+        guard let parsedLayers = MVTDecoder.layers(
+            from: data,
             x: x,
             y: y,
             z: z,
@@ -260,8 +260,8 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        guard let parsedLayers = VectorTile.loadTileFrom(
-            data: data,
+        guard let parsedLayers = MVTDecoder.layers(
+            from: data,
             x: x,
             y: y,
             z: z,
@@ -315,21 +315,21 @@ public struct VectorTile: Sendable {
 extension VectorTile {
 
     /// Returns the tile's content as MVT data
-    public func data(options: VectorTileExportOptions? = nil) -> Data? {
-        VectorTile.tileDataFor(
+    public func data(options: ExportOptions? = nil) -> Data? {
+        MVTEncoder.mvtDataFor(
             layers: layers,
             x: x,
             y: y,
             z: z,
             projection: projection,
-            options: options ?? VectorTileExportOptions())
+            options: options ?? ExportOptions())
     }
 
     /// Writes the tile's content to `url` in MVT format
     @discardableResult
     public func write(
         to url: URL,
-        options: VectorTileExportOptions? = nil)
+        options: ExportOptions? = nil)
         -> Bool
     {
         guard let data: Data = data(options: options) else { return false }
