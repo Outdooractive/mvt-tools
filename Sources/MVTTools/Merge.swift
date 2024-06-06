@@ -10,13 +10,19 @@ extension VectorTile {
 
     /// Merge another vector tile into this tile.
     @discardableResult
-    public mutating func merge(_ other: VectorTile) -> Bool {
-        guard other.x == x,
-              other.y == y,
-              other.z == z
-        else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to merge, other has different coordinate \(other.z)/\(other.x)/\(other.y)")
-            return false
+    public mutating func merge(
+        _ other: VectorTile,
+        ignoreTileCoordinateMismatch: Bool = false)
+        -> Bool
+    {
+        if !ignoreTileCoordinateMismatch {
+            guard other.x == x,
+                  other.y == y,
+                  other.z == z
+            else {
+                (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to merge, other has different coordinate \(other.z)/\(other.x)/\(other.y)")
+                return false
+            }
         }
 
         if other.projection != projection {
