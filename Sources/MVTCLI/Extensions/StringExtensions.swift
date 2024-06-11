@@ -1,7 +1,5 @@
 import Foundation
 
-extension String: Error {}
-
 extension String {
 
     func extractingGroupsUsingPattern(

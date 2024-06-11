@@ -16,7 +16,7 @@ extension CLI {
 
             guard let tileInfo = VectorTile.tileInfo(at: url),
                   var layers = tileInfo["layers"] as? [[String: Any]]
-            else { throw "Error retreiving the tile info for \(options.path)" }
+            else { throw CLIError("Error retreiving the tile info for \(options.path)") }
 
             layers.sort { first, second in
                 guard let firstName = first["name"] as? String,

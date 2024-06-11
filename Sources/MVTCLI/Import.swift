@@ -26,29 +26,29 @@ extension CLI {
             guard let x = options.x,
                   let y = options.y,
                   let z = options.z
-            else { throw "Something went wrong during argument parsing" }
+            else { throw CLIError("Something went wrong during argument parsing") }
 
             guard var tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil) else {
-                throw "Failed to create the tile at \(options.path)"
+                throw CLIError("Failed to create the tile at \(options.path)")
             }
 
             for path in other {
                 let otherUrl: URL
                 if path.hasPrefix("http") {
                     guard let parsedUrl = URL(string: path) else {
-                        throw "\(path) is not a valid URL"
+                        throw CLIError("\(path) is not a valid URL")
                     }
                     otherUrl = parsedUrl
                 }
                 else {
                     otherUrl = URL(fileURLWithPath: path)
                     guard try otherUrl.checkResourceIsReachable() else {
-                        throw "The file '\(path)' doesn't exist."
+                        throw CLIError("The file '\(path)' doesn't exist.")
                     }
                 }
 
                 guard let otherGeoJSON = FeatureCollection(contentsOf: otherUrl) else {
-                    throw "Failed to parse the GeoJSON at \(path)"
+                    throw CLIError("Failed to parse the GeoJSON at \(path)")
                 }
 
                 tile.addGeoJson(geoJson: otherGeoJSON, layerName: layer)

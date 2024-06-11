@@ -17,6 +17,14 @@ struct CLI: AsyncParsableCommand {
 
 }
 
+struct CLIError: LocalizedError {
+    let errorDescription: String?
+
+    init(_ errorDescription: String) {
+        self.errorDescription = errorDescription
+    }
+}
+
 struct Options: ParsableArguments {
 
     @Flag(name: .shortAndLong, help: "Print some debug info")
@@ -45,7 +53,7 @@ struct Options: ParsableArguments {
         let url: URL
         if path.hasPrefix("http") {
             guard let parsedUrl = URL(string: path) else {
-                throw "\(path) is not a valid URL"
+                throw CLIError("\(path) is not a valid URL")
             }
             url = parsedUrl
         }
@@ -53,7 +61,7 @@ struct Options: ParsableArguments {
             url = URL(fileURLWithPath: path)
             if checkExistence {
                 guard try url.checkResourceIsReachable() else {
-                    throw "The file '\(path)' doesn't exist."
+                    throw CLIError("The file '\(path)' doesn't exist.")
                 }
             }
         }
@@ -93,15 +101,15 @@ struct Options: ParsableArguments {
         guard let x,
               let y,
               let z
-        else { throw "Need z, x and y" }
+        else { throw CLIError("Need z, x and y") }
 
-        guard x >= 0 else { throw "x must be >= 0" }
-        guard y >= 0 else { throw "y must be >= 0" }
-        guard z >= 0 else { throw "z must be >= 0" }
+        guard x >= 0 else { throw CLIError("x must be >= 0") }
+        guard y >= 0 else { throw CLIError("y must be >= 0") }
+        guard z >= 0 else { throw CLIError("z must be >= 0") }
 
         let maximumTileCoordinate = 1 << z
-        if x >= maximumTileCoordinate { throw "x at zoom \(z) must be smaller than \(maximumTileCoordinate)" }
-        if y >= maximumTileCoordinate { throw "y at zoom \(z) must be smaller than \(maximumTileCoordinate)" }
+        if x >= maximumTileCoordinate { throw CLIError("x at zoom \(z) must be smaller than \(maximumTileCoordinate)") }
+        if y >= maximumTileCoordinate { throw CLIError("y at zoom \(z) must be smaller than \(maximumTileCoordinate)") }
 
         return url
     }

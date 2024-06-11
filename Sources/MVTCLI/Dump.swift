@@ -20,16 +20,16 @@ extension CLI {
             guard let x = options.x,
                   let y = options.y,
                   let z = options.z
-            else { throw "Something went wrong during argument parsing" }
+            else { throw CLIError("Something went wrong during argument parsing") }
 
             let layerWhitelist = layer.nonempty
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw "Failed to parse the tile at \(options.path)"
+                throw CLIError("Failed to parse the tile at \(options.path)")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: true) else {
-                throw "Failed to extract the tile data as GeoJSON"
+                throw CLIError("Failed to extract the tile data as GeoJSON")
             }
 
             print(String(data: data, encoding: .utf8) ?? "", terminator: "")

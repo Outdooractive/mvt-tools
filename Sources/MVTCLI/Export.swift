@@ -26,21 +26,21 @@ extension CLI {
             guard let x = options.x,
                   let y = options.y,
                   let z = options.z
-            else { throw "Something went wrong during argument parsing" }
+            else { throw CLIError("Something went wrong during argument parsing") }
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
-                throw "Output file must not exist"
+                throw CLIError("Output file must not exist")
             }
 
             let layerWhitelist = layer.nonempty
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw "Failed to parse the tile at \(options.path)"
+                throw CLIError("Failed to parse the tile at \(options.path)")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: prettyPrint) else {
-                throw "Failed to extract the tile data as GeoJSON"
+                throw CLIError("Failed to extract the tile data as GeoJSON")
             }
 
             try data.write(to: outputUrl, options: .atomic)

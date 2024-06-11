@@ -28,36 +28,36 @@ extension CLI {
             guard let x = options.x,
                   let y = options.y,
                   let z = options.z
-            else { throw "Something went wrong during argument parsing" }
+            else { throw CLIError("Something went wrong during argument parsing") }
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
-                throw "Output file must not exist"
+                throw CLIError("Output file must not exist")
             }
 
             let layerWhitelist = layer.nonempty
 
             guard var tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw "Failed to parse the tile at \(options.path)"
+                throw CLIError("Failed to parse the tile at \(options.path)")
             }
 
             for path in other {
                 let otherUrl: URL
                 if path.hasPrefix("http") {
                     guard let parsedUrl = URL(string: path) else {
-                        throw "\(path) is not a valid URL"
+                        throw CLIError("\(path) is not a valid URL")
                     }
                     otherUrl = parsedUrl
                 }
                 else {
                     otherUrl = URL(fileURLWithPath: path)
                     guard try otherUrl.checkResourceIsReachable() else {
-                        throw "The file '\(path)' doesn't exist."
+                        throw CLIError("The file '\(path)' doesn't exist.")
                     }
                 }
 
                 guard let otherTile = VectorTile(contentsOf: otherUrl, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                    throw "Failed to parse the tile at \(path)"
+                    throw CLIError("Failed to parse the tile at \(path)")
                 }
 
                 tile.merge(otherTile)
