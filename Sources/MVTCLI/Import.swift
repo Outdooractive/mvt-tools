@@ -7,7 +7,7 @@ extension CLI {
 
     struct Import: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Import some GeoJSONs to a vector tile")
+        static let configuration = CommandConfiguration(abstract: "Import some GeoJSONs to a vector tile")
 
         @Option(name: .shortAndLong, help: "Layer name in the vector tile")
         var layer: String?

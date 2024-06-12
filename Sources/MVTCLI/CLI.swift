@@ -8,7 +8,7 @@ struct CLI: AsyncParsableCommand {
 
     static let logger = Logger(label: "mvttool")
 
-    static var configuration = CommandConfiguration(
+    static let configuration = CommandConfiguration(
         commandName: "mvt",
         abstract: "A utility for inspecting and working with vector tiles.",
         version: "1.5.0",

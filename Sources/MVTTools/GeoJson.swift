@@ -11,7 +11,7 @@ extension VectorTile {
     /// Export the tile's content as GeoJSON
     public func toGeoJson(
         layerNames: [String] = [],
-        additionalFeatureProperties: [String: Any]? = nil,
+        additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false)
         -> Data?
     {
@@ -44,7 +44,7 @@ extension VectorTile {
     public func writeGeoJson(
         to url: URL,
         layerNames: [String] = [],
-        additionalFeatureProperties: [String: Any]? = nil,
+        additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false)
         -> Bool
     {

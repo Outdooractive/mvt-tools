@@ -6,7 +6,7 @@ extension CLI {
 
     struct Merge: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Merge two or more vector tiles")
+        static let configuration = CommandConfiguration(abstract: "Merge two or more vector tiles")
 
         @Option(name: .shortAndLong, help: "Output file")
         var output: String

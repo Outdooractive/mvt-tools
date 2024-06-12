@@ -6,7 +6,7 @@ extension CLI {
 
     struct Dump: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON")
+        static let configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON")
 
         @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
         var layer: [String] = []

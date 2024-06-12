@@ -14,8 +14,9 @@ public struct VectorTile: Sendable {
 
     // MARK: Public
 
-    /// A global logger instance for logging errors
-    public static var logger: Logger?
+    /// A global logger instance for logging errors.
+    /// Set this before using `VectorTile`.
+    nonisolated(unsafe) public static var logger: Logger?
 
     /// The tile's x coordinate
     public let x: Int

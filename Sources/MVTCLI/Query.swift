@@ -8,7 +8,7 @@ extension CLI {
 
     struct Query: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Query the features in a vector tile")
+        static let configuration = CommandConfiguration(abstract: "Query the features in a vector tile")
 
         @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated)")
         var layer: [String] = []

@@ -6,7 +6,7 @@ extension CLI {
 
     struct Info: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Print information about the vector tile")
+        static let configuration = CommandConfiguration(abstract: "Print information about the vector tile")
 
         @OptionGroup
         var options: Options

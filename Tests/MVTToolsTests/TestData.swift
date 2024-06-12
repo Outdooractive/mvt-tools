@@ -4,7 +4,7 @@ import XCTest
 class TestData {
 
     class func stringFromFile(name: String) -> String {
-        let path = URL(fileURLWithPath: #file)
+        let path = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("TestData")
             .appendingPathComponent(name)
@@ -23,7 +23,7 @@ class TestData {
     }
 
     class func dataFromFile(name: String) -> Data {
-        let path = URL(fileURLWithPath: #file)
+        let path = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("TestData")
             .appendingPathComponent(name)

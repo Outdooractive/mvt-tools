@@ -6,7 +6,7 @@ extension CLI {
 
     struct Export: AsyncParsableCommand {
 
-        static var configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON")
+        static let configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON")
 
         @Option(name: .shortAndLong, help: "Output file")
         var output: String

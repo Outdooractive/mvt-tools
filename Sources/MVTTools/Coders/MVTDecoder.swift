@@ -94,14 +94,20 @@ enum MVTDecoder {
 
         // Note: Some of the more obscure data types are converted
         // to common types so that users don't trip over conversion issues
-        let values: [Any] = layer.values.map { (value) in
+        let values: [Sendable] = layer.values.map { (value) in
             if value.hasStringValue {
                 let string = value.stringValue
 
                 // Maybe an encoded JSON object?
-                if string.hasPrefix("[") || string.hasPrefix("{"),
+                if string.hasPrefix("["),
                    let data = string.data(using: .utf8),
-                   let object = try? JSONSerialization.jsonObject(with: data)
+                   let object = try? JSONSerialization.jsonObject(with: data) as? [Sendable]
+                {
+                    return object
+                }
+                if string.hasPrefix("{"),
+                   let data = string.data(using: .utf8),
+                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Sendable]
                 {
                     return object
                 }
@@ -141,10 +147,10 @@ enum MVTDecoder {
                 projectionFunction: projectionFunction)
             else { continue }
 
-            var properties: [String: Any] = [:]
+            var properties: [String: Sendable] = [:]
             for tags in feature.tags.pairs() {
                 guard let key: String = keys.get(at: Int(tags.first)),
-                      let value: Any = values.get(at: Int(tags.second))
+                      let value: Sendable = values.get(at: Int(tags.second))
                 else { continue }
 
                 properties[key] = value
