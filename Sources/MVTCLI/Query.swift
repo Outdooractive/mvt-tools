@@ -1,5 +1,7 @@
 import ArgumentParser
+#if !os(Linux)
 import CoreLocation
+#endif
 import Foundation
 import GISTools
 import MVTTools
