@@ -3,17 +3,17 @@
 
 # MVTTools
 
-Mapnik vector tiles (MVT) reader/writer for Swift.
+Mapbox vector tiles (MVT) reader/writer for Swift.
 
 ## Requirements
 
-This package requires Swift 5.9 or higher (at least Xcode 13), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 10.15), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
+This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 10.15), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
 
 ## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.3.2"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.6.1"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
