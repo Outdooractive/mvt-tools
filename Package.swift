@@ -2,6 +2,10 @@
 
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("StrictConcurrency")
+]
+
 let package = Package(
     name: "mvt-tools",
     platforms: [
@@ -31,7 +35,8 @@ let package = Package(
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .target(name: "MVTTools"),
-            ]),
+            ],
+            swiftSettings: swiftSettings),
         .target(
             name: "MVTTools",
             dependencies: [
@@ -39,10 +44,12 @@ let package = Package(
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-            ]),
+            ],
+            swiftSettings: swiftSettings),
         .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
-            exclude: ["TestData"]),
+            exclude: ["TestData"],
+            swiftSettings: swiftSettings),
     ]
 )
