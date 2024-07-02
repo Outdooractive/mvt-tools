@@ -26,4 +26,20 @@ final class GeoJsonTests: XCTestCase {
         XCTAssertTrue(someLayersFc.features.allSatisfy({ ($0.properties["test"] as? String) == "test" }))
     }
 
+    func testGeoJSONWithNull() throws {
+        let fc = FeatureCollection(Feature(Point(Coordinate3D(latitude: 47.56, longitude: 10.22, m: 1234))))
+        var tile = try XCTUnwrap(VectorTile(x: 8657, y: 5725, z: 14))
+        tile.addGeoJson(geoJson: fc, layerName: "test")
+
+        let data = try XCTUnwrap(tile.data())
+
+        let decodedTile = try XCTUnwrap(VectorTile(data: data, x: 8657, y: 5725, z: 14))
+        let decodedFc = try XCTUnwrap(decodedTile.features(for: "test")?.first)
+        let decodedCoordinate = try XCTUnwrap(decodedFc.geometry.allCoordinates.first)
+
+        // Note: The MVT format doesn't encode altitude/m values, they will get lost
+        XCTAssertEqual(decodedCoordinate.latitude, 47.56, accuracy: 0.00001)
+        XCTAssertEqual(decodedCoordinate.longitude, 10.22, accuracy: 0.00001)
+    }
+
 }

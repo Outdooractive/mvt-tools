@@ -1,12 +1,13 @@
 {
+  "originHash" : "5d734874e4d66aa5e42e2e73f545fbb1c3e33e7f08847495a19cf43690d8a3e5",
   "pins" : [
     {
       "identity" : "gis-tools",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Outdooractive/gis-tools",
       "state" : {
-        "revision" : "9566dc8642851ed319b226eedfc2bb351abedfec",
-        "version" : "1.6.0"
+        "revision" : "831a87ebd1ae3bb013c46b1d1752400dbc7bc352",
+        "version" : "1.7.0"
       }
     },
     {
@@ -32,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
-        "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
-        "version" : "1.5.4"
+        "revision" : "9cb486020ebf03bfa5b5df985387a14a98744537",
+        "version" : "1.6.1"
       }
     },
     {
@@ -46,5 +47,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
