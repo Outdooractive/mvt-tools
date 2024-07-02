@@ -71,6 +71,10 @@ public struct VectorTile: Sendable {
 
     var layers: [String: LayerContainer] = [:]
 
+    var layersWithContent: [(String, LayerContainer)] {
+        layers.filter({ !$0.value.features.isEmpty })
+    }
+
     /// For logging errors
     var logger: Logger?
 
@@ -366,7 +370,7 @@ extension VectorTile {
 
 extension VectorTile {
 
-    /// Returns an array of GeoJson Features
+    /// Returns an array of GeoJson Features from the given layer
     public func features(for layerName: String) -> [Feature]? {
         layers[layerName]?.features
     }

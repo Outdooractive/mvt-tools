@@ -9,7 +9,7 @@ import XCTest
 
 final class VectorTileTests: XCTestCase {
 
-    func testLoadMvt() {
+    func testLoadMvt() async throws {
         let tileName = "14_8716_8015.vector.mvt"
         let tileLayerNames: [String] = ["landuse", "waterway", "water", "aeroway", "barrier_line", "building", "landuse_overlay", "tunnel", "road", "bridge", "admin", "country_label_line", "country_label", "marine_label", "state_label", "place_label", "water_label", "area_label", "rail_station_label", "airport_label", "road_label", "waterway_label", "building_label"].sorted()
 
@@ -19,11 +19,7 @@ final class VectorTileTests: XCTestCase {
         let layerNames = VectorTile.layerNames(from: mvt)?.sorted()
         XCTAssertEqual(layerNames, tileLayerNames)
 
-//        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["road"]) else {
-        guard let tile = VectorTile(data: mvt, x: 8716, y: 8015, z: 14) else {
-            XCTAssert(false, "Unable to parse the vector tile \(tileName)")
-            return
-        }
+        let tile = try XCTUnwrap(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
         XCTAssertEqual(tile.layerNames.sorted(), tileLayerNames)
 
         let tileAsJsonData: Data? = tile.toGeoJson(prettyPrinted: true)
@@ -37,11 +33,8 @@ final class VectorTileTests: XCTestCase {
 //        try? string?.write(to: URL(fileURLWithPath: "/\(NSHomeDirectory())/Desktop/test.json"), atomically: true, encoding: .utf8)
     }
 
-    func testWriteMvt() {
-        guard var tile = VectorTile(x: 8716, y: 8015, z: 14) else {
-            XCTAssert(false, "Unable to create a vector tile")
-            return
-        }
+    func testWriteMvt() async throws {
+        var tile = try XCTUnwrap(VectorTile(x: 8716, y: 8015, z: 14))
 
         var feature = Feature(Point(Coordinate3D(latitude: 3.870163, longitude: 11.518585)))
         feature.properties = [
@@ -61,26 +54,17 @@ final class VectorTileTests: XCTestCase {
 //        tile.write(to: URL(fileURLWithPath: "/\(NSHomeDirectory())/Desktop/14_8716_8015.test.mvt"))
     }
 
-    func testTileInfo() {
+    func testTileInfo() async throws {
         let tileName = "14_8716_8015.vector.mvt"
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
-        guard let info = VectorTile.tileInfo(from: mvt) else {
-            XCTAssert(false, "Unable to parse the vector tile \(tileName)")
-            return
-        }
+        let info = try XCTUnwrap(VectorTile.tileInfo(from: mvt))
 
         XCTAssertFalse(info.isEmpty)
 
-        guard let layers = info["layers"] as? [[String: Any]] else {
-            XCTAssert(false, "Info without 'layers'")
-            return
-        }
-        guard let errors = info["errors"] as? Bool else {
-            XCTAssert(false, "Info without 'errors'")
-            return
-        }
+        let layers = try XCTUnwrap(info["layers"] as? [[String: Any]])
+        let errors = try XCTUnwrap(info["errors"] as? Bool)
 
         XCTAssertEqual(errors, false)
         XCTAssertEqual(layers.count, 23)
