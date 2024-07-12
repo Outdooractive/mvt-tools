@@ -67,7 +67,7 @@ SUBCOMMANDS:
 
 ## Usage
 
-See the [API documentation][https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools].
+See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools).
 
 ### Load
 
