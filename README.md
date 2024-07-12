@@ -63,9 +63,11 @@ SUBCOMMANDS:
 - Extract selected layers into a new tile
 - Merge two tiles into one
 - Can extract some infos from tiles like feature count, etc.
-- Command line tool
+- Powerful command line tool
 
 ## Usage
+
+See the [API documentation][https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools].
 
 ### Load
 
