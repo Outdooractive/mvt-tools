@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag-name:
+        description: 'The git tag name to bump the formula to'
+        required: true
+
+jobs:
+  homebrew:
+    name: Bump Homebrew formula
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build executable for release
+        run: swift build -c release --arch arm64 --arch x86_64 --product mvt
+      - name: Compress archive
+        run: tar -czf ${{ github.ref_name }}.tar.gz -C .build/apple/Products/Release mvt
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ github.ref_name }}.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: mvt-tools
+          homebrew-tap: Outdooractive/homebrew-tap
+          base-branch: main
+          download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ github.ref_name }}/${{ github.ref_name }}.tar.gz
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
