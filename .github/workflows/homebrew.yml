@@ -3,7 +3,7 @@ name: Homebrew
 on:
   workflow_dispatch:
     inputs:
-      tag-name:
+      tag_name:
         description: 'The git tag name to bump the formula to'
         required: true
 
@@ -13,31 +13,32 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
+        ref: ${{ inputs.tag_name }}
       - name: Build the executable for release
         run: swift build -c release --arch arm64 --arch x86_64 --product mvt
       - name: Compress the archive
-        run: tar -czf ${{ github.ref_name }}.tar.gz -C .build/apple/Products/Release mvt
+        run: tar -czf mvt.tar.gz -C .build/apple/Products/Release mvt
       - name: Upload the release attachment
         uses: actions/github-script@v7
         with:
           script: |
             console.log(context);
             const fs = require('fs');
-            const tag = context.ref.replace("refs/tags/", "");
+            const tag = context.payload.inputs.tag_name;
             console.log("tag = ", tag);
             // Get release for this tag
-            const release = await github.repos.getReleaseByTag({
+            const release = await github.rest.repos.getReleaseByTag({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag
             });
             // Upload the release asset
-            await github.repos.uploadReleaseAsset({
+            await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
               release_id: release.data.id,
-              name: `${tag}`.tar.gz,
-              data: await fs.readFileSync(`dist/mac/${tag}.tar.gz`)
+              name: "mvt.tar.gz",
+              data: await fs.readFileSync("dist/mac/mvt.tar.gz")
             })
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
