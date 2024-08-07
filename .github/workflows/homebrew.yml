@@ -13,7 +13,8 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-        ref: ${{ inputs.tag_name }}
+        with:
+          ref: ${{ inputs.tag_name }}
       - name: Build the executable for release
         run: swift build -c release --arch arm64 --arch x86_64 --product mvt
       - name: Compress the archive
