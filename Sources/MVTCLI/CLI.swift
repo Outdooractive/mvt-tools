@@ -11,7 +11,7 @@ struct CLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "mvt",
         abstract: "A utility for inspecting and working with vector tiles.",
-        version: "1.5.0",
+        version: cliVersion,
         subcommands: [Dump.self, Info.self, Merge.self, Query.self, Export.self, Import.self],
         defaultSubcommand: Dump.self)
 
