@@ -26,11 +26,11 @@ This package uses the [gis-tools](https://github.com/Outdooractive/gis-tools) li
 
 ## Command line tool
 
-You can install the command line tool `mvt` locally to `/usr/local/bin` with
+You can install the command line tool `mvt` either
+- locally to `/usr/local/bin` with `./install_mvt.sh`
+- or with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 
 ```bash
-# ./install_mvt.sh
-
 # mvt -h
 OVERVIEW: A utility for inspecting and working with vector tiles.
 
