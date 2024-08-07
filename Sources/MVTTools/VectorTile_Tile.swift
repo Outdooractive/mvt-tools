@@ -20,7 +20,7 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
-struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
+struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -30,7 +30,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   /// GeomType is described in section 4.3.4 of the specification
-  enum GeomType: SwiftProtobuf.Enum {
+  enum GeomType: SwiftProtobuf.Enum, Swift.CaseIterable {
     typealias RawValue = Int
     case unknown // = 0
     case point // = 1
@@ -64,7 +64,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
 
   /// Variant type encoding
   /// The use of values is described in section 4.1 of the specification
-  struct Value: SwiftProtobuf.ExtensibleMessage {
+  struct Value: SwiftProtobuf.ExtensibleMessage, Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
@@ -148,7 +148,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
   }
 
   /// Features are described in section 4.2 of the specification
-  struct Feature {
+  struct Feature: Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
@@ -192,7 +192,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
   }
 
   /// Layers are described in section 4.1 of the specification
-  struct Layer: SwiftProtobuf.ExtensibleMessage {
+  struct Layer: SwiftProtobuf.ExtensibleMessage, Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
@@ -253,22 +253,6 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage {
 
   var _protobuf_extensionFieldValues = SwiftProtobuf.ExtensionFieldValueSet()
 }
-
-#if swift(>=4.2)
-
-extension VectorTile_Tile.GeomType: CaseIterable {
-  // Support synthesized by the compiler.
-}
-
-#endif  // swift(>=4.2)
-
-#if swift(>=5.5) && canImport(_Concurrency)
-extension VectorTile_Tile: @unchecked Sendable {}
-extension VectorTile_Tile.GeomType: @unchecked Sendable {}
-extension VectorTile_Tile.Value: @unchecked Sendable {}
-extension VectorTile_Tile.Feature: @unchecked Sendable {}
-extension VectorTile_Tile.Layer: @unchecked Sendable {}
-#endif  // swift(>=5.5) && canImport(_Concurrency)
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
