@@ -39,7 +39,7 @@ jobs:
               repo: context.repo.repo,
               release_id: release.data.id,
               name: "mvt.tar.gz",
-              data: await fs.readFileSync("dist/mac/mvt.tar.gz")
+              data: await fs.readFileSync("mvt.tar.gz")
             })
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
