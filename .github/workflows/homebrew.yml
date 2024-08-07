@@ -23,7 +23,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            console.log(context);
             const fs = require('fs');
             const tag = context.payload.inputs.tag_name;
             console.log("tag = ", tag);
@@ -46,6 +45,6 @@ jobs:
           formula-name: mvt-tools
           homebrew-tap: Outdooractive/homebrew-tap
           base-branch: main
-          download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ github.ref_name }}/${{ github.ref_name }}.tar.gz
+          download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ inputs.tag_name }}/mvt.tar.gz
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
