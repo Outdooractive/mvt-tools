@@ -13,15 +13,32 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Build executable for release
+      - name: Build the executable for release
         run: swift build -c release --arch arm64 --arch x86_64 --product mvt
-      - name: Compress archive
+      - name: Compress the archive
         run: tar -czf ${{ github.ref_name }}.tar.gz -C .build/apple/Products/Release mvt
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload the release attachment
+        uses: actions/github-script@v7
         with:
-          files: ${{ github.ref_name }}.tar.gz
-          token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log(context);
+            const fs = require('fs');
+            const tag = context.ref.replace("refs/tags/", "");
+            console.log("tag = ", tag);
+            // Get release for this tag
+            const release = await github.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag
+            });
+            // Upload the release asset
+            await github.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: `${tag}`.tar.gz,
+              data: await fs.readFileSync(`dist/mac/${tag}.tar.gz`)
+            })
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: mvt-tools
