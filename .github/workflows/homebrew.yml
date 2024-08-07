@@ -44,7 +44,7 @@ jobs:
         with:
           formula-name: mvt-tools
           homebrew-tap: Outdooractive/homebrew-tap
-          base-branch: main
+          tag-name: ${{ inputs.tag_name }}
           download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ inputs.tag_name }}/mvt.tar.gz
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
