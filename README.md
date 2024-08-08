@@ -1,9 +1,29 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FOutdooractive%2Fmvt-tools%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Outdooractive/mvt-tools)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FOutdooractive%2Fmvt-tools%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Outdooractive/mvt-tools)
+[![](https://img.shields.io/github/license/Outdooractive/mvt-tools)](https://github.com/Outdooractive/mvt-tools)
+[![](https://img.shields.io/badge/Homebrew-Outdooractive%2Fhomebrew--tap%2Fmvt--tools-blue
+)]()
+[![](https://img.shields.io/github/v/release/Outdooractive/mvt-tools?sort=semver&display_name=tag)](https://github.com/Outdooractive/mvt-tools/releases) [![](https://img.shields.io/github/release-date/Outdooractive/mvt-tools?display_date=published_at
+)](https://github.com/Outdooractive/mvt-tools/releases)
+[![](https://img.shields.io/github/issues/Outdooractive/mvt-tools
+)](https://github.com/Outdooractive/mvt-tools/issues) [![](https://img.shields.io/github/issues-pr/Outdooractive/mvt-tools
+)](https://github.com/Outdooractive/mvt-tools/pulls)
 
 # MVTTools
 
-Mapbox vector tiles (MVT) reader/writer for Swift.
+Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
+
+## Features
+
+- Load and write Mapnik Vector Tiles from/to disk, data objects or URLs (also handles gzipped input)
+- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
+- Can dump a tile as a GeoJSON object
+- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
+- Fast search (supports indexing), either within a bounding box or with center and radius
+- Extract selected layers into a new tile
+- Merge two tiles into one
+- Can extract some infos from tiles like feature count, etc.
+- Powerful command line tool (via Homebrew, documentation below)
 
 ## Requirements
 
@@ -13,7 +33,7 @@ This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.6.1"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.7.1"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -24,52 +44,11 @@ targets: [
 
 This package uses the [gis-tools](https://github.com/Outdooractive/gis-tools) library, and is being used by the [mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library, please have a look at them as well.
 
-## Command line tool
-
-You can install the command line tool `mvt` either
-- locally to `/usr/local/bin` with `./install_mvt.sh`
-- or with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
-
-```bash
-# mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles.
-
-USAGE: mvt <subcommand>
-
-OPTIONS:
-  --version               Show the version.
-  -h, --help              Show help information.
-
-SUBCOMMANDS:
-  dump (default)          Print the vector tile as GeoJSON
-  info                    Print information about the vector tile
-  merge                   Merge two or more vector tiles
-  query                   Query the features in a vector tile
-  export                  Export the vector tile as GeoJSON
-  import                  Import some GeoJSONs to a vector tile
-
-  See 'mvt help <subcommand>' for detailed help.
-```
-
----
-
-## Features
-
-- Load and write Mapnik Vector Tiles from/to disk or data objects (also handles gzipped input)
-- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
-- Can dump a tile as a GeoJSON object
-- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
-- Fast search (supports indexing), either within a bounding box or with center and radius
-- Extract selected layers into a new tile
-- Merge two tiles into one
-- Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool
-
 ## Usage
 
-See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools).
+See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools) (via Swift Package Index).
 
-### Load
+### Read
 
 ```swift
 import MVTTools
@@ -114,72 +93,211 @@ let tileData = tile.data()
 
 ### Playground
 
-On macOS you can use a Swift Playground to inspect the MVTTools API such as `layerNames` & `projection`.
+On macOS you can use a Swift Playground to inspect the MVTTools API such as `layerNames` and `projection`.
 
 * Load tile using MVTTools
 * Inspect the properties of the `VectorTile`
 
-### `mvt dump`
+# Command line tool
 
-Print the vector tile as GeoJSON.
+You can install the command line tool `mvt` either
+- locally to `/usr/local/bin` with `./install_mvt.sh`
+- or with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 
-`mvt` works with a vector tile from local disk.
+`mvt` works with vector tiles from local disk or served from a web server.
 
-Example 1: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
+```bash
+# mvt -h
+OVERVIEW: A utility for inspecting and working with vector tiles.
+
+USAGE: mvt <subcommand>
+
+OPTIONS:
+  --version               Show the version.
+  -h, --help              Show help information.
+
+SUBCOMMANDS:
+  dump (default)          Print the vector tile as GeoJSON
+  info                    Print information about the vector tile
+  merge                   Merge two or more vector tiles
+  query                   Query the features in a vector tile
+  export                  Export the vector tile as GeoJSON
+  import                  Import some GeoJSONs to a vector tile
+
+  See 'mvt help <subcommand>' for detailed help.
+```
+---
+### mvt dump
+
+Print a vector tile as GeoJSON.
 
 ```bash
 mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+{
+  "type" : "FeatureCollection",
+  "features" : [
+    {
+      "bbox" : [
+        11.516327261924731,
+        3.8807821163834175,
+        11.516590118408191,
+        3.8815421167424793
+      ],
+      "properties" : {
+        "oneway" : 1,
+        "vt_layer" : "tunnel",
+        "class" : "motorway"
+      },
+      "geometry" : {
+        "coordinates" : [
+          ...
+        ],
+        "type" : "LineString"
+      },
+      "id" : 1,
+      "type" : "Feature"
+    },
+    ...
+}
 ```
+---
+### mvt info
 
-### `mvt info`
+**Example 1**: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
 
 ```bash
 mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+
+ Name               | Features | Points | LineStrings | Polygons | Unknown | Version
+--------------------+----------+--------+-------------+----------+---------+--------
+ area_label         | 55       | 55     | 0           | 0        | 0       | 2
+ barrier_line       | 4219     | 0      | 4219        | 0        | 0       | 2
+ bridge             | 14       | 0      | 14          | 0        | 0       | 2
+ building           | 5414     | 0      | 0           | 5414     | 0       | 2
+ building_label     | 413      | 413    | 0           | 0        | 0       | 2
+ ...
+ road               | 502      | 1      | 497         | 4        | 0       | 2
+ road_label         | 309      | 0      | 309         | 0        | 0       | 2
 ```
-
-*Result*
-
-    Name               | Features | Points | LineStrings | Polygons | Unknown | Version
-    --------------------+----------+--------+-------------+----------+---------+--------
-    area_label         | 55       | 55     | 0           | 0        | 0       | 2      
-    barrier_line       | 4219     | 0      | 4219        | 0        | 0       | 2      
-    bridge             | 14       | 0      | 14          | 0        | 0       | 2      
-    building           | 5414     | 0      | 0           | 5414     | 0       | 2      
-    building_label     | 413      | 413    | 0           | 0        | 0       | 2      
-    ...   
-    road               | 502      | 1      | 497         | 4        | 0       | 2      
-    road_label         | 309      | 0      | 309         | 0        | 0       | 2      
-    
 ---
 
-`mvt` works with a vector tile served from a web server.
-
-Example 2:  Inspect a MapLibre vector tile at zoom 2, with an extent showing Norway to India.
+**Example 2**: Inspect a MapLibre vector tile at zoom 2, with an extent showing Norway to India.
 
 ```bash
 mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
+
+ Name      | Features | Points | LineStrings | Polygons | Unknown | Version
+-----------+----------+--------+-------------+----------+---------+--------
+ centroids | 104      | 104    | 0           | 0        | 0       | 2
+ countries | 113      | 0      | 0           | 113      | 0       | 2
+ geolines  | 4        | 0      | 4           | 0        | 0       | 2
 ```
+---
+### mvt query
 
-*Result*
+Query a vector tile with a search term.
 
-    Name      | Features | Points | LineStrings | Polygons | Unknown | Version
-    ----------+----------+--------+-------------+----------+---------+--------
-    centroids | 104      | 104    | 0           | 0        | 0       | 2      
-    countries | 113      | 0      | 0           | 113      | 0       | 2      
-    geolines  | 4        | 0      | 4           | 0        | 0       | 2    
+```bash
+mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
+{
+  "features" : [
+    {
+      "bbox" : [
+        11.537318229675295,
+        3.8732409490233337,
+        11.537318229675295,
+        3.8732409490233337
+      ],
+      "geometry" : {
+        "coordinates" : [
+          11.537318229675295,
+          3.8732409490233337
+        ],
+        "type" : "Point"
+      },
+      "id" : 51,
+      "layer" : "building_label",
+      "properties" : {
+        "area" : 173.97920227050781,
+        "name" : "École Maternelle",
+        "name_de" : "École Maternelle",
+        "name_en" : "École Maternelle",
+        "name_es" : "École Maternelle",
+        "name_fr" : "École Maternelle"
+      },
+      "type" : "Feature"
+    },
+    ...
+}
+```
+---
+Query a tile with `latitude,longitude,radius`.
 
+```bash
+mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "3.87324,11.53731,1000"
+{
+  "features" : [
+    {
+      "bbox" : [
+        11.529276967048643,
+        3.8803432426251487,
+        11.530832648277283,
+        3.8823074685255259
+      ],
+      "geometry" : {
+        "coordinates" : [
+          ...
+        ],
+        "type" : "LineString"
+      },
+      "id" : 48,
+      "layer" : "road",
+      "properties" : {
+        "class" : "driveway",
+        "oneway" : 0
+      },
+      "type" : "Feature"
+    },
+    ...
+}
+```
+---
+### mvt merge
 
-## Contributing
+Merge two or more vector tiles.
 
-Please create an issue or open a pull request with a fix
+```bash
+mvt merge --output merged.mvt path/to/first.mvt path/to/second.mvt
+```
+---
+### mvt export
 
-## Dependencies (for development)
+Write a vector tile as GeoJSON to a file.
+
+```bash
+mvt export --output dumped.geojson --pretty-print Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+```
+---
+### mvt import
+
+Create a vector tile from GeoJSON.
+
+```bash
+mvt import new.mvt -x 8716 -y 8015 -z 14 Tests/MVTToolsTests/TestData/14_8716_8015.geojson
+```
+---
+
+# Contributing
+
+Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or [open a pull request](https://github.com/Outdooractive/mvt-tools/pulls).
+
+### Dependencies (for development)
 
 ```
 brew install protobuf swift-protobuf swiftlint
 ```
 
-## TODOs and future improvements
+# TODOs and future improvements
 
 - Documentation (!)
 - Tests
@@ -190,7 +308,7 @@ brew install protobuf swift-protobuf swiftlint
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js
 
-## Links
+# Links
 
 - Libraries
     - https://github.com/Outdooractive/gis-tools
@@ -212,10 +330,10 @@ brew install protobuf swift-protobuf swiftlint
     - https://github.com/mapnik/node-mapnik/blob/master/src/mapnik_vector_tile.cpp
     - https://github.com/mapbox/vt2geojson
 
-## License
+# License
 
 MIT
 
-## Author
+# Author
 
 Thomas Rasch, Outdooractive
