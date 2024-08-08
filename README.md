@@ -1,14 +1,14 @@
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FOutdooractive%2Fmvt-tools%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/Outdooractive/mvt-tools)  
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FOutdooractive%2Fmvt-tools%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/Outdooractive/mvt-tools)  
-[![](https://img.shields.io/github/license/Outdooractive/mvt-tools)](https://github.com/Outdooractive/mvt-tools)  
+[![](https://img.shields.io/github/license/Outdooractive/mvt-tools)](https://github.com/Outdooractive/mvt-tools/blob/main/LICENSE)  
 [![](https://img.shields.io/badge/Homebrew-Outdooractive%2Fhomebrew--tap%2Fmvt--tools-blue
-)]()  
+)](#command-line-tool)  
 [![](https://img.shields.io/github/v/release/Outdooractive/mvt-tools?sort=semver&display_name=tag)](https://github.com/Outdooractive/mvt-tools/releases) [![](https://img.shields.io/github/release-date/Outdooractive/mvt-tools?display_date=published_at
 )](https://github.com/Outdooractive/mvt-tools/releases)  
 [![](https://img.shields.io/github/issues/Outdooractive/mvt-tools
 )](https://github.com/Outdooractive/mvt-tools/issues) [![](https://img.shields.io/github/issues-pr/Outdooractive/mvt-tools
 )](https://github.com/Outdooractive/mvt-tools/pulls)  
-[![](https://img.shields.io/github/check-runs/Outdooractive/mvt-tools/main)]()
+[![](https://img.shields.io/github/check-runs/Outdooractive/mvt-tools/main)](https://github.com/Outdooractive/mvt-tools/actions)
 
 # MVTTools
 
@@ -24,7 +24,7 @@ Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool 
 - Extract selected layers into a new tile
 - Merge two tiles into one
 - Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via Homebrew, documentation below)
+- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below)
 
 ## Requirements
 
@@ -102,8 +102,8 @@ On macOS you can use a Swift Playground to inspect the MVTTools API such as `lay
 # Command line tool
 
 You can install the command line tool `mvt` either
-- locally to `/usr/local/bin` with `./install_mvt.sh`
-- or with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
+- with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
+- or locally to `/usr/local/bin` with `./install_mvt.sh`
 
 `mvt` works with vector tiles from local disk or served from a web server.
 
