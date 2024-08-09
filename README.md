@@ -28,7 +28,7 @@ Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool 
 
 ## Requirements
 
-This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 10.15), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
+This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 13), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
 
 ## Installation with Swift Package Manager
 
@@ -111,6 +111,12 @@ You can install the command line tool `mvt` either
 # mvt -h
 OVERVIEW: A utility for inspecting and working with vector tiles.
 
+The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'.
+
+Examples:
+- Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+- https://demotiles.maplibre.org/tiles/2/2/1.pbf
+
 USAGE: mvt <subcommand>
 
 OPTIONS:
@@ -118,12 +124,12 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the vector tile as GeoJSON
+  dump (default)          Print the vector tile as GeoJSON to the console
   info                    Print information about the vector tile
-  merge                   Merge two or more vector tiles
   query                   Query the features in a vector tile
-  export                  Export the vector tile as GeoJSON
-  import                  Import some GeoJSONs to a vector tile
+  merge                   Merge two or more vector tiles
+  import                  Import some GeoJSONs into a vector tile
+  export                  Export the vector tile as GeoJSON to a file
 
   See 'mvt help <subcommand>' for detailed help.
 ```
@@ -335,6 +341,6 @@ brew install protobuf swift-protobuf swiftlint
 
 MIT
 
-# Author
+# Authors
 
 Thomas Rasch, Outdooractive

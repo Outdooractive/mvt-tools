@@ -16,7 +16,15 @@ extension CLI {
         var layer: [String] = []
 
         @OptionGroup
+        var xyzOptions: XYZOptions
+
+        @OptionGroup
         var options: Options
+
+        @Argument(
+            help: "The MVT resource (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt"]))
+        var path: String
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'")
         var searchTerm: String
@@ -29,7 +37,7 @@ extension CLI {
             if possibleCoordinateParts.count >= 3 {
                 if let partLatitude = Double(possibleCoordinateParts[0]),
                    let partLongitude = Double(possibleCoordinateParts[1]),
-                   let partTolerance = Double(possibleCoordinateParts[2]),
+                   let partTolerance = Double(possibleCoordinateParts[2])?.rounded(),
                    (-90 ... 90).contains(partLatitude),
                    (-180 ... 180).contains(partLongitude),
                    partTolerance > 0.0
@@ -39,17 +47,21 @@ extension CLI {
                 }
             }
 
-            let url = try options.parseUrl()
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: path)
+            let url = try options.parseUrl(fromPath: path)
 
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+            let layerAllowlist = layer.nonempty
 
-            let layerWhitelist = layer.nonempty
+            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
+                throw CLIError("Failed to parse the tile at \(path)")
+            }
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at \(options.path)")
+            if options.verbose {
+                print("Searching in tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z)")
+
+                if let layerAllowlist {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
             }
 
             var result: FeatureCollection?
@@ -63,7 +75,7 @@ extension CLI {
             }
             else {
                 if options.verbose {
-                    print("Searching for '\(searchTerm)'...")
+                    print("Searching for '\(searchTerm)'…")
                 }
                 result = search(term: searchTerm, in: tile)
             }

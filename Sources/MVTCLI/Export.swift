@@ -6,37 +6,57 @@ extension CLI {
 
     struct Export: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON")
+        static let configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON to a file")
 
         @Option(name: .shortAndLong, help: "Output file")
         var output: String
 
+        @Flag(name: .shortAndLong, help: "Force overwrite existing files")
+        var forceOverwrite = false
+
         @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated)")
         var layer: [String] = []
 
-        @Flag(name: .shortAndLong, help: "Format the output GeoJSON")
+        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON")
         var prettyPrint = false
+
+        @OptionGroup
+        var xyzOptions: XYZOptions
 
         @OptionGroup
         var options: Options
 
-        mutating func run() async throws {
-            let url = try options.parseUrl()
+        @Argument(
+            help: "The MVT resource (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt"]))
+        var path: String
 
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+        mutating func run() async throws {
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: path)
+            let url = try options.parseUrl(fromPath: path)
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
-                throw CLIError("Output file must not exist")
+                if forceOverwrite {
+                    print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                }
+                else {
+                    throw CLIError("Output file must not exist (use --force-overwrite to overwrite existing files)")
+                }
             }
 
-            let layerWhitelist = layer.nonempty
+            let layerAllowlist = layer.nonempty
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at \(options.path)")
+            if options.verbose {
+                print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")
+
+                if let layerAllowlist {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
+            }
+
+            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
+                throw CLIError("Failed to parse the tile at '\(path)'")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: prettyPrint) else {
@@ -44,6 +64,10 @@ extension CLI {
             }
 
             try data.write(to: outputUrl, options: .atomic)
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
     }

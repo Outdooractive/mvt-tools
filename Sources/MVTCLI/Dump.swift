@@ -6,26 +6,38 @@ extension CLI {
 
     struct Dump: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON")
+        static let configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON to the console")
 
         @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
         var layer: [String] = []
 
         @OptionGroup
+        var xyzOptions: XYZOptions
+
+        @OptionGroup
         var options: Options
 
+        @Argument(
+            help: "The MVT resource (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt"]))
+        var path: String
+
         mutating func run() async throws {
-            let url = try options.parseUrl()
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: path)
+            let url = try options.parseUrl(fromPath: path)
 
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+            let layerAllowlist = layer.nonempty
 
-            let layerWhitelist = layer.nonempty
+            if options.verbose {
+                print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z)")
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at \(options.path)")
+                if let layerAllowlist {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
+            }
+
+            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
+                throw CLIError("Failed to parse the tile at '\(path)'")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: true) else {
@@ -34,6 +46,10 @@ extension CLI {
 
             print(String(data: data, encoding: .utf8) ?? "", terminator: "")
             print()
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
     }

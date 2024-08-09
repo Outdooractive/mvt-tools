@@ -11,12 +11,21 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @Argument(
+            help: "The MVT resource (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt"]))
+        var path: String
+
         mutating func run() async throws {
-            let url = try options.parseUrl(extractCoordinate: false)
+            let url = try options.parseUrl(fromPath: path)
+
+            if options.verbose {
+                print("Info for tile '\(url.lastPathComponent)'")
+            }
 
             guard let tileInfo = VectorTile.tileInfo(at: url),
                   var layers = tileInfo["layers"] as? [[String: Any]]
-            else { throw CLIError("Error retreiving the tile info for \(options.path)") }
+            else { throw CLIError("Error retreiving the tile info for '\(path)'") }
 
             layers.sort { first, second in
                 guard let firstName = first["name"] as? String,
@@ -42,6 +51,10 @@ extension CLI {
                 asTableWithHeaders: tableHeader)
 
             print(result)
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
         private func dumpSideBySide(

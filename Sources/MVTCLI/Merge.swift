@@ -11,8 +11,17 @@ extension CLI {
         @Option(name: .shortAndLong, help: "Output file")
         var output: String
 
+        @Flag(name: .shortAndLong, help: "Force overwrite existing files")
+        var forceOverwrite = false
+
+        @Flag(name: .shortAndLong, help: "Append to an existing --output file")
+        var append = false
+
         @Option(name: .shortAndLong, help: "Merge only the specified layer (can be repeated)")
         var layer: [String] = []
+
+        @OptionGroup
+        var xyzOptions: XYZOptions
 
         @OptionGroup
         var options: Options
@@ -23,22 +32,42 @@ extension CLI {
         var other: [String] = []
 
         mutating func run() async throws {
-            let url = try options.parseUrl()
-
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: output)
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
-                throw CLIError("Output file must not exist")
+                if forceOverwrite {
+                    print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                }
+                else if append {
+                    print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                }
+                else {
+                    throw CLIError("Output file must not exist (use --force-overwrite or --append to overwrite existing files)")
+                }
             }
 
-            let layerWhitelist = layer.nonempty
+            let layerAllowlist = layer.nonempty
 
-            guard var tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at \(options.path)")
+            var tile: VectorTile?
+            if append,
+               (try? outputUrl.checkResourceIsReachable()) ?? false
+            {
+                tile = VectorTile(contentsOf: outputUrl, x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
+            }
+            if tile == nil {
+                tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
+            }
+            guard var tile else {
+                throw CLIError("Failed to create the tile at \(output)")
+            }
+
+            if options.verbose {
+                print("Merging into tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
+
+                if let layerAllowlist {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
             }
 
             for path in other {
@@ -56,8 +85,12 @@ extension CLI {
                     }
                 }
 
-                guard let otherTile = VectorTile(contentsOf: otherUrl, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                    throw CLIError("Failed to parse the tile at \(path)")
+                guard let otherTile = VectorTile(contentsOf: otherUrl, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
+                    throw CLIError("Failed to parse the tile at '\(path)'")
+                }
+
+                if options.verbose {
+                    print("- \(otherUrl.lastPathComponent)")
                 }
 
                 tile.merge(otherTile)
@@ -69,6 +102,10 @@ extension CLI {
                     bufferSize: .extent(512),
                     compression: .level(9),
                     simplifyFeatures: .no))
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
     }

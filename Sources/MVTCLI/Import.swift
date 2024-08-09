@@ -7,10 +7,25 @@ extension CLI {
 
     struct Import: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Import some GeoJSONs to a vector tile")
+        static let configuration = CommandConfiguration(abstract: "Import some GeoJSONs into a vector tile")
 
-        @Option(name: .shortAndLong, help: "Layer name in the vector tile")
-        var layer: String?
+        @Option(name: .shortAndLong, help: "Output file")
+        var output: String
+
+        @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file")
+        var forceOverwrite = false
+
+        @Flag(name: .shortAndLong, help: "Append to an existing --output file")
+        var append = false
+
+        @Option(name: .shortAndLong, help: "Layer name in the vector tile. Can be used with --property-name as a fallback name")
+        var layerName: String?
+
+        @Option(name: .shortAndLong, help: "Feature property to use for the layer name in the vector tile. Fallback to --layer-name. Will slow down things considerably")
+        var propertyName: String?
+
+        @OptionGroup
+        var xyzOptions: XYZOptions
 
         @OptionGroup
         var options: Options
@@ -21,15 +36,45 @@ extension CLI {
         var other: [String] = []
 
         mutating func run() async throws {
-            let url = try options.parseUrl(checkExistence: false)
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: output)
 
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+            let outputUrl = URL(fileURLWithPath: output)
+            if (try? outputUrl.checkResourceIsReachable()) ?? false {
+                if forceOverwrite {
+                    print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                }
+                else if append {
+                    print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                }
+                else {
+                    throw CLIError("Output file must not exist (use --force-overwrite or --append to overwrite existing files)")
+                }
+            }
 
-            guard var tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to create the tile at \(options.path)")
+            var tile: VectorTile?
+            if append,
+               (try? outputUrl.checkResourceIsReachable()) ?? false
+            {
+                tile = VectorTile(contentsOf: outputUrl, x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
+            }
+            if tile == nil {
+                tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
+            }
+            guard var tile else {
+                throw CLIError("Failed to create the tile at \(output)")
+            }
+
+            if options.verbose {
+                print("Import into tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
+            }
+
+            if options.verbose {
+                if let layerName {
+                    print("Import layer: \(layerName)")
+                }
+                if let propertyName {
+                    print("Import layer feature property: \(propertyName)")
+                }
             }
 
             for path in other {
@@ -48,18 +93,24 @@ extension CLI {
                 }
 
                 guard let otherGeoJSON = FeatureCollection(contentsOf: otherUrl) else {
-                    throw CLIError("Failed to parse the GeoJSON at \(path)")
+                    throw CLIError("Failed to parse the GeoJSON at '\(path)'")
                 }
 
-                tile.addGeoJson(geoJson: otherGeoJSON, layerName: layer)
+                print("- \(otherUrl.lastPathComponent)")
+
+                tile.addGeoJson(geoJson: otherGeoJSON, layerName: layerName, propertyName: propertyName)
             }
 
             tile.write(
-                to: url,
+                to: outputUrl,
                 options: .init(
                     bufferSize: .extent(512),
                     compression: .level(9),
                     simplifyFeatures: .no))
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
     }
