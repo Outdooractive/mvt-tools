@@ -10,6 +10,16 @@ import Logging
 /// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
 public struct VectorTile: Sendable {
 
+    /// The original file format
+    public enum Origin: Sendable {
+        /// The tile was created from a GeoJSON file
+        case geoJson
+        /// The tile was created from a vector tile
+        case mvt
+        /// The tile was created empty
+        case none
+    }
+
     // MARK: - Properties
 
     // MARK: Public
@@ -53,6 +63,9 @@ public struct VectorTile: Sendable {
 
     /// The tile's bounding box
     public var boundingBox: BoundingBox
+
+    /// The tile's origin
+    public let origin: Origin
 
     // MARK: Private/Internal
 
@@ -104,6 +117,7 @@ public struct VectorTile: Sendable {
         self.y = y
         self.z = z
         self.projection = projection
+        self.origin = .none
         self.logger = logger
 
         self.layers = [:]
@@ -176,19 +190,6 @@ public struct VectorTile: Sendable {
             nil
         }
 
-        guard let parsedLayers = MVTDecoder.layers(
-            from: data,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            layerWhitelist: layerWhitelistSet,
-            logger: logger)
-        else { return nil }
-
-        self.layers = parsedLayers
-        self.layerNames = Array(layers.keys)
-
         switch projection {
         case .noSRID:
             self.boundingBox = BoundingBox(
@@ -198,6 +199,28 @@ public struct VectorTile: Sendable {
         case .epsg3857, .epsg4326:
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
+
+        if let parsedLayers = MVTDecoder.layers(
+            from: data,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            layerWhitelist: layerWhitelistSet,
+            logger: logger)
+        {
+            self.layers = parsedLayers
+            self.layerNames = Array(layers.keys)
+            self.origin = .mvt
+        }
+        else if let featureCollection = FeatureCollection(jsonData: data) {
+            self.layers = [:]
+            self.layerNames = []
+            self.origin = .geoJson
+
+            setGeoJson(geoJson: featureCollection, propertyName: "vt_layer")
+        }
+        else { return nil }
 
         if let sortOption {
             createIndex(sortOption: sortOption)
@@ -265,19 +288,6 @@ public struct VectorTile: Sendable {
             return nil
         }
 
-        guard let parsedLayers = MVTDecoder.layers(
-            from: data,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            layerWhitelist: layerWhitelistSet,
-            logger: logger)
-        else { return nil }
-
-        self.layers = parsedLayers
-        self.layerNames = Array(layers.keys)
-
         switch projection {
         case .noSRID:
             self.boundingBox = BoundingBox(
@@ -287,6 +297,28 @@ public struct VectorTile: Sendable {
         case .epsg3857, .epsg4326:
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
+
+        if let parsedLayers = MVTDecoder.layers(
+            from: data,
+            x: x,
+            y: y,
+            z: z,
+            projection: projection,
+            layerWhitelist: layerWhitelistSet,
+            logger: logger)
+        {
+            self.layers = parsedLayers
+            self.layerNames = Array(layers.keys)
+            self.origin = .mvt
+        }
+        else if let featureCollection = FeatureCollection(jsonData: data) {
+            self.layers = [:]
+            self.layerNames = []
+            self.origin = .geoJson
+
+            setGeoJson(geoJson: featureCollection, propertyName: "vt_layer")
+        }
+        else { return nil }
 
         if let sortOption {
             createIndex(sortOption: sortOption)

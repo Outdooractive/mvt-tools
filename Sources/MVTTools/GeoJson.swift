@@ -74,24 +74,46 @@ extension VectorTile {
     {
         guard let features = geoJson.flattened?.features else { return }
 
+        let layerName = layerName ?? "Layer-\(layerNames.count)"
+
         if let propertyName {
-            for feature in features {
-                let layerName: String = feature.property(for: propertyName) ?? layerName ?? "Layer-\(layerNames.count)"
-                appendFeatures([feature], to: layerName)
-            }
+            features.divided(
+                byKey: { feature in
+                    let mapping: String = feature.property(for: propertyName) ?? layerName
+                    return mapping
+                },
+                onKey: { key, features in
+                    appendFeatures(features, to: key)
+                })
         }
         else {
-            let layerName = layerName ?? "Layer-\(layerNames.count)"
             appendFeatures(features, to: layerName)
         }
     }
 
     /// Replace some GeoJSON in this tile
-    public mutating func setGeoJson(geoJson: GeoJson, layerName: String? = nil) {
+    public mutating func setGeoJson(
+        geoJson: GeoJson,
+        layerName: String? = nil,
+        propertyName: String? = nil)
+    {
         guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
-        setFeatures(features, for: layerName)
+
+        if let propertyName {
+            features.divided(
+                byKey: { feature in
+                    let mapping: String = feature.property(for: propertyName) ?? layerName
+                    return mapping
+                },
+                onKey: { key, features in
+                    setFeatures(features, for: key)
+                })
+        }
+        else {
+            setFeatures(features, for: layerName)
+        }
     }
 
 }

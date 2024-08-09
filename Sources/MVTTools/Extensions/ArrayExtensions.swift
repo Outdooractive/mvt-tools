@@ -39,4 +39,28 @@ extension Array {
         }
     }
 
+    // MARK: -
+
+    public func divided(
+        byKey keyLookup: (Element) -> (String?),
+        onKey: (String, [Element]) -> Void)
+    {
+        var result: [String: IndexSet] = [:]
+
+        for (index, element) in self.enumerated() {
+            guard let key = keyLookup(element) else { continue }
+
+            var values: IndexSet = result[key] ?? IndexSet()
+            values.insert(index)
+            result[key] = values
+        }
+
+        let converted = self as NSArray
+
+        for (key, indexes) in result {
+            guard let objects = converted.objects(at: indexes) as? [Element] else { continue }
+            onKey(key, objects)
+        }
+    }
+
 }
