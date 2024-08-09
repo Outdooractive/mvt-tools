@@ -27,7 +27,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The MVT resource (file or URL)",
+            help: "The vector tile (file or URL)",
             completion: .file(extensions: ["pbf", "mvt"]))
         var path: String
 
@@ -56,7 +56,7 @@ extension CLI {
             }
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at '\(path)'")
+                throw CLIError("Failed to parse the resource at '\(path)'")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: prettyPrint) else {

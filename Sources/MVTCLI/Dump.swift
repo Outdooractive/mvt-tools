@@ -6,7 +6,7 @@ extension CLI {
 
     struct Dump: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON to the console")
+        static let configuration = CommandConfiguration(abstract: "Print the vector tile as pretty-printed GeoJSON to the console")
 
         @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
         var layer: [String] = []
@@ -18,7 +18,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The MVT resource (file or URL)",
+            help: "The vector tile (file or URL)",
             completion: .file(extensions: ["pbf", "mvt"]))
         var path: String
 
@@ -37,7 +37,7 @@ extension CLI {
             }
 
             guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at '\(path)'")
+                throw CLIError("Failed to parse the resource at '\(path)'")
             }
 
             guard let data = tile.toGeoJson(prettyPrinted: true) else {

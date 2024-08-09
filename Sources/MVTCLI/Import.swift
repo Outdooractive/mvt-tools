@@ -21,7 +21,7 @@ extension CLI {
         @Option(name: .shortAndLong, help: "Layer name in the vector tile. Can be used with --property-name as a fallback name")
         var layerName: String?
 
-        @Option(name: .shortAndLong, help: "Feature property to use for the layer name in the vector tile. Fallback to --layer-name. Will slow down things considerably")
+        @Option(name: .shortAndLong, help: "Feature property to use for the layer name in the vector tile. Fallback to --layer-name or a default. Will slow down things considerably")
         var propertyName: String?
 
         @OptionGroup
@@ -61,7 +61,7 @@ extension CLI {
                 tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
             }
             guard var tile else {
-                throw CLIError("Failed to create the tile at \(output)")
+                throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)")
             }
 
             if options.verbose {

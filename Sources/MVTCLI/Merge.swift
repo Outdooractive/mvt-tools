@@ -11,7 +11,7 @@ extension CLI {
         @Option(name: .shortAndLong, help: "Output file")
         var output: String
 
-        @Flag(name: .shortAndLong, help: "Force overwrite existing files")
+        @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file")
         var forceOverwrite = false
 
         @Flag(name: .shortAndLong, help: "Append to an existing --output file")
@@ -27,7 +27,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "Additional MVT resources to merge (file or URL)",
+            help: "Vector tiles to merge (file or URL)",
             completion: .file(extensions: ["pbf", "mvt"]))
         var other: [String] = []
 
@@ -59,7 +59,7 @@ extension CLI {
                 tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
             }
             guard var tile else {
-                throw CLIError("Failed to create the tile at \(output)")
+                throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)")
             }
 
             if options.verbose {

@@ -12,7 +12,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The MVT resource (file or URL)",
+            help: "The vector tile (file or URL)",
             completion: .file(extensions: ["pbf", "mvt"]))
         var path: String
 
