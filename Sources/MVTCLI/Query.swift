@@ -47,7 +47,7 @@ extension CLI {
                 }
             }
 
-            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: path)
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [path])
             let url = try options.parseUrl(fromPath: path)
 
             let layerAllowlist = layer.nonempty

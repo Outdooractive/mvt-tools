@@ -36,7 +36,7 @@ extension CLI {
         var other: [String] = []
 
         mutating func run() async throws {
-            let (x, y, z) = try xyzOptions.parseXYZ(fromPath: output)
+            let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [output] + other)
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {

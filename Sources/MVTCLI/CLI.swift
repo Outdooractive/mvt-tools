@@ -51,13 +51,15 @@ struct XYZOptions: ParsableArguments {
     var z: Int?
 
     mutating func parseXYZ(
-        fromPath path: String)
+        fromPaths paths: [String])
         throws -> (Int, Int, Int)
     {
-        if x == nil
-            || y == nil
-            || z == nil
-        {
+        for path in paths {
+            guard x == nil
+                    || y == nil
+                    || z == nil
+            else { break }
+
             let urlParts = path.extractingGroupsUsingPattern("\\/(\\d+)\\/(\\d+)\\/(\\d+)(?:\\/|\\.)", caseInsensitive: false)
             if urlParts.count >= 3 {
                 if let partX = Int(urlParts[1]),
