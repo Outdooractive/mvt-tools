@@ -24,7 +24,7 @@ Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool 
 - Extract selected layers into a new tile
 - Merge two tiles into one
 - Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below)
+- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files
 
 ## Requirements
 
@@ -34,7 +34,7 @@ This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on 
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.7.1"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.8.0"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -105,13 +105,18 @@ You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 - or locally to `/usr/local/bin` with `./install_mvt.sh`
 
-`mvt` works with vector tiles from local disk or served from a web server.
+`mvt` works with vector tiles or GeoJSON files from local disk or served from a web server.
+
+Layers in GeoJSON files (containing a FeatureCollection) can be represented by adding a property `vt_tile` to each Feature.
+`mvt` will add this property to all created GeoJSONs.
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles.
+OVERVIEW: A utility for inspecting and working with vector tiles and GeoJSON files.
 
-The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'.
+The tile coordinate of vector tiles can be extracted from the path
+if it's either in the form '/z/x/y' or 'z_x_y'.
+Tile coordinates are not necessary for GeoJSON input files.
 
 Examples:
 - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -124,12 +129,12 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the vector tile as GeoJSON to the console
-  info                    Print information about the vector tile
-  query                   Query the features in a vector tile
-  merge                   Merge two or more vector tiles
+  dump (default)          Print the input file (mvt or GeoJSON) as pretty-printed GeoJSON to the console
+  info                    Print information about the input file (mvt or GeoJSON)
+  query                   Query the features in the input file (mvt or GeoJSON)
+  merge                   Merge any number of vector tiles or GeoJSONs
   import                  Import some GeoJSONs into a vector tile
-  export                  Export the vector tile as GeoJSON to a file
+  export                  Export a vector tile as GeoJSON to a file
 
   See 'mvt help <subcommand>' for detailed help.
 ```

@@ -8,7 +8,7 @@ extension CLI {
 
         static let configuration = CommandConfiguration(abstract: "Print the input file (mvt or GeoJSON) as pretty-printed GeoJSON to the console")
 
-        @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
+        @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated).")
         var layer: [String] = []
 
         @OptionGroup

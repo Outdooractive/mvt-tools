@@ -11,7 +11,7 @@ import Logging
 public struct VectorTile: Sendable {
 
     /// The original file format
-    public enum Origin: Sendable {
+    public enum Origin: String, Sendable {
         /// The tile was created from a GeoJSON file
         case geoJson
         /// The tile was created from a vector tile

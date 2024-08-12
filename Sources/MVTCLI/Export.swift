@@ -6,18 +6,18 @@ extension CLI {
 
     struct Export: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Export the vector tile as GeoJSON to a file")
+        static let configuration = CommandConfiguration(abstract: "Export a vector tile as GeoJSON to a file")
 
-        @Option(name: .shortAndLong, help: "Output file")
+        @Option(name: .shortAndLong, help: "Output GeoJSON file.")
         var output: String
 
-        @Flag(name: .shortAndLong, help: "Force overwrite existing files")
+        @Flag(name: .shortAndLong, help: "Force overwrite existing files.")
         var forceOverwrite = false
 
-        @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated)")
+        @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated).")
         var layer: [String] = []
 
-        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON")
+        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
 
         @OptionGroup
@@ -34,6 +34,7 @@ extension CLI {
         mutating func run() async throws {
             let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [path])
             let url = try options.parseUrl(fromPath: path)
+            let layerAllowlist = layer.nonempty
 
             let outputUrl = URL(fileURLWithPath: output)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
@@ -44,8 +45,6 @@ extension CLI {
                     throw CLIError("Output file must not exist (use --force-overwrite to overwrite existing files)")
                 }
             }
-
-            let layerAllowlist = layer.nonempty
 
             if options.verbose {
                 print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")

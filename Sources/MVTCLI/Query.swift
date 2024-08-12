@@ -12,16 +12,16 @@ extension CLI {
 
         static let configuration = CommandConfiguration(abstract: "Query the features in the input file (mvt or GeoJSON)")
 
-        @Option(name: .shortAndLong, help: "Output GeoJSON file (optional, default is console)")
+        @Option(name: .shortAndLong, help: "Output GeoJSON file (optional, default is console).")
         var output: String?
 
-        @Flag(name: .shortAndLong, help: "Force overwrite existing files")
+        @Flag(name: .shortAndLong, help: "Force overwrite existing files.")
         var forceOverwrite = false
 
-        @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated)")
+        @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated).")
         var layer: [String] = []
 
-        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON")
+        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
 
         @OptionGroup

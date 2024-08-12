@@ -9,19 +9,19 @@ extension CLI {
 
         static let configuration = CommandConfiguration(abstract: "Import some GeoJSONs into a vector tile")
 
-        @Option(name: .shortAndLong, help: "Output file")
+        @Option(name: .shortAndLong, help: "Output mvt file.")
         var output: String
 
-        @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file")
+        @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file.")
         var forceOverwrite = false
 
-        @Flag(name: .shortAndLong, help: "Append to an existing --output file")
+        @Flag(name: .shortAndLong, help: "Append to an existing --output file.")
         var append = false
 
-        @Option(name: .shortAndLong, help: "Layer name in the vector tile. Can be used with --property-name as a fallback name")
+        @Option(name: .shortAndLong, help: "Layer name in the vector tile. Can be used with --property-name as a fallback name.")
         var layerName: String?
 
-        @Option(name: .shortAndLong, help: "Feature property to use for the layer name in the vector tile. Fallback to --layer-name or a default. Will slow down things considerably")
+        @Option(name: .shortAndLong, help: "Feature property to use for the layer name in the vector tile. Fallback to --layer-name or a default. Will slow down things considerably.")
         var propertyName: String?
 
         @OptionGroup
