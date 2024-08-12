@@ -4,7 +4,7 @@
 import Foundation
 import GISTools
 
-// MARK: Static functions
+// MARK: Info functions
 
 extension VectorTile {
 
@@ -20,22 +20,55 @@ extension VectorTile {
         return layerNames(from: data)
     }
 
-    // { layers:
-    //   [ { name: 'world',
-    //      features: 1,
-    //      point_features: 0,
-    //      linestring_features: 0,
-    //      polygon_features: 1,
-    //      unknown_features: 0,
-    //      raster_features: 0,
-    //      version: 2 } ],
-    //    errors: false }
+    // [{
+    //   name: 'world',
+    //   features: 1,
+    //   point_features: 0,
+    //   linestring_features: 0,
+    //   polygon_features: 1,
+    //   unknown_features: 0,
+    //   raster_features: 0,
+    //   version: 2
+    // }]
 
-    /// Read a tile from `data` and return some information about the tile
-    public static func tileInfo(from data: Data) -> [String: Any]? {
+    /// Information about the features in a tile, per layer.
+    public func tileInfo() -> [[String: Any]]? {
+        var result: [[String: Any]] = []
+
+        for (layerName, layerContainer) in layers {
+            var pointFeatures = 0
+            var lineStringFeatures = 0
+            var polygonFeatures = 0
+            var unknownFeatures = 0
+
+            for feature in layerContainer.features {
+                switch feature.geometry.type {
+                case .point, .multiPoint: pointFeatures += 1
+                case .lineString, .multiLineString: lineStringFeatures += 1
+                case .polygon, .multiPolygon: polygonFeatures += 1
+                default: unknownFeatures += 1
+                }
+            }
+
+            let info: [String: Any] = [
+                "name": layerName,
+                "features": pointFeatures + lineStringFeatures + polygonFeatures + unknownFeatures,
+                "point_features": pointFeatures,
+                "linestring_features": lineStringFeatures,
+                "polygon_features": polygonFeatures,
+                "unknown_features": unknownFeatures,
+            ]
+            result.append(info)
+        }
+
+        return result
+    }
+
+    /// Read a tile from `data` and return some information about the tile per layer.
+    public static func tileInfo(from data: Data) -> [[String: Any]]? {
         guard let tile = MVTDecoder.vectorTile(from: data) else { return nil }
 
-        var layers: [[String: Any]] = []
+        var result: [[String: Any]] = []
 
         for layer in tile.layers {
             var pointFeatures = 0
@@ -61,17 +94,14 @@ extension VectorTile {
                 "polygon_features": polygonFeatures,
                 "unknown_features": unknownFeatures,
             ]
-            layers.append(info)
+            result.append(info)
         }
 
-        return [
-            "layers": layers,
-            "errors": false,
-        ]
+        return result
     }
 
-    /// Read a tile from `url` and return some information about the tile
-    public static func tileInfo(at url: URL) -> [String: Any]? {
+    /// Read a tile from `url` and return some information about the tile per layer.
+    public static func tileInfo(at url: URL) -> [[String: Any]]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return tileInfo(from: data)
     }

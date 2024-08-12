@@ -12,7 +12,9 @@ struct CLI: AsyncParsableCommand {
         commandName: "mvt",
         abstract: "A utility for inspecting and working with vector tiles.",
         discussion: """
-        The tile coordinate can be extracted from the path if it's either in the form '/z/x/y' or 'z_x_y'.
+        The tile coordinate of vector tiles can be extracted from the path
+        if it's either in the form '/z/x/y' or 'z_x_y'.
+        Tile coordinates are not necessary for GeoJSON input files.
 
         Examples:
         - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -50,6 +52,8 @@ struct XYZOptions: ParsableArguments {
     @Option(name: .short, help: "Tile zoom level, if it can't be extracted from the path")
     var z: Int?
 
+    /// Try to extract x, y and z tile coordinates from some file paths or URLs,
+    /// if the were not given on the command line
     mutating func parseXYZ(
         fromPaths paths: [String])
         throws -> (Int, Int, Int)

@@ -200,7 +200,7 @@ public struct VectorTile: Sendable {
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
-        if let parsedLayers = MVTDecoder.layers(
+        guard let parsedLayers = MVTDecoder.layers(
             from: data,
             x: x,
             y: y,
@@ -208,19 +208,11 @@ public struct VectorTile: Sendable {
             projection: projection,
             layerWhitelist: layerWhitelistSet,
             logger: logger)
-        {
-            self.layers = parsedLayers
-            self.layerNames = Array(layers.keys)
-            self.origin = .mvt
-        }
-        else if let featureCollection = FeatureCollection(jsonData: data) {
-            self.layers = [:]
-            self.layerNames = []
-            self.origin = .geoJson
-
-            setGeoJson(geoJson: featureCollection, propertyName: "vt_layer")
-        }
         else { return nil }
+
+        self.layers = parsedLayers
+        self.layerNames = Array(layers.keys)
+        self.origin = .mvt
 
         if let sortOption {
             createIndex(sortOption: sortOption)
@@ -258,71 +250,20 @@ public struct VectorTile: Sendable {
         layerWhitelist: [String]? = nil,
         logger: Logger? = nil)
     {
-        guard x >= 0, y >= 0, z >= 0 else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
-        }
-
-        let maximumTileCoordinate = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
-        }
-
-        self.x = x
-        self.y = y
-        self.z = z
-        self.projection = projection
-        self.logger = logger
-
-        // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
-            Set(layerWhitelist)
-        }
-        else {
-            nil
-        }
-
         guard let data = try? Data(contentsOf: url) else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
             return nil
         }
 
-        switch projection {
-        case .noSRID:
-            self.boundingBox = BoundingBox(
-                southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
-                northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
-
-        case .epsg3857, .epsg4326:
-            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
-        }
-
-        if let parsedLayers = MVTDecoder.layers(
-            from: data,
+        self.init(
+            data: data,
             x: x,
             y: y,
             z: z,
             projection: projection,
-            layerWhitelist: layerWhitelistSet,
+            indexed: sortOption,
+            layerWhitelist: layerWhitelist,
             logger: logger)
-        {
-            self.layers = parsedLayers
-            self.layerNames = Array(layers.keys)
-            self.origin = .mvt
-        }
-        else if let featureCollection = FeatureCollection(jsonData: data) {
-            self.layers = [:]
-            self.layerNames = []
-            self.origin = .geoJson
-
-            setGeoJson(geoJson: featureCollection, propertyName: "vt_layer")
-        }
-        else { return nil }
-
-        if let sortOption {
-            createIndex(sortOption: sortOption)
-        }
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MVT format, at some tile coordinate.
@@ -340,6 +281,79 @@ public struct VectorTile: Sendable {
             y: tile.y,
             z: tile.z,
             projection: projection,
+            indexed: sortOption,
+            layerWhitelist: layerWhitelist,
+            logger: logger)
+    }
+
+    /// Create a vector tile from `data`, which must be some GeoJSON object.
+    public init?(
+        geoJsonData data: Data,
+        indexed sortOption: RTreeSortOption? = nil,
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
+    {
+        guard let featureCollection = FeatureCollection(jsonData: data),
+              let fcBoundingBox = featureCollection.calculateBoundingBox()
+        else { return nil }
+
+        // Find the minimal tile for the GeoJSON
+        let tile = MapTile(boundingBox: fcBoundingBox)
+        self.x = tile.x
+        self.y = tile.y
+        self.z = tile.z
+
+        guard x >= 0, y >= 0, z >= 0 else {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
+            return nil
+        }
+
+        let maximumTileCoordinate = 1 << z
+        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
+            return nil
+        }
+
+        self.projection = .epsg4326
+        self.boundingBox = tile.boundingBox(projection: projection)
+        self.logger = logger
+
+        // Note: A plain array might actually be faster for few entries -> check this
+        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
+            Set(layerWhitelist)
+        }
+        else {
+            nil
+        }
+
+        self.layers = [:]
+        self.layerNames = []
+        self.origin = .geoJson
+
+        setGeoJson(
+            geoJson: featureCollection,
+            propertyName: "vt_layer",
+            layerAllowList: layerWhitelistSet)
+
+        if let sortOption {
+            createIndex(sortOption: sortOption)
+        }
+    }
+
+    /// Create a vector tile by reading it from `url`, which must be some GeoJSON object.
+    public init?(
+        contentsOfGeoJson url: URL,
+        indexed sortOption: RTreeSortOption? = nil,
+        layerWhitelist: [String]? = nil,
+        logger: Logger? = nil)
+    {
+        guard let data = try? Data(contentsOf: url) else {
+            (logger ?? VectorTile.logger)?.warning("Failed to import GeoJSON from \(url)")
+            return nil
+        }
+
+        self.init(
+            geoJsonData: data,
             indexed: sortOption,
             layerWhitelist: layerWhitelist,
             logger: logger)

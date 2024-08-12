@@ -70,7 +70,8 @@ extension VectorTile {
     public mutating func addGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
-        propertyName: String? = nil)
+        propertyName: String? = nil,
+        layerAllowList: Set<String>? = nil)
     {
         guard let features = geoJson.flattened?.features else { return }
 
@@ -83,10 +84,12 @@ extension VectorTile {
                     return mapping
                 },
                 onKey: { key, features in
+                    if let layerAllowList, !layerAllowList.contains(key) { return }
                     appendFeatures(features, to: key)
                 })
         }
         else {
+            if let layerAllowList, !layerAllowList.contains(layerName) { return }
             appendFeatures(features, to: layerName)
         }
     }
@@ -95,7 +98,8 @@ extension VectorTile {
     public mutating func setGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
-        propertyName: String? = nil)
+        propertyName: String? = nil,
+        layerAllowList: Set<String>? = nil)
     {
         guard let features = geoJson.flattened?.features else { return }
 
@@ -108,10 +112,12 @@ extension VectorTile {
                     return mapping
                 },
                 onKey: { key, features in
+                    if let layerAllowList, !layerAllowList.contains(key) { return }
                     setFeatures(features, for: key)
                 })
         }
         else {
+            if let layerAllowList, !layerAllowList.contains(layerName) { return }
             setFeatures(features, for: layerName)
         }
     }

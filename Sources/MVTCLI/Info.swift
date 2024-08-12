@@ -6,25 +6,21 @@ extension CLI {
 
     struct Info: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print information about the vector tile")
+        static let configuration = CommandConfiguration(abstract: "Print information about the input file (mvt or GeoJSON)")
 
         @OptionGroup
         var options: Options
 
         @Argument(
-            help: "The vector tile (file or URL)",
-            completion: .file(extensions: ["pbf", "mvt"]))
+            help: "The vector tile or GeoJSON (file or URL)",
+            completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
         var path: String
 
         mutating func run() async throws {
             let url = try options.parseUrl(fromPath: path)
 
-            if options.verbose {
-                print("Info for tile '\(url.lastPathComponent)'")
-            }
-
-            guard let tileInfo = VectorTile.tileInfo(at: url),
-                  var layers = tileInfo["layers"] as? [[String: Any]]
+            guard var layers = VectorTile.tileInfo(at: url)
+                    ?? VectorTile(contentsOfGeoJson: url)?.tileInfo()
             else { throw CLIError("Error retreiving the tile info for '\(path)'") }
 
             layers.sort { first, second in
@@ -45,6 +41,10 @@ extension CLI {
                 layers.compactMap({ ($0["unknown_features"] as? Int)?.toString }),
                 layers.compactMap({ ($0["version"] as? Int)?.toString }),
             ]
+
+            if options.verbose {
+                print("Info for tile '\(url.lastPathComponent)'")
+            }
 
             let result = dumpSideBySide(
                 table,
