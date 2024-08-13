@@ -74,7 +74,7 @@ extension CLI {
             var tile: VectorTile?
 
             let xyz = try? xyzOptions.parseXYZ(fromPaths: [outputFile].trimmed() + other)
-            var (x, y, z) = (xyz?.x, xyz?.y, xyz?.z)
+            let (x, y, z) = (xyz?.x, xyz?.y, xyz?.z)
 
             if append,
                let outputUrl,
@@ -105,9 +105,6 @@ extension CLI {
                     logger: options.verbose ? CLI.logger : nil)
                 {
                     tile = geoJsonTile
-                    x = tile?.x
-                    y = tile?.y
-                    z = tile?.z
 
                     if outputFormatToUse == .mvt, !forceOverwrite {
                         throw CLIError("Existing file is GeoJSON, but selected output format is MVT (use --force-overwrite to overwrite existing files)")
@@ -117,22 +114,27 @@ extension CLI {
                     }
                 }
 
-                guard tile != nil else { throw CLIError("Failed to parse the resource at '\(outputUrl.path())'") }
-            }
-
-            guard let x, let y, let z else {
-                throw CLIError("Need z, x and y")
+                guard tile != nil else { throw CLIError("Failed to load the resource at '\(outputUrl.path())'") }
             }
 
             if tile == nil {
                 tile = VectorTile(
-                    x: x,
-                    y: y,
-                    z: z,
+                    x: x ?? 0,
+                    y: y ?? 0,
+                    z: z ?? 0,
                     logger: options.verbose ? CLI.logger : nil)
+
+                // Assume geoJson if we don't have tile coordinates here
+                if x == nil || y == nil || z == nil {
+                    outputFormatToUse = .geojson
+
+                    if options.verbose {
+                        print("Warning: Assuming geoJson output format because tile coordinates were not provided")
+                    }
+                }
             }
 
-            guard var tile else { throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)") }
+            guard var tile else { throw CLIError("Failed to create a tile") }
 
             if options.verbose {
                 if let outputUrl {
@@ -162,20 +164,30 @@ extension CLI {
                     }
                 }
 
-                guard let otherTile =
-                        VectorTile(
-                            contentsOf: otherUrl,
-                            x: x,
-                            y: y,
-                            z: z,
-                            layerWhitelist: layerAllowlist,
-                            logger: options.verbose ? CLI.logger : nil)
-                        ?? VectorTile(
-                            contentsOfGeoJson: otherUrl,
-                            layerProperty: propertyName,
-                            layerWhitelist: layerAllowlist,
-                            logger: options.verbose ? CLI.logger : nil)
-                else { throw CLIError("Failed to parse the tile at '\(path)'") }
+                var otherTile: VectorTile?
+                if let x,
+                   let y,
+                   let z,
+                   let other = VectorTile(
+                    contentsOf: otherUrl,
+                    x: x,
+                    y: y,
+                    z: z,
+                    layerWhitelist: layerAllowlist,
+                    logger: options.verbose ? CLI.logger : nil)
+                {
+                    otherTile = other
+                }
+                else if let other = VectorTile(
+                    contentsOfGeoJson: otherUrl,
+                    layerProperty: propertyName,
+                    layerWhitelist: layerAllowlist,
+                    logger: options.verbose ? CLI.logger : nil)
+                {
+                    otherTile = other
+                }
+
+                guard let otherTile else { throw CLIError("Failed to parse the tile at '\(path)'") }
 
                 if outputFormatToUse == .auto {
                     switch otherTile.origin {
