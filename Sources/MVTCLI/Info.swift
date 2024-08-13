@@ -6,7 +6,17 @@ extension CLI {
 
     struct Info: AsyncParsableCommand {
 
+        enum InfoTables: String, CaseIterable {
+            case features
+            case properties
+        }
+
         static let configuration = CommandConfiguration(abstract: "Print information about the input file (MVT or GeoJSON)")
+
+        @Option(name: .shortAndLong,
+                help: "The tables to print, comma separated list of '\(InfoTables.allCases.map(\.rawValue).joined(separator: ","))'.",
+                transform: { $0.components(separatedBy: ",").compactMap(InfoTables.init(rawValue:)) })
+        var infoTables: [InfoTables] = [.features, .properties]
 
         @OptionGroup
         var options: Options
@@ -23,27 +33,71 @@ extension CLI {
                     ?? VectorTile(contentsOfGeoJson: url)?.tileInfo()
             else { throw CLIError("Error retreiving the tile info for '\(path)'") }
 
-            layers.sort { first, second in
-                guard let firstName = first["name"] as? String,
-                      let secondName = second["name"] as? String
-                else { return false }
-
-                return firstName.compare(secondName) == .orderedAscending
-            }
-
-            let tableHeader = ["Name", "Features", "Points", "LineStrings", "Polygons", "Unknown", "Version"]
-            let table: [[String]] = [
-                layers.compactMap({ $0["name"] as? String }),
-                layers.compactMap({ ($0["features"] as? Int)?.toString }),
-                layers.compactMap({ ($0["point_features"] as? Int)?.toString }),
-                layers.compactMap({ ($0["linestring_features"] as? Int)?.toString }),
-                layers.compactMap({ ($0["polygon_features"] as? Int)?.toString }),
-                layers.compactMap({ ($0["unknown_features"] as? Int)?.toString }),
-                layers.compactMap({ ($0["version"] as? Int)?.toString }),
-            ]
-
             if options.verbose {
                 print("Info for tile '\(url.lastPathComponent)'")
+            }
+
+            layers.sort { first, second in
+                first.name.compare(second.name) == .orderedAscending
+            }
+
+            for (index, table) in infoTables.enumerated() {
+                switch table {
+                case .features:
+                    dumpFeatures(layers)
+                case .properties:
+                    dumpProperties(layers)
+                }
+
+                if index < infoTables.count - 1 {
+                    print()
+                }
+            }
+
+            if options.verbose {
+                print("Done.")
+            }
+        }
+
+        private func dumpFeatures(_ layers: [VectorTile.LayerInfo]) {
+            let tableHeader = ["Name", "Features", "Points", "LineStrings", "Polygons", "Unknown", "Version"]
+            let table: [[String]] = [
+                layers.compactMap({ $0.name }),
+                layers.compactMap({ $0.features.toString }),
+                layers.compactMap({ $0.pointFeatures.toString }),
+                layers.compactMap({ $0.linestringFeatures.toString }),
+                layers.compactMap({ $0.polygonFeatures.toString }),
+                layers.compactMap({ $0.unknownFeatures.toString }),
+                layers.compactMap({ $0.version?.toString }),
+            ]
+
+            let result = dumpSideBySide(
+                table,
+                asTableWithHeaders: tableHeader)
+
+            print(result)
+        }
+
+        private func dumpProperties(_ layers: [VectorTile.LayerInfo]) {
+            var tableHeader = ["Name"]
+
+            let propertyNames: [String] = layers
+                .flatMap({ $0.propertyNames.keys })
+                .uniqued
+                .sorted(by: <)
+
+            tableHeader.append(contentsOf: propertyNames)
+
+            var table: [[String]] = []
+            table.append(layers.map({ $0.name }))
+
+            for propertyName in propertyNames {
+                var column: [String] = []
+                for layer in layers {
+                    let propertyNames = layer.propertyNames
+                    column.append((propertyNames[propertyName] ?? 0).toString)
+                }
+                table.append(column)
             }
 
             let result = dumpSideBySide(
@@ -51,10 +105,6 @@ extension CLI {
                 asTableWithHeaders: tableHeader)
 
             print(result)
-
-            if options.verbose {
-                print("Done.")
-            }
         }
 
         private func dumpSideBySide(

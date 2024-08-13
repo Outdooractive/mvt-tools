@@ -90,6 +90,42 @@ enum MVTDecoder {
         projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
         -> [Feature]
     {
+        let (keys, values) = keysAndValues(forLayer: layer)
+
+        var layerFeatures: [Feature] = []
+        layerFeatures.reserveCapacity(layer.features.count)
+
+        for feature in layer.features {
+            guard var layerFeature: Feature = convertToLayerFeature(
+                geometryIntegers: feature.geometry,
+                ofType: feature.type,
+                projectionFunction: projectionFunction)
+            else { continue }
+
+            var properties: [String: Sendable] = [:]
+            for tags in feature.tags.pairs() {
+                guard let key: String = keys.get(at: Int(tags.first)),
+                      let value: Sendable = values.get(at: Int(tags.second))
+                else { continue }
+
+                properties[key] = value
+            }
+            layerFeature.properties = properties
+
+            if feature.hasID {
+                layerFeature.id = Feature.Identifier(value: feature.id)
+            }
+            else {
+                layerFeature.id = .string(UUID().uuidString)
+            }
+
+            layerFeatures.append(layerFeature)
+        }
+
+        return layerFeatures
+    }
+
+    static func keysAndValues(forLayer layer: VectorTile_Tile.Layer) -> (keys: [String], values: [Sendable]) {
         let keys: [String] = layer.keys
 
         // Note: Some of the more obscure data types are converted
@@ -137,37 +173,7 @@ enum MVTDecoder {
             }
         }
 
-        var layerFeatures: [Feature] = []
-        layerFeatures.reserveCapacity(layer.features.count)
-
-        for feature in layer.features {
-            guard var layerFeature: Feature = convertToLayerFeature(
-                geometryIntegers: feature.geometry,
-                ofType: feature.type,
-                projectionFunction: projectionFunction)
-            else { continue }
-
-            var properties: [String: Sendable] = [:]
-            for tags in feature.tags.pairs() {
-                guard let key: String = keys.get(at: Int(tags.first)),
-                      let value: Sendable = values.get(at: Int(tags.second))
-                else { continue }
-
-                properties[key] = value
-            }
-            layerFeature.properties = properties
-
-            if feature.hasID {
-                layerFeature.id = Feature.Identifier(value: feature.id)
-            }
-            else {
-                layerFeature.id = .string(UUID().uuidString)
-            }
-
-            layerFeatures.append(layerFeature)
-        }
-
-        return layerFeatures
+        return (keys, values)
     }
 
     static func convertToLayerFeature(
