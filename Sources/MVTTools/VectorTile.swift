@@ -10,6 +10,9 @@ import Logging
 /// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
 public struct VectorTile: Sendable {
 
+    /// The default property name for the layer in exported GeoJSON Features.
+    public static let defaultLayerPropertyName: String = "vt_layer"
+
     /// The original file format
     public enum Origin: String, Sendable {
         /// The tile was created from a GeoJSON file
@@ -290,6 +293,7 @@ public struct VectorTile: Sendable {
     public init?(
         geoJsonData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerWhitelist: [String]? = nil,
         logger: Logger? = nil)
     {
@@ -332,7 +336,7 @@ public struct VectorTile: Sendable {
 
         setGeoJson(
             geoJson: featureCollection,
-            propertyName: "vt_layer",
+            layerProperty: layerProperty,
             layerAllowList: layerWhitelistSet)
 
         if let sortOption {
@@ -344,6 +348,7 @@ public struct VectorTile: Sendable {
     public init?(
         contentsOfGeoJson url: URL,
         indexed sortOption: RTreeSortOption? = nil,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerWhitelist: [String]? = nil,
         logger: Logger? = nil)
     {
@@ -355,6 +360,7 @@ public struct VectorTile: Sendable {
         self.init(
             geoJsonData: data,
             indexed: sortOption,
+            layerProperty: layerProperty,
             layerWhitelist: layerWhitelist,
             logger: logger)
     }

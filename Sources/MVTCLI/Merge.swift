@@ -12,13 +12,15 @@ extension CLI {
             case mvt
         }
 
-        static let configuration = CommandConfiguration(abstract: "Merge any number of vector tiles or GeoJSONs")
+        static let configuration = CommandConfiguration(
+            abstract: "Merge any number of MVTs or GeoJSONs",
+            discussion: "Vector tiles should all have the same tile coordinate, or you will get strange results.")
 
-        @Option(name: .shortAndLong, help: "Output file (optional, default is console).")
-        var output: String?
+        @Option(name: [.short, .customLong("output")], help: "Output file (optional, default is console).")
+        var outputFile: String?
 
-        @Option(name: .long, help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
-        var format: OutputFormat = .auto
+        @Option(name: [.customShort("O"), .long], help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
+        var outputFormat: OutputFormat = .auto
 
         @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file.")
         var forceOverwrite = false
@@ -26,8 +28,14 @@ extension CLI {
         @Flag(name: .shortAndLong, help: "Append to an existing --output file.")
         var append = false
 
-        @Option(name: .shortAndLong, help: "Merge only the specified layer (can be repeated).")
+        @Option(name: .shortAndLong, help: "Merge only the specified layers (can be repeated).")
         var layer: [String] = []
+
+        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
+        var propertyName: String = VectorTile.defaultLayerPropertyName
+
+        @Flag(name: [.customShort("D"), .long], help: "Don't add the layer name as a property to Features in the output GeoJSON.")
+        var disableOutputLayerProperty: Bool = false
 
         @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
@@ -40,17 +48,15 @@ extension CLI {
 
         @Argument(
             help: "Vector tiles or GeoJSONs to merge (file or URL)",
-            completion: .file(extensions: ["pbf", "mvt"]))
+            completion: .file(extensions: ["pbf", "mvt", "json", "geojson"]))
         var other: [String] = []
 
         mutating func run() async throws {
             let layerAllowlist = layer.nonempty
 
-            let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [output].trimmed() + other)
-
             var outputUrl: URL?
-            if let output {
-                outputUrl = URL(fileURLWithPath: output)
+            if let outputFile {
+                outputUrl = URL(fileURLWithPath: outputFile)
                 if let outputUrl, (try? outputUrl.checkResourceIsReachable()) ?? false {
                     if forceOverwrite {
                         print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
@@ -64,43 +70,73 @@ extension CLI {
                 }
             }
 
-            var outputFormatToUse: OutputFormat = format
+            var outputFormatToUse: OutputFormat = outputFormat
             var tile: VectorTile?
+
+            let xyz = try? xyzOptions.parseXYZ(fromPaths: [outputFile].trimmed() + other)
+            var (x, y, z) = (xyz?.x, xyz?.y, xyz?.z)
+
             if append,
                let outputUrl,
                (try? outputUrl.checkResourceIsReachable()) ?? false
             {
-                if let mvtTile = VectorTile(contentsOf: outputUrl, x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil) {
+                if let x,
+                   let y,
+                   let z,
+                   let mvtTile = VectorTile(
+                    contentsOf: outputUrl,
+                    x: x,
+                    y: y,
+                    z: z,
+                    logger: options.verbose ? CLI.logger : nil)
+                {
                     tile = mvtTile
 
                     if outputFormatToUse == .geojson, !forceOverwrite {
-                        throw CLIError("Existing file is mvt, but selected output format is GeoJSON (use --force-overwrite to overwrite existing files)")
+                        throw CLIError("Existing file is MVT, but selected output format is GeoJSON (use --force-overwrite to overwrite existing files)")
                     }
                     if outputFormatToUse == .auto {
                         outputFormatToUse = .mvt
                     }
                 }
-                else if let geoJsonTile = VectorTile(contentsOfGeoJson: outputUrl, logger: options.verbose ? CLI.logger : nil) {
+                else if let geoJsonTile = VectorTile(
+                    contentsOfGeoJson: outputUrl,
+                    layerProperty: propertyName,
+                    logger: options.verbose ? CLI.logger : nil)
+                {
                     tile = geoJsonTile
+                    x = tile?.x
+                    y = tile?.y
+                    z = tile?.z
 
                     if outputFormatToUse == .mvt, !forceOverwrite {
-                        throw CLIError("Existing file is GeoJSON, but selected output format is mvt (use --force-overwrite to overwrite existing files)")
+                        throw CLIError("Existing file is GeoJSON, but selected output format is MVT (use --force-overwrite to overwrite existing files)")
                     }
                     if outputFormatToUse == .auto {
                         outputFormatToUse = .geojson
                     }
                 }
+
+                guard tile != nil else { throw CLIError("Failed to parse the resource at '\(outputUrl.path())'") }
             }
+
+            guard let x, let y, let z else {
+                throw CLIError("Need z, x and y")
+            }
+
             if tile == nil {
-                tile = VectorTile(x: x, y: y, z: z, logger: options.verbose ? CLI.logger : nil)
+                tile = VectorTile(
+                    x: x,
+                    y: y,
+                    z: z,
+                    logger: options.verbose ? CLI.logger : nil)
             }
-            guard var tile else {
-                throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)")
-            }
+
+            guard var tile else { throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)") }
 
             if options.verbose {
                 if let outputUrl {
-                    print("Merging into tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
+                    print("Merging into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
                 }
                 else {
                     print("Dumping the merged tile to the console")
@@ -126,11 +162,20 @@ extension CLI {
                     }
                 }
 
-                guard let otherTile = VectorTile(contentsOf: otherUrl, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil)
-                        ?? VectorTile(contentsOfGeoJson: otherUrl, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil)
-                else {
-                    throw CLIError("Failed to parse the tile at '\(path)'")
-                }
+                guard let otherTile =
+                        VectorTile(
+                            contentsOf: otherUrl,
+                            x: x,
+                            y: y,
+                            z: z,
+                            layerWhitelist: layerAllowlist,
+                            logger: options.verbose ? CLI.logger : nil)
+                        ?? VectorTile(
+                            contentsOfGeoJson: otherUrl,
+                            layerProperty: propertyName,
+                            layerWhitelist: layerAllowlist,
+                            logger: options.verbose ? CLI.logger : nil)
+                else { throw CLIError("Failed to parse the tile at '\(path)'") }
 
                 if outputFormatToUse == .auto {
                     switch otherTile.origin {
@@ -140,10 +185,10 @@ extension CLI {
                 }
 
                 if options.verbose {
-                    print("- \(otherUrl.lastPathComponent) (\(otherTile.origin)")
+                    print("- \(otherUrl.lastPathComponent) (\(otherTile.origin))")
                 }
 
-                tile.merge(otherTile)
+                tile.merge(otherTile, ignoreTileCoordinateMismatch: true)
             }
 
             if let outputUrl {

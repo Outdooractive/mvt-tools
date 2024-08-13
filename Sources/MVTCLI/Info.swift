@@ -6,7 +6,7 @@ extension CLI {
 
     struct Info: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print information about the input file (mvt or GeoJSON)")
+        static let configuration = CommandConfiguration(abstract: "Print information about the input file (MVT or GeoJSON)")
 
         @OptionGroup
         var options: Options

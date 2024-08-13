@@ -8,14 +8,20 @@ extension CLI {
 
         static let configuration = CommandConfiguration(abstract: "Export a vector tile as GeoJSON to a file")
 
-        @Option(name: .shortAndLong, help: "Output GeoJSON file.")
-        var output: String
+        @Option(name: [.short, .customLong("output")], help: "Output GeoJSON file.")
+        var outputFile: String
 
-        @Flag(name: .shortAndLong, help: "Force overwrite existing files.")
+        @Flag(name: .shortAndLong, help: "Overwrite existing files.")
         var forceOverwrite = false
 
         @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated).")
         var layer: [String] = []
+
+        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
+        var propertyName: String = VectorTile.defaultLayerPropertyName
+
+        @Flag(name: [.customShort("D"), .long], help: "Don't add the layer name as a property to Features in the output GeoJSON.")
+        var disableOutputLayerProperty: Bool = false
 
         @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
@@ -36,7 +42,7 @@ extension CLI {
             let url = try options.parseUrl(fromPath: path)
             let layerAllowlist = layer.nonempty
 
-            let outputUrl = URL(fileURLWithPath: output)
+            let outputUrl = URL(fileURLWithPath: outputFile)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
                 if forceOverwrite {
                     print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
@@ -54,13 +60,19 @@ extension CLI {
                 }
             }
 
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerAllowlist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the resource at '\(path)'")
-            }
+            guard let tile = VectorTile(
+                contentsOf: url,
+                x: x,
+                y: y,
+                z: z,
+                layerWhitelist: layerAllowlist,
+                logger: options.verbose ? CLI.logger : nil)
+            else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
-            guard let data = tile.toGeoJson(prettyPrinted: prettyPrint) else {
-                throw CLIError("Failed to extract the tile data as GeoJSON")
-            }
+            guard let data = tile.toGeoJson(
+                prettyPrinted: prettyPrint,
+                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+            else { throw CLIError("Failed to extract the tile data as GeoJSON") }
 
             try data.write(to: outputUrl, options: .atomic)
 

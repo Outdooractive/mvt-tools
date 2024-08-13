@@ -56,7 +56,7 @@ struct XYZOptions: ParsableArguments {
     /// if the were not given on the command line
     mutating func parseXYZ(
         fromPaths paths: [String])
-        throws -> (Int, Int, Int)
+        throws -> (x: Int, y: Int, z: Int)
     {
         for path in paths {
             guard x == nil

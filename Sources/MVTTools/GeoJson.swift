@@ -12,7 +12,8 @@ extension VectorTile {
     public func toGeoJson(
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
-        prettyPrinted: Bool = false)
+        prettyPrinted: Bool = false,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName)
         -> Data?
     {
         var allFeatures: [Feature] = []
@@ -22,7 +23,9 @@ extension VectorTile {
 
             for feature in layerContainer.features {
                 var feature = feature
-                feature.setProperty(layerName, for: "vt_layer")
+                if let layerProperty {
+                    feature.setProperty(layerName, for: layerProperty)
+                }
                 if let additionalFeatureProperties {
                     feature.properties.merge(additionalFeatureProperties, uniquingKeysWith: { (current, _) in current })
                 }
@@ -45,13 +48,15 @@ extension VectorTile {
         to url: URL,
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
-        prettyPrinted: Bool = false)
+        prettyPrinted: Bool = false,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName)
         -> Bool
     {
         guard let data: Data = toGeoJson(
             layerNames: layerNames,
             additionalFeatureProperties: additionalFeatureProperties,
-            prettyPrinted: prettyPrinted)
+            prettyPrinted: prettyPrinted,
+            layerProperty: layerProperty)
         else { return false }
 
         do {
@@ -70,22 +75,28 @@ extension VectorTile {
     public mutating func addGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
-        propertyName: String? = nil,
+        layerProperty: String? = nil,
         layerAllowList: Set<String>? = nil)
     {
         guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
 
-        if let propertyName {
+        if let layerProperty {
             features.divided(
                 byKey: { feature in
-                    let mapping: String = feature.property(for: propertyName) ?? layerName
+                    let mapping: String = feature.property(for: layerProperty) ?? layerName
                     return mapping
                 },
                 onKey: { key, features in
                     if let layerAllowList, !layerAllowList.contains(key) { return }
-                    appendFeatures(features, to: key)
+                    appendFeatures(
+                        features.map({ feature in
+                            var feature = feature
+                            feature.removeProperty(for: layerProperty)
+                            return feature
+                        }),
+                        to: key)
                 })
         }
         else {
@@ -98,22 +109,28 @@ extension VectorTile {
     public mutating func setGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
-        propertyName: String? = nil,
+        layerProperty: String? = nil,
         layerAllowList: Set<String>? = nil)
     {
         guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
 
-        if let propertyName {
+        if let layerProperty {
             features.divided(
                 byKey: { feature in
-                    let mapping: String = feature.property(for: propertyName) ?? layerName
+                    let mapping: String = feature.property(for: layerProperty) ?? layerName
                     return mapping
                 },
                 onKey: { key, features in
                     if let layerAllowList, !layerAllowList.contains(key) { return }
-                    setFeatures(features, for: key)
+                    setFeatures(
+                        features.map({ feature in
+                            var feature = feature
+                            feature.removeProperty(for: layerProperty)
+                            return feature
+                        }),
+                        for: key)
                 })
         }
         else {
