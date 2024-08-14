@@ -141,7 +141,7 @@ SUBCOMMANDS:
 ---
 ### mvt dump
 
-Print a vector tile as GeoJSON.
+Print a vector tile or GeoJSON file as pretty-printed GeoJSON.
 
 ```bash
 mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -175,6 +175,8 @@ mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 ---
 ### mvt info
 
+Print some informations about vector tiles/GeoJSONs.
+
 **Example 1**: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
 
 ```bash
@@ -207,7 +209,7 @@ mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
 ---
 ### mvt query
 
-Query a vector tile with a search term.
+Query a vector tile or GeoJSON file with a search term.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
@@ -246,7 +248,7 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
 Query a tile with `latitude,longitude,radius`.
 
 ```bash
-mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "3.87324,11.53731,1000"
+mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,1000"
 {
   "features" : [
     {
@@ -276,10 +278,20 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "3.87324,11.53731
 ---
 ### mvt merge
 
-Merge two or more vector tiles.
+Merge two or more vector tiles or GeoJSON files in any combination.
 
 ```bash
+# All vector tiles:
 mvt merge --output merged.mvt path/to/first.mvt path/to/second.mvt
+
+# All GeoJSON files:
+mvt merge --output merged.geojson path/to/first.geojson path/to/second.geojson
+
+# Merge GeoJSON files into a vector tile:
+mvt merge --output merged.mvt --output-format mvt path/to/first.geojson path/to/second.geojson
+
+# Merge vector tiles into a GeoJSOn file:
+mvt merge --output merged.geojson --output-format geojson path/to/first.mvt path/to/second.mvt
 ```
 ---
 ### mvt export
