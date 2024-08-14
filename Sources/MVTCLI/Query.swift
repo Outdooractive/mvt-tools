@@ -21,10 +21,13 @@ extension CLI {
         @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
+        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input and output GeoJSONs.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customShort("D"), .long], help: "Don't add the layer name as a property to Features in the output GeoJSON.")
+        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        var disableInputLayerProperty: Bool = false
+
+        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
         @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
@@ -79,8 +82,8 @@ extension CLI {
 
             var tile = VectorTile(
                 contentsOfGeoJson: url,
-                layerProperty: propertyName,
-                layerWhitelist: layerAllowlist,
+                layerProperty: disableInputLayerProperty ? nil : propertyName,
+                layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
                 logger: options.verbose ? CLI.logger : nil)
 
             if tile == nil,

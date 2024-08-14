@@ -112,10 +112,10 @@ Layers in GeoJSON files (containing a FeatureCollection) can be represented by a
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles and GeoJSON files.
+OVERVIEW: A utility for inspecting and working with vector tiles (MVT) and GeoJSON files.
 
-The tile coordinate of vector tiles can be extracted from the path
-if it's either in the form '/z/x/y' or 'z_x_y'.
+A x/y/z tile coordinate is needed for encoding/decoding vector tiles (MVT).
+This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
 Tile coordinates are not necessary for GeoJSON input files.
 
 Examples:

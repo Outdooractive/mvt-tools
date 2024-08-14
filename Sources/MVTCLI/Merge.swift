@@ -14,7 +14,7 @@ extension CLI {
 
         static let configuration = CommandConfiguration(
             abstract: "Merge any number of MVTs or GeoJSONs",
-            discussion: "Vector tiles should all have the same tile coordinate, or you will get strange results.")
+            discussion: "Note: Vector tiles should all have the same tile coordinate or strange things will happen.")
 
         @Option(name: [.short, .customLong("output")], help: "Output file (optional, default is console).")
         var outputFile: String?
@@ -22,19 +22,22 @@ extension CLI {
         @Option(name: [.customShort("O"), .long], help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
         var outputFormat: OutputFormat = .auto
 
-        @Flag(name: .shortAndLong, help: "Force overwrite an existing --output file.")
+        @Flag(name: .shortAndLong, help: "Force overwrite an existing 'output' file.")
         var forceOverwrite = false
 
-        @Flag(name: .shortAndLong, help: "Append to an existing --output file.")
+        @Flag(name: .shortAndLong, help: "Append to an existing 'output' file.")
         var append = false
 
         @Option(name: .shortAndLong, help: "Merge only the specified layers (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
+        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input and output GeoJSONs.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customShort("D"), .long], help: "Don't add the layer name as a property to Features in the output GeoJSON.")
+        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        var disableInputLayerProperty: Bool = false
+
+        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
         @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
@@ -101,7 +104,7 @@ extension CLI {
                 }
                 else if let geoJsonTile = VectorTile(
                     contentsOfGeoJson: outputUrl,
-                    layerProperty: propertyName,
+                    layerProperty: disableInputLayerProperty ? nil : propertyName,
                     logger: options.verbose ? CLI.logger : nil)
                 {
                     tile = geoJsonTile
@@ -180,8 +183,8 @@ extension CLI {
                 }
                 else if let other = VectorTile(
                     contentsOfGeoJson: otherUrl,
-                    layerProperty: propertyName,
-                    layerWhitelist: layerAllowlist,
+                    layerProperty: disableInputLayerProperty ? nil : propertyName,
+                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
                     logger: options.verbose ? CLI.logger : nil)
                 {
                     otherTile = other

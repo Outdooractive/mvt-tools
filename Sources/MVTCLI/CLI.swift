@@ -10,11 +10,11 @@ struct CLI: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         commandName: "mvt",
-        abstract: "A utility for inspecting and working with vector tiles and GeoJSON files.",
+        abstract: "A utility for inspecting and working with vector tiles (MVT) and GeoJSON files.",
         discussion: """
-        The tile coordinate of vector tiles can be extracted from the path
-        if it's either in the form '/z/x/y' or 'z_x_y'.
-        Tile coordinates are not necessary for GeoJSON input files.
+        A x/y/z tile coordinate is needed for encoding/decoding vector tiles (MVT).
+        This tile coordinate can be extracted from the path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
+        Tile coordinates are not necessary for GeoJSON files.
 
         Examples:
         - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt

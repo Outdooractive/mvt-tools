@@ -11,7 +11,15 @@ extension CLI {
             case properties
         }
 
-        static let configuration = CommandConfiguration(abstract: "Print information about the input file (MVT or GeoJSON)")
+        static let configuration = CommandConfiguration(
+            abstract: "Print information about the input file (MVT or GeoJSON)",
+            discussion: """
+            Available tables:
+            - features: Feature counts (points, linestrings, polygons) for each layer
+                        in the input file.
+            - properties: Counts of all Feature properties for each layer in the
+                          input file.
+            """)
 
         @Option(name: .shortAndLong,
                 help: "The tables to print, comma separated list of '\(InfoTables.allCases.map(\.rawValue).joined(separator: ","))'.",

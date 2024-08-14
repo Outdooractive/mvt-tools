@@ -20,7 +20,7 @@ extension CLI {
         @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customShort("D"), .long], help: "Don't add the layer name as a property to Features in the output GeoJSON.")
+        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
         @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")

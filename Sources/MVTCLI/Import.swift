@@ -24,7 +24,7 @@ extension CLI {
         @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input GeoJSONs. Fallback to 'layer-name' or a default if the property is not present.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customShort("D"), .long], help: "Don't try to find 'propert-name' in input GeoJSONs, just use 'layer-name' or a default. Might speed up things considerably.")
+        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs, just use 'layer-name' or a default. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
         @OptionGroup
