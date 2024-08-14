@@ -6,24 +6,38 @@ extension CLI {
 
     struct Export: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Export a vector tile as GeoJSON to a file")
+        static let configuration = CommandConfiguration(
+            abstract: "Export a vector tile as GeoJSON to a file")
 
-        @Option(name: [.short, .customLong("output")], help: "Output GeoJSON file.")
+        @Option(
+            name: [.short, .customLong("output")],
+            help: "Output GeoJSON file.",
+            completion: .file(extensions: ["geojson", "json"]))
         var outputFile: String
 
-        @Flag(name: .shortAndLong, help: "Overwrite existing files.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Overwrite existing files.")
         var forceOverwrite = false
 
-        @Option(name: .shortAndLong, help: "Export only the specified layer (can be repeated).")
+        @Option(
+            name: .shortAndLong,
+            help: "Export only the specified layer (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in the output GeoJSON.")
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in the output GeoJSON.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
+        @Flag(
+            name: [.customLong("Do", withSingleDash: true), .long], 
+            help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
-        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
 
         @OptionGroup

@@ -43,13 +43,19 @@ struct CLIError: LocalizedError {
 
 struct XYZOptions: ParsableArguments {
 
-    @Option(name: .short, help: "Tile x coordinate, if it can't be extracted from the path.")
+    @Option(
+        name: .short,
+        help: "Tile x coordinate, if it can't be extracted from the path.")
     var x: Int?
 
-    @Option(name: .short, help: "Tile y coordinate, if it can't be extracted from the path.")
+    @Option(
+        name: .short,
+        help: "Tile y coordinate, if it can't be extracted from the path.")
     var y: Int?
 
-    @Option(name: .short, help: "Tile zoom level, if it can't be extracted from the path.")
+    @Option(
+        name: .short,
+        help: "Tile zoom level, if it can't be extracted from the path.")
     var z: Int?
 
     /// Try to extract x, y and z tile coordinates from some file paths or URLs,
@@ -109,7 +115,9 @@ struct XYZOptions: ParsableArguments {
 
 struct Options: ParsableArguments {
 
-    @Flag(name: .shortAndLong, help: "Print some debug info.")
+    @Flag(
+        name: .shortAndLong,
+        help: "Print some debug info.")
     var verbose = false
 
     func parseUrl(

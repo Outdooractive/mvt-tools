@@ -6,18 +6,27 @@ extension CLI {
 
     struct Dump: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console")
+        static let configuration = CommandConfiguration(
+            abstract: "Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console")
 
-        @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated).")
+        @Option(
+            name: .shortAndLong,
+            help: "Dump only the specified layer (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input and output GeoJSONs.")
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in input and output GeoJSONs.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        @Flag(
+            name: [.customLong("Di", withSingleDash: true), .long],
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
-        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
+        @Flag(
+            name: [.customLong("Do", withSingleDash: true), .long],
+            help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
         @OptionGroup

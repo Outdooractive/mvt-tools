@@ -16,31 +16,50 @@ extension CLI {
             abstract: "Merge any number of MVTs or GeoJSONs",
             discussion: "Note: Vector tiles should all have the same tile coordinate or strange things will happen.")
 
-        @Option(name: [.short, .customLong("output")], help: "Output file (optional, default is console).")
+        @Option(
+            name: [.short, .customLong("output")],
+            help: "Output file (optional, default is console).",
+            completion: .file(extensions: ["pbf", "mvt", "json", "geojson"]))
         var outputFile: String?
 
-        @Option(name: [.customShort("O"), .long], help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
+        @Option(
+            name: [.customShort("O"), .long],
+            help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
         var outputFormat: OutputFormat = .auto
 
-        @Flag(name: .shortAndLong, help: "Force overwrite an existing 'output' file.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Force overwrite an existing 'output' file.")
         var forceOverwrite = false
 
-        @Flag(name: .shortAndLong, help: "Append to an existing 'output' file.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Append to an existing 'output' file.")
         var append = false
 
-        @Option(name: .shortAndLong, help: "Merge only the specified layers (can be repeated).")
+        @Option(
+            name: .shortAndLong,
+            help: "Merge only the specified layers (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input and output GeoJSONs.")
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in input and output GeoJSONs.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        @Flag(
+            name: [.customLong("Di", withSingleDash: true), .long],
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
-        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
+        @Flag(
+            name: [.customLong("Do", withSingleDash: true), .long],
+            help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
-        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
 
         @OptionGroup
@@ -96,7 +115,7 @@ extension CLI {
                     tile = mvtTile
 
                     if outputFormatToUse == .geojson, !forceOverwrite {
-                        throw CLIError("Existing file is MVT, but selected output format is GeoJSON (use --force-overwrite to overwrite existing files)")
+                        throw CLIError("Existing file is 'mvt', but selected output format is 'geojson' (use --force-overwrite to overwrite existing files)")
                     }
                     if outputFormatToUse == .auto {
                         outputFormatToUse = .mvt
@@ -110,7 +129,7 @@ extension CLI {
                     tile = geoJsonTile
 
                     if outputFormatToUse == .mvt, !forceOverwrite {
-                        throw CLIError("Existing file is GeoJSON, but selected output format is MVT (use --force-overwrite to overwrite existing files)")
+                        throw CLIError("Existing file is 'geojson', but selected output format is 'mvt' (use --force-overwrite to overwrite existing files)")
                     }
                     if outputFormatToUse == .auto {
                         outputFormatToUse = .geojson
@@ -130,10 +149,6 @@ extension CLI {
                 // Assume geoJson if we don't have tile coordinates here
                 if x == nil || y == nil || z == nil {
                     outputFormatToUse = .geojson
-
-                    if options.verbose {
-                        print("Warning: Assuming geoJson output format because tile coordinates were not provided")
-                    }
                 }
             }
 
@@ -150,6 +165,7 @@ extension CLI {
                 if let layerAllowlist {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
+                print("Output format: \(outputFormatToUse)")
             }
 
             for path in other {

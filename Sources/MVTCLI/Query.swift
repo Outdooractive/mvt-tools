@@ -10,27 +10,43 @@ extension CLI {
 
     struct Query: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Query the features in the input file (MVT or GeoJSON)")
+        static let configuration = CommandConfiguration(
+            abstract: "Query the features in the input file (MVT or GeoJSON)")
 
-        @Option(name: [.short, .customLong("output")], help: "Output GeoJSON file (optional, default is console).")
+        @Option(
+            name: [.short, .customLong("output")],
+            help: "Output GeoJSON file (optional, default is console).",
+            completion: .file(extensions: ["geojson", "json"]))
         var outputFile: String?
 
-        @Flag(name: .shortAndLong, help: "Overwrite existing files.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Overwrite existing files.")
         var forceOverwrite = false
 
-        @Option(name: .shortAndLong, help: "Search only in this layer (can be repeated).")
+        @Option(
+            name: .shortAndLong,
+            help: "Search only in this layer (can be repeated).")
         var layer: [String] = []
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input and output GeoJSONs.")
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in input and output GeoJSONs.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        @Flag(
+            name: [.customLong("Di", withSingleDash: true), .long],
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
-        @Flag(name: [.customLong("Do", withSingleDash: true), .long], help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
+        @Flag(
+            name: [.customLong("Do", withSingleDash: true), .long],
+            help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
         var disableOutputLayerProperty: Bool = false
 
-        @Flag(name: .shortAndLong, help: "Pretty-print the output GeoJSON.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Pretty-print the output GeoJSON.")
         var prettyPrint = false
 
         @OptionGroup

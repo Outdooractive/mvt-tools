@@ -21,9 +21,10 @@ extension CLI {
                           input file.
             """)
 
-        @Option(name: .shortAndLong,
-                help: "The tables to print, comma separated list of '\(InfoTables.allCases.map(\.rawValue).joined(separator: ","))'.",
-                transform: { $0.components(separatedBy: ",").compactMap(InfoTables.init(rawValue:)) })
+        @Option(
+            name: .shortAndLong,
+            help: "The tables to print, comma separated list of '\(InfoTables.allCases.map(\.rawValue).joined(separator: ","))'.",
+            transform: { $0.components(separatedBy: ",").compactMap(InfoTables.init(rawValue:)) })
         var infoTables: [InfoTables] = [.features, .properties]
 
         @OptionGroup

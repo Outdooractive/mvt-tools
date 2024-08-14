@@ -7,24 +7,38 @@ extension CLI {
 
     struct Import: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Import some GeoJSONs into a vector tile")
+        static let configuration = CommandConfiguration(
+            abstract: "Import some GeoJSONs into a vector tile")
 
-        @Option(name: [.short, .customLong("output")], help: "Output MVT file.")
+        @Option(
+            name: [.short, .customLong("output")],
+            help: "Output MVT file.",
+            completion: .file(extensions: ["pbf", "mvt"]))
         var outputFile: String
 
-        @Flag(name: .shortAndLong, help: "Overwrite an existing 'output' file.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Overwrite an existing 'output' file.")
         var forceOverwrite = false
 
-        @Flag(name: .shortAndLong, help: "Append to an existing 'output' file.")
+        @Flag(
+            name: .shortAndLong,
+            help: "Append to an existing 'output' file.")
         var append = false
 
-        @Option(name: [.customShort("L"), .long], help: "Layer name in the vector tile for the imported GeoJSON. Can be used with 'property-name' as a fallback name.")
+        @Option(
+            name: [.customShort("L"), .long],
+            help: "Layer name in the vector tile for the imported GeoJSON. Can be used with 'property-name' as a fallback name.")
         var layerName: String?
 
-        @Option(name: [.customShort("P"), .long], help: "Feature property to use for the layer name in input GeoJSONs. Fallback to 'layer-name' or a default if the property is not present.")
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in input GeoJSONs. Fallback to 'layer-name' or a default if the property is not present.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
-        @Flag(name: [.customLong("Di", withSingleDash: true), .long], help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs, just use 'layer-name' or a default. Might speed up GeoJSON parsing considerably.")
+        @Flag(
+            name: [.customLong("Di", withSingleDash: true), .long],
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs, just use 'layer-name' or a default. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
         @OptionGroup
