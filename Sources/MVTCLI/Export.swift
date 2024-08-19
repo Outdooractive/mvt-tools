@@ -68,6 +68,11 @@ extension CLI {
 
             if options.verbose {
                 print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")
+                print("Property name: \(propertyName)")
+
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
 
                 if let layerAllowlist {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")

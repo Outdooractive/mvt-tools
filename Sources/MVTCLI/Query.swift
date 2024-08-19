@@ -36,7 +36,7 @@ extension CLI {
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -118,8 +118,25 @@ extension CLI {
 
             if options.verbose {
                 print("Searching in tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                print("Property name: \(propertyName)")
 
-                if let layerAllowlist {
+                if disableInputLayerProperty {
+                    print("  - disable input layer property")
+                }
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
+
+                if disableInputLayerProperty,
+                   !disableOutputLayerProperty
+                {
+                    print("  - Warning: Default output layer names will be used with -Di")
+                }
+
+                if tile.origin == .mvt
+                    || !disableInputLayerProperty,
+                   let layerAllowlist
+                {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
             }

@@ -91,11 +91,13 @@ extension CLI {
             guard var tile else { throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)") }
 
             if options.verbose {
-                print("Import into tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
-            }
+                print("Import into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
+                print("Property name: \(propertyName)")
 
-            if options.verbose {
-                print("Import layer feature property: \(propertyName)")
+                if disableInputLayerProperty {
+                    print("  - disable input layer property")
+                }
+
                 if let layerName {
                     print("Fallback layer name: \(layerName)")
                 }

@@ -13,7 +13,7 @@ extension VectorTile {
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
-        layerProperty: String? = VectorTile.defaultLayerPropertyName)
+        layerProperty: String? = nil)
         -> Data?
     {
         var allFeatures: [Feature] = []
@@ -49,7 +49,7 @@ extension VectorTile {
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
-        layerProperty: String? = VectorTile.defaultLayerPropertyName)
+        layerProperty: String? = nil)
         -> Bool
     {
         guard let data: Data = toGeoJson(

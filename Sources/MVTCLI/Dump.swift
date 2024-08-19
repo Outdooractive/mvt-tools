@@ -21,7 +21,7 @@ extension CLI {
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -64,10 +64,40 @@ extension CLI {
 
             guard let tile else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
-            if options.verbose {
-                print("Dumping tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+            if tile.origin == .geoJson,
+               disableInputLayerProperty
+            {
+                if let layerAllowlist,
+                   !layerAllowlist.isEmpty
+                {
+                    if options.verbose {
+                        print("Warning: GeoJSON without layers, no filtering possible")
+                    }
+                    return
+                }
+            }
 
-                if let layerAllowlist {
+            if options.verbose {
+                print("Dumping \(tile.origin) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                print("Property name: \(propertyName)")
+
+                if disableInputLayerProperty {
+                    print("  - disable input layer property")
+                }
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
+
+                if disableInputLayerProperty,
+                   !disableOutputLayerProperty
+                {
+                    print("  - Warning: Default output layer names will be used with -Di")
+                }
+
+                if tile.origin == .mvt
+                    || !disableInputLayerProperty,
+                   let layerAllowlist
+                {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
             }

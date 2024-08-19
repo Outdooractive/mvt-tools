@@ -49,7 +49,7 @@ extension CLI {
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -162,9 +162,28 @@ extension CLI {
                     print("Dumping the merged tile to the console")
                 }
 
-                if let layerAllowlist {
+                print("Property name: \(propertyName)")
+
+                if disableInputLayerProperty {
+                    print("  - disable input layer property")
+                }
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
+
+                if disableInputLayerProperty,
+                   !disableOutputLayerProperty
+                {
+                    print("  - Warning: Default output layer names will be used with -Di")
+                }
+
+                if tile.origin == .mvt
+                    || !disableInputLayerProperty,
+                   let layerAllowlist
+                {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
+
                 print("Output format: \(outputFormatToUse)")
             }
 
@@ -224,7 +243,10 @@ extension CLI {
 
             if let outputUrl {
                 if outputFormatToUse == .geojson {
-                    if let data = tile.toGeoJson(prettyPrinted: prettyPrint) {
+                    if let data = tile.toGeoJson(
+                        prettyPrinted: prettyPrint,
+                        layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                    {
                         try data.write(to: outputUrl, options: .atomic)
                     }
                 }
@@ -237,7 +259,10 @@ extension CLI {
                             simplifyFeatures: .no))
                 }
             }
-            else if let resultGeoJson = tile.toGeoJson(prettyPrinted: prettyPrint) {
+            else if let resultGeoJson = tile.toGeoJson(
+                prettyPrinted: prettyPrint,
+                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+            {
                 print(resultGeoJson, terminator: "")
                 print()
             }
