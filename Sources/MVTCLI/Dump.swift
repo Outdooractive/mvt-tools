@@ -16,12 +16,12 @@ extension CLI {
 
         @Option(
             name: [.customShort("P"), .long],
-            help: "Feature property to use for the layer name in input and output GeoJSONs.")
+            help: "Feature property to use for the layer name in input and output GeoJSONs. Needed for filtering by layer.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -36,7 +36,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL)",
+            help: "The vector tile or GeoJSON (file or URL).",
             completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
         var path: String
 

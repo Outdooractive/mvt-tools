@@ -31,12 +31,12 @@ extension CLI {
 
         @Option(
             name: [.customShort("P"), .long],
-            help: "Feature property to use for the layer name in input and output GeoJSONs.")
+            help: "Feature property to use for the layer name in input and output GeoJSONs. Needed for filtering by layer.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -56,11 +56,11 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL)",
+            help: "The vector tile or GeoJSON (file or URL).",
             completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
         var path: String
 
-        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'")
+        @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
         var searchTerm: String
 
         mutating func run() async throws {
@@ -68,7 +68,9 @@ extension CLI {
                 let outputUrl = URL(fileURLWithPath: outputFile)
                 if (try? outputUrl.checkResourceIsReachable()) ?? false {
                     if forceOverwrite {
-                        print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                        if options.verbose {
+                            print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                        }
                     }
                     else {
                         throw CLIError("Output file must not exist (use --force-overwrite to overwrite existing files)")

@@ -14,13 +14,13 @@ final class GeoJsonTests: XCTestCase {
         let tile = try XCTUnwrap(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
 
         // Export all layers
-        let allLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson())))
+        let allLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson(layerProperty: VectorTile.defaultLayerPropertyName))))
         let allLayersLayerList = Set(try XCTUnwrap(allLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
         XCTAssertEqual(Set(tile.layersWithContent.map(\.0)), allLayersLayerList)
 
         // Export some layers
         let someLayers = ["landuse", "waterway", "water"]
-        let someLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson(layerNames: someLayers, additionalFeatureProperties: ["test": "test"]))))
+        let someLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson(layerNames: someLayers, additionalFeatureProperties: ["test": "test"], layerProperty: VectorTile.defaultLayerPropertyName))))
         let someLayersLayerList = Set(try XCTUnwrap(someLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
         XCTAssertEqual(Set(someLayers), someLayersLayerList)
         XCTAssertTrue(someLayersFc.features.allSatisfy({ ($0.properties["test"] as? String) == "test" }))

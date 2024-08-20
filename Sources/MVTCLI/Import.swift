@@ -27,13 +27,18 @@ extension CLI {
         var append = false
 
         @Option(
+            name: .shortAndLong,
+            help: "Import only the specified layer (can be repeated). ")
+        var layer: [String] = []
+
+        @Option(
             name: [.customShort("L"), .long],
             help: "Layer name in the vector tile for the imported GeoJSON. Can be used with 'property-name' as a fallback name.")
         var layerName: String?
 
         @Option(
             name: [.customShort("P"), .long],
-            help: "Feature property to use for the layer name in input GeoJSONs. Fallback to 'layer-name' or a default if the property is not present.")
+            help: "Feature property to use for the layer name in input GeoJSONs. Fallback to 'layer-name' or a default if the property is not present. Needed for filtering by layer.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
@@ -48,20 +53,25 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "GeoJSON resources to import (file or URL)",
+            help: "GeoJSON resources to import (file or URL).",
             completion: .file(extensions: ["json", "geojson"]))
         var other: [String] = []
 
         mutating func run() async throws {
             let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [outputFile] + other)
+            let layerAllowlist = layer.nonempty
 
             let outputUrl = URL(fileURLWithPath: outputFile)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
                 if forceOverwrite {
-                    print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                    if options.verbose {
+                        print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                    }
                 }
                 else if append {
-                    print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                    if options.verbose {
+                        print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                    }
                 }
                 else {
                     throw CLIError("Output file must not exist (use --force-overwrite or --append to overwrite existing files)")
@@ -118,11 +128,20 @@ extension CLI {
                     }
                 }
 
-                guard let otherGeoJSON = FeatureCollection(contentsOf: otherUrl) else {
+                guard var otherGeoJSON = FeatureCollection(contentsOf: otherUrl) else {
                     throw CLIError("Failed to parse the GeoJSON at '\(path)'")
                 }
 
                 print("- \(otherUrl.lastPathComponent)")
+
+                if !disableInputLayerProperty,
+                   let layerAllowlist
+                {
+                    otherGeoJSON.filterFeatures { feature in
+                        guard let layerName: String = feature.property(for: propertyName) else { return false }
+                        return layerAllowlist.contains(layerName)
+                    }
+                }
 
                 tile.addGeoJson(
                     geoJson: otherGeoJSON,

@@ -47,7 +47,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile (file or URL)",
+            help: "The vector tile (file or URL).",
             completion: .file(extensions: ["pbf", "mvt"]))
         var path: String
 
@@ -55,16 +55,7 @@ extension CLI {
             let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [path])
             let url = try options.parseUrl(fromPath: path)
             let layerAllowlist = layer.nonempty
-
             let outputUrl = URL(fileURLWithPath: outputFile)
-            if (try? outputUrl.checkResourceIsReachable()) ?? false {
-                if forceOverwrite {
-                    print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
-                }
-                else {
-                    throw CLIError("Output file must not exist (use --force-overwrite to overwrite existing files)")
-                }
-            }
 
             if options.verbose {
                 print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")
@@ -76,6 +67,17 @@ extension CLI {
 
                 if let layerAllowlist {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
+            }
+
+            if (try? outputUrl.checkResourceIsReachable()) ?? false {
+                if forceOverwrite {
+                    if options.verbose {
+                        print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                    }
+                }
+                else {
+                    throw CLIError("Output file must not exist (use --force-overwrite to overwrite existing files)")
                 }
             }
 

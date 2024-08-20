@@ -31,7 +31,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL)",
+            help: "The vector tile or GeoJSON (file or URL).",
             completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
         var path: String
 

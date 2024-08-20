@@ -44,12 +44,12 @@ extension CLI {
 
         @Option(
             name: [.customShort("P"), .long],
-            help: "Feature property to use for the layer name in input and output GeoJSONs.")
+            help: "Feature property to use for the layer name in input and output GeoJSONs. Needed for filtering by layer.")
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
-            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably. Needed for filtering by layer.")
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
         var disableInputLayerProperty: Bool = false
 
         @Flag(
@@ -69,7 +69,7 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "Vector tiles or GeoJSONs to merge (file or URL)",
+            help: "Vector tiles or GeoJSONs to merge (file or URL).",
             completion: .file(extensions: ["pbf", "mvt", "json", "geojson"]))
         var other: [String] = []
 
@@ -81,10 +81,14 @@ extension CLI {
                 outputUrl = URL(fileURLWithPath: outputFile)
                 if let outputUrl, (try? outputUrl.checkResourceIsReachable()) ?? false {
                     if forceOverwrite {
-                        print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                        if options.verbose {
+                            print("Existing file '\(outputUrl.lastPathComponent)' will be overwritten")
+                        }
                     }
                     else if append {
-                        print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                        if options.verbose {
+                            print("Existing file '\(outputUrl.lastPathComponent)' will be appended")
+                        }
                     }
                     else {
                         throw CLIError("Output file must not exist (use --force-overwrite or --append to overwrite existing files)")
@@ -230,7 +234,7 @@ extension CLI {
                 if outputFormatToUse == .auto {
                     switch otherTile.origin {
                     case .geoJson: outputFormatToUse = .geojson
-                    default: outputFormatToUse = .mvt
+                    case .mvt, .none: outputFormatToUse = .mvt
                     }
                 }
 
