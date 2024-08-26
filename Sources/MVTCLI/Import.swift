@@ -16,6 +16,31 @@ extension CLI {
             completion: .file(extensions: ["pbf", "mvt"]))
         var outputFile: String
 
+        @Option(
+            name: [.customLong("oC", withSingleDash: true), .long],
+            help: "Output file compression level, between 0=none to 9=best.")
+        var compressionLevel: Int = 9
+
+        @Option(
+            name: [.customLong("oBe", withSingleDash: true), .long],
+            help: "Buffer around tiles with extent \(VectorTile.ExportOptions.extent). (default: 512)")
+        var bufferExtents: Int?
+
+        @Option(
+            name: [.customLong("oBp", withSingleDash: true), .long],
+            help: "Buffer around tiles with \(VectorTile.ExportOptions.tileSize) pixels. Overrides 'buffer-extents'.")
+        var bufferPixels: Int?
+
+        @Option(
+            name: [.customLong("oSe", withSingleDash: true), .long],
+            help: "Simplify features using tile extents.")
+        var simplifyExtents: Int?
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify features using meters. Overrides 'simplify-extents'.")
+        var simplifyMeters: Int?
+
         @Flag(
             name: .shortAndLong,
             help: "Overwrite an existing 'output' file.")
@@ -149,12 +174,39 @@ extension CLI {
                     layerProperty: disableInputLayerProperty ? nil : propertyName)
             }
 
+            // Export
+
+            let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels {
+                .pixel(bufferPixels)
+            }
+            else if let bufferExtents {
+                .extent(bufferExtents)
+            }
+            else {
+                .extent(512)
+            }
+
+            var compression: VectorTile.ExportOptions.CompressionOptions = .no
+            if compressionLevel > 0 {
+                compression = .level(max(0, min(9, compressionLevel)))
+            }
+
+            let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters {
+                .meters(Double(simplifyMeters))
+            }
+            else if let simplifyExtents {
+                .extent(simplifyExtents)
+            }
+            else {
+                .no
+            }
+
             tile.write(
                 to: outputUrl,
                 options: .init(
-                    bufferSize: .extent(512),
-                    compression: .level(9),
-                    simplifyFeatures: .no))
+                    bufferSize: bufferSize,
+                    compression: compression,
+                    simplifyFeatures: simplifyFeatures))
 
             if options.verbose {
                 print("Done.")

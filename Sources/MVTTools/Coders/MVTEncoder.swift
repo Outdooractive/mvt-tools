@@ -21,7 +21,7 @@ enum MVTEncoder {
     {
         var tile = VectorTile_Tile()
 
-        let extent = UInt32(options.extent)
+        let extent = UInt32(VectorTile.ExportOptions.extent)
         let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
         var clipBoundingBox: BoundingBox?
 
@@ -41,7 +41,7 @@ enum MVTEncoder {
         case let .extent(extent):
             bufferSize = extent
         case let .pixel(pixel):
-            bufferSize = Int((Double(pixel) / Double(options.tileSize)) * Double(options.extent))
+            bufferSize = Int((Double(pixel) / Double(VectorTile.ExportOptions.tileSize)) * Double(VectorTile.ExportOptions.extent))
         }
 
         var simplifyDistance: CLLocationDistance = 0.0
@@ -50,7 +50,7 @@ enum MVTEncoder {
             simplifyDistance = 0.0
         case let .extent(extent):
             let tileBoundsInMeters = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-            simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(options.extent) * Double(extent)
+            simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(VectorTile.ExportOptions.extent) * Double(extent)
         case let .meters(meters):
             simplifyDistance = meters
         }
