@@ -107,8 +107,9 @@ You can install the command line tool `mvt` either
 
 `mvt` works with vector tiles or GeoJSON files from local disk or served from a web server.
 
-Layers in GeoJSON files (containing a FeatureCollection) can be represented by adding a property `vt_tile` to each Feature (can be overriden with a command line option).
-`mvt` will add this property to all created GeoJSONs.
+GeoJSONs can contain a layer name in their Feature properties (default name is `vt_layer`), and any resulting GeoJSON will automatically include this property.
+This can be controlled with the options `--property-name` (or `-P`), `--disable-input-layer-property` (or `-Di`) and `--disable-output-layer-property` (or `-Do`).
+Some commands allow limiting the result to certain layers with `--layer` (or `-l`), which can be repeated for as many layers as necessary.
 
 ```bash
 # mvt -h
