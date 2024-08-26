@@ -12,7 +12,7 @@
 
 # MVTTools
 
-Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
+MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
 
 ## Features
 
@@ -24,17 +24,17 @@ Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool 
 - Extract selected layers into a new tile
 - Merge two tiles into one
 - Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below)
+- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files
 
 ## Requirements
 
-This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 10.15), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
+This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 13), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
 
 ## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.7.1"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.8.0"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -105,11 +105,22 @@ You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 - or locally to `/usr/local/bin` with `./install_mvt.sh`
 
-`mvt` works with vector tiles from local disk or served from a web server.
+`mvt` works with vector tiles or GeoJSON files from local disk or served from a web server.
+
+Layers in GeoJSON files (containing a FeatureCollection) can be represented by adding a property `vt_tile` to each Feature (can be overriden with a command line option).
+`mvt` will add this property to all created GeoJSONs.
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles.
+OVERVIEW: A utility for inspecting and working with vector tiles (MVT) and GeoJSON files.
+
+A x/y/z tile coordinate is needed for encoding/decoding vector tiles (MVT).
+This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
+Tile coordinates are not necessary for GeoJSON input files.
+
+Examples:
+- Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+- https://demotiles.maplibre.org/tiles/2/2/1.pbf
 
 USAGE: mvt <subcommand>
 
@@ -118,19 +129,19 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the vector tile as GeoJSON
-  info                    Print information about the vector tile
-  merge                   Merge two or more vector tiles
-  query                   Query the features in a vector tile
-  export                  Export the vector tile as GeoJSON
-  import                  Import some GeoJSONs to a vector tile
+  dump (default)          Print the input file (mvt or GeoJSON) as pretty-printed GeoJSON to the console
+  info                    Print information about the input file (mvt or GeoJSON)
+  query                   Query the features in the input file (mvt or GeoJSON)
+  merge                   Merge any number of vector tiles or GeoJSONs
+  import                  Import some GeoJSONs into a vector tile
+  export                  Export a vector tile as GeoJSON to a file
 
   See 'mvt help <subcommand>' for detailed help.
 ```
 ---
 ### mvt dump
 
-Print a vector tile as GeoJSON.
+Print a vector tile or GeoJSON file as pretty-printed GeoJSON.
 
 ```bash
 mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -164,6 +175,8 @@ mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 ---
 ### mvt info
 
+Print some informations about vector tiles/GeoJSONs.
+
 **Example 1**: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
 
 ```bash
@@ -196,7 +209,7 @@ mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
 ---
 ### mvt query
 
-Query a vector tile with a search term.
+Query a vector tile or GeoJSON file with a search term.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
@@ -235,7 +248,7 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
 Query a tile with `latitude,longitude,radius`.
 
 ```bash
-mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "3.87324,11.53731,1000"
+mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,1000"
 {
   "features" : [
     {
@@ -265,10 +278,20 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "3.87324,11.53731
 ---
 ### mvt merge
 
-Merge two or more vector tiles.
+Merge two or more vector tiles or GeoJSON files in any combination.
 
 ```bash
+# All vector tiles:
 mvt merge --output merged.mvt path/to/first.mvt path/to/second.mvt
+
+# All GeoJSON files:
+mvt merge --output merged.geojson path/to/first.geojson path/to/second.geojson
+
+# Merge GeoJSON files into a vector tile:
+mvt merge --output merged.mvt --output-format mvt path/to/first.geojson path/to/second.geojson
+
+# Merge vector tiles into a GeoJSOn file:
+mvt merge --output merged.geojson --output-format geojson path/to/first.mvt path/to/second.mvt
 ```
 ---
 ### mvt export
@@ -335,6 +358,6 @@ brew install protobuf swift-protobuf swiftlint
 
 MIT
 
-# Author
+# Authors
 
 Thomas Rasch, Outdooractive

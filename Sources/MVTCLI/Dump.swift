@@ -6,34 +6,113 @@ extension CLI {
 
     struct Dump: AsyncParsableCommand {
 
-        static let configuration = CommandConfiguration(abstract: "Print the vector tile as GeoJSON")
+        static let configuration = CommandConfiguration(
+            abstract: "Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console")
 
-        @Option(name: .shortAndLong, help: "Dump only the specified layer (can be repeated)")
+        @Option(
+            name: .shortAndLong,
+            help: "Dump only the specified layer (can be repeated).")
         var layer: [String] = []
+
+        @Option(
+            name: [.customShort("P"), .long],
+            help: "Feature property to use for the layer name in input and output GeoJSONs. Needed for filtering by layer.")
+        var propertyName: String = VectorTile.defaultLayerPropertyName
+
+        @Flag(
+            name: [.customLong("Di", withSingleDash: true), .long],
+            help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
+        var disableInputLayerProperty: Bool = false
+
+        @Flag(
+            name: [.customLong("Do", withSingleDash: true), .long],
+            help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
+        var disableOutputLayerProperty: Bool = false
+
+        @OptionGroup
+        var xyzOptions: XYZOptions
 
         @OptionGroup
         var options: Options
 
+        @Argument(
+            help: "The vector tile or GeoJSON (file or URL).",
+            completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
+        var path: String
+
         mutating func run() async throws {
-            let url = try options.parseUrl()
+            let layerAllowlist = layer.nonempty
+            let url = try options.parseUrl(fromPath: path)
 
-            guard let x = options.x,
-                  let y = options.y,
-                  let z = options.z
-            else { throw CLIError("Something went wrong during argument parsing") }
+            var tile = VectorTile(
+                contentsOfGeoJson: url,
+                layerProperty: disableInputLayerProperty ? nil : propertyName,
+                layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
+                logger: options.verbose ? CLI.logger : nil)
 
-            let layerWhitelist = layer.nonempty
-
-            guard let tile = VectorTile(contentsOf: url, x: x, y: y, z: z, layerWhitelist: layerWhitelist, logger: options.verbose ? CLI.logger : nil) else {
-                throw CLIError("Failed to parse the tile at \(options.path)")
+            if tile == nil,
+               let (x, y, z) = try? xyzOptions.parseXYZ(fromPaths: [path])
+            {
+                tile = VectorTile(
+                    contentsOf: url,
+                    x: x,
+                    y: y,
+                    z: z,
+                    layerWhitelist: layerAllowlist,
+                    logger: options.verbose ? CLI.logger : nil)
             }
 
-            guard let data = tile.toGeoJson(prettyPrinted: true) else {
-                throw CLIError("Failed to extract the tile data as GeoJSON")
+            guard let tile else { throw CLIError("Failed to parse the resource at '\(path)'") }
+
+            if tile.origin == .geoJson,
+               disableInputLayerProperty
+            {
+                if let layerAllowlist,
+                   !layerAllowlist.isEmpty
+                {
+                    if options.verbose {
+                        print("Warning: GeoJSON without layers, no filtering possible")
+                    }
+                    return
+                }
             }
+
+            if options.verbose {
+                print("Dumping \(tile.origin) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                print("Property name: \(propertyName)")
+
+                if disableInputLayerProperty {
+                    print("  - disable input layer property")
+                }
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
+
+                if disableInputLayerProperty,
+                   !disableOutputLayerProperty
+                {
+                    print("  - Warning: Default output layer names will be used with -Di")
+                }
+
+                if tile.origin == .mvt
+                    || !disableInputLayerProperty,
+                   let layerAllowlist
+                {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
+            }
+
+            guard let data = tile.toGeoJson(
+                prettyPrinted: true,
+                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+            else { throw CLIError("Failed to extract the tile data as GeoJSON") }
 
             print(String(data: data, encoding: .utf8) ?? "", terminator: "")
             print()
+
+            if options.verbose {
+                print("Done.")
+            }
         }
 
     }

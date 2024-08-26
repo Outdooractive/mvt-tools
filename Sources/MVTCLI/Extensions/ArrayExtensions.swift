@@ -20,3 +20,20 @@ extension Array {
     }
 
 }
+
+extension Array  where Element: Hashable {
+
+    var uniqued: Self {
+        Array(Set(self))
+    }
+
+}
+
+extension Array where Element: OptionalProtocol {
+
+    /// Removes nil and empty elements.
+    public func trimmed() -> [Element.Wrapped] {
+        self.compactMap({ $0.optional == nil ? nil : $0.optional })
+    }
+
+}

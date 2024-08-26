@@ -59,14 +59,7 @@ final class VectorTileTests: XCTestCase {
         let mvt = TestData.dataFromFile(name: tileName)
         XCTAssertFalse(mvt.isEmpty)
 
-        let info = try XCTUnwrap(VectorTile.tileInfo(from: mvt))
-
-        XCTAssertFalse(info.isEmpty)
-
-        let layers = try XCTUnwrap(info["layers"] as? [[String: Any]])
-        let errors = try XCTUnwrap(info["errors"] as? Bool)
-
-        XCTAssertEqual(errors, false)
+        let layers = try XCTUnwrap(VectorTile.tileInfo(from: mvt))
         XCTAssertEqual(layers.count, 23)
     }
 
