@@ -12,7 +12,7 @@
 
 # MVTTools
 
-Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
+MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
 
 ## Features
 
