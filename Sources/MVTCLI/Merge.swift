@@ -191,8 +191,7 @@ extension CLI {
                     print("Dumping the merged tile to the console")
                 }
 
-                print("Property name: \(propertyName)")
-
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
@@ -238,16 +237,14 @@ extension CLI {
                     x: x,
                     y: y,
                     z: z,
-                    layerWhitelist: layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
+                    layerWhitelist: layerAllowlist)
                 {
                     otherTile = other
                 }
                 else if let other = VectorTile(
                     contentsOfGeoJson: otherUrl,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
-                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
+                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist)
                 {
                     otherTile = other
                 }
@@ -270,57 +267,49 @@ extension CLI {
 
             // Export
 
-            let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels, bufferPixels > 0 {
-                .pixel(bufferPixels)
+            var exportOptions = VectorTile.ExportOptions()
+
+            if let bufferPixels, bufferPixels > 0 {
+                exportOptions.bufferSize = .pixel(bufferPixels)
             }
             else if let bufferExtents, bufferExtents > 0 {
-                .extent(bufferExtents)
+                exportOptions.bufferSize = .extent(bufferExtents)
             }
             else if outputFormatToUse == .geojson {
-                .extent(0)
+                exportOptions.bufferSize = .extent(0)
             }
             else {
-                .extent(512)
+                exportOptions.bufferSize = .extent(512)
             }
 
-            var compression: VectorTile.ExportOptions.CompressionOptions = .no
             if outputUrl != nil { // don't gzip output to the console
                 if let compressionLevel {
                     if compressionLevel > 0 {
-                        compression = .level(max(0, min(9, compressionLevel)))
+                        exportOptions.compression = .level(max(0, min(9, compressionLevel)))
                     }
                 }
                 else if outputFormatToUse == .mvt {
-                    compression = .level(9)
+                    exportOptions.compression = .level(9)
                 }
             }
 
-            let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters, simplifyMeters > 0 {
-                .meters(Double(simplifyMeters))
+            if let simplifyMeters, simplifyMeters > 0 {
+                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
             }
             else if let simplifyExtents, simplifyExtents > 0 {
-                .extent(simplifyExtents)
-            }
-            else {
-                .no
+                exportOptions.simplifyFeatures = .extent(simplifyExtents)
             }
 
             if options.verbose {
                 print("Output options:")
-                print("  - File format: \(outputFormatToUse)")
-                print("  - Buffer size: \(bufferSize)")
-                print("  - Compression: \(compression)")
-                print("  - Simplification: \(simplifyFeatures)")
-
                 if outputFormatToUse == .geojson || outputUrl == nil {
                     print("  - Pretty print: \(prettyPrint)")
                 }
+                print("  - File format: \(outputFormatToUse)")
+                print("  - Buffer size: \(exportOptions.bufferSize)")
+                print("  - Compression: \(exportOptions.compression)")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
             }
-
-            let exportOptions: VectorTile.ExportOptions = .init(
-                bufferSize: bufferSize,
-                compression: compression,
-                simplifyFeatures: simplifyFeatures)
 
             if let outputUrl {
                 if outputFormatToUse == .geojson {

@@ -1,9 +1,10 @@
 import ArgumentParser
 #if !os(Linux)
-import CoreLocation
+    import CoreLocation
 #endif
 import Foundation
 import GISTools
+import Gzip
 import MVTTools
 
 extension CLI {
@@ -18,6 +19,16 @@ extension CLI {
             help: "Output GeoJSON file (optional, default is console).",
             completion: .file(extensions: ["geojson", "json"]))
         var outputFile: String?
+
+        @Option(
+            name: [.customLong("oC", withSingleDash: true), .long],
+            help: "Output file compression level, between 0=none to 9=best. (default: none)")
+        var compressionLevel: Int?
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify output features using meters.")
+        var simplifyMeters: Int?
 
         @Flag(
             name: .shortAndLong,
@@ -37,12 +48,12 @@ extension CLI {
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
             help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
-        var disableInputLayerProperty: Bool = false
+        var disableInputLayerProperty = false
 
         @Flag(
             name: [.customLong("Do", withSingleDash: true), .long],
             help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
-        var disableOutputLayerProperty: Bool = false
+        var disableOutputLayerProperty = false
 
         @Flag(
             name: .shortAndLong,
@@ -120,8 +131,8 @@ extension CLI {
 
             if options.verbose {
                 print("Searching in tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
-                print("Property name: \(propertyName)")
 
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
@@ -137,7 +148,7 @@ extension CLI {
 
                 if tile.origin == .mvt
                     || !disableInputLayerProperty,
-                   let layerAllowlist
+                    let layerAllowlist
                 {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
@@ -166,10 +177,44 @@ extension CLI {
                     in: tile)
             }
 
+            if options.verbose {
+                print("Output options:")
+                print("  - Pretty print: \(prettyPrint)")
+            }
+
+            var exportCompressionLevel: VectorTile.ExportOptions.CompressionOptions = .no
+            if outputFile != nil { // don't gzip output to the console
+                if let compressionLevel, compressionLevel > 0 {
+                    exportCompressionLevel = .level(max(0, min(9, compressionLevel)))
+                }
+
+                if options.verbose {
+                    print("  - Compression: \(exportCompressionLevel)")
+                }
+            }
+
+            if let simplifyMeters, simplifyMeters > 0 {
+                if options.verbose {
+                    print("  - Simplification: \(simplifyMeters > 0 ? ".meters(\(simplifyMeters)" : ".no")")
+                }
+                result = result?.simplified(tolerance: Double(simplifyMeters))
+            }
+
             if let result {
                 if let outputFile {
                     let outputUrl = URL(fileURLWithPath: outputFile)
-                    try result.asJsonData(prettyPrinted: prettyPrint)?.write(to: outputUrl, options: .atomic)
+                    var serializedData = result.asJsonData(prettyPrinted: prettyPrint)
+
+                    if exportCompressionLevel != .no {
+                        var value = 6 // default
+                        if case let .level(compressionLevel) = exportCompressionLevel {
+                            value = max(0, min(9, compressionLevel))
+                        }
+                        let level = CompressionLevel(rawValue: Int32(value))
+                        serializedData = (try? serializedData?.gzipped(level: level)) ?? serializedData
+                    }
+
+                    try serializedData?.write(to: outputUrl, options: .atomic)
                 }
                 else if let resultGeoJson = result.asJsonString(prettyPrinted: prettyPrint) {
                     print(resultGeoJson, terminator: "")

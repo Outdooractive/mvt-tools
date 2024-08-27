@@ -19,7 +19,7 @@ extension CLI {
         @Option(
             name: [.customLong("oC", withSingleDash: true), .long],
             help: "Output file compression level, between 0=none to 9=best.")
-        var compressionLevel: Int = 9
+        var compressionLevel = 9
 
         @Option(
             name: [.customLong("oBe", withSingleDash: true), .long],
@@ -69,7 +69,7 @@ extension CLI {
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
             help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs, just use 'layer-name' or a default. Might speed up GeoJSON parsing considerably.")
-        var disableInputLayerProperty: Bool = false
+        var disableInputLayerProperty = false
 
         @OptionGroup
         var xyzOptions: XYZOptions
@@ -126,15 +126,21 @@ extension CLI {
             guard var tile else { throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)") }
 
             if options.verbose {
-                print("Import into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
-                print("Property name: \(propertyName)")
+                print("Import into \(tile.origin == .none ? "new" : tile.origin.rawValue) tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
 
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
 
                 if let layerName {
                     print("Fallback layer name: \(layerName)")
+                }
+
+                if !disableInputLayerProperty,
+                   let layerAllowlist
+                {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
             }
 
@@ -157,7 +163,7 @@ extension CLI {
                     throw CLIError("Failed to parse the GeoJSON at '\(path)'")
                 }
 
-                print("- \(otherUrl.lastPathComponent)")
+                print("- \(otherUrl.lastPathComponent) (geojson)")
 
                 if !disableInputLayerProperty,
                    let layerAllowlist
@@ -201,17 +207,17 @@ extension CLI {
                 .no
             }
 
-            if options.verbose {
-                print("Output options:")
-                print("  - Buffer size: \(bufferSize)")
-                print("  - Compression: \(compression)")
-                print("  - Simplification: \(simplifyFeatures)")
-            }
-
             let exportOptions: VectorTile.ExportOptions = .init(
                 bufferSize: bufferSize,
                 compression: compression,
                 simplifyFeatures: simplifyFeatures)
+
+            if options.verbose {
+                print("Output options:")
+                print("  - Buffer size: \(exportOptions.bufferSize)")
+                print("  - Compression: \(exportOptions.compression)")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
+            }
 
             tile.write(
                 to: outputUrl,

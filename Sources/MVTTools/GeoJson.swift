@@ -23,8 +23,9 @@ extension VectorTile {
 
         if let options {
             var bufferSize = 0
-
             switch options.bufferSize {
+            case .no:
+                bufferSize = 0
             case let .extent(extent):
                 bufferSize = extent
             case let .pixel(pixel):

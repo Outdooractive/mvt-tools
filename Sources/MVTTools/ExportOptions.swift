@@ -14,6 +14,8 @@ extension VectorTile {
 
         /// Options for the buffer around tiles.
         public enum BufferSizeOptions {
+            /// No buffering.
+            case no
             /// Use the same dimension as ``ExportOptions.extent``.
             case extent(Int)
             /// Use pixels (see ``ExportOptions.tileSize``).
@@ -46,8 +48,8 @@ extension VectorTile {
         /// The tile size in pixels. Always 256.
         public static let tileSize = 256
 
-        /// The buffer around the tile, either in pixels (see ``tileSize``) or in the same dimension as ``extent`` (default: **0**).
-        public var bufferSize: BufferSizeOptions = .extent(0)
+        /// The buffer around the tile, either in pixels (see ``tileSize``) or in the same dimension as ``extent`` (default: **no**).
+        public var bufferSize: BufferSizeOptions = .no
 
         /// Whether to enable compression or not (default: **no**)
         ///
@@ -58,7 +60,7 @@ extension VectorTile {
         public var simplifyFeatures: SimplifyFeaturesOptions = .no
 
         public init(
-            bufferSize: BufferSizeOptions = .extent(0),
+            bufferSize: BufferSizeOptions = .no,
             compression: CompressionOptions = .no,
             simplifyFeatures: SimplifyFeaturesOptions = .no)
         {
