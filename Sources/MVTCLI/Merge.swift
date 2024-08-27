@@ -185,7 +185,7 @@ extension CLI {
 
             if options.verbose {
                 if let outputUrl {
-                    print("Merging into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                    print("Merging into \(tile.origin == .none ? "new" : tile.origin.rawValue) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
                 }
                 else {
                     print("Dumping the merged tile to the console")
@@ -212,8 +212,6 @@ extension CLI {
                 {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
-
-                print("Output format: \(outputFormatToUse)")
             }
 
             for path in other {
@@ -309,9 +307,14 @@ extension CLI {
 
             if options.verbose {
                 print("Output options:")
+                print("  - File format: \(outputFormatToUse)")
                 print("  - Buffer size: \(bufferSize)")
                 print("  - Compression: \(compression)")
                 print("  - Simplification: \(simplifyFeatures)")
+
+                if outputFormatToUse == .geojson || outputUrl == nil {
+                    print("  - Pretty print: \(prettyPrint)")
+                }
             }
 
             let exportOptions: VectorTile.ExportOptions = .init(
