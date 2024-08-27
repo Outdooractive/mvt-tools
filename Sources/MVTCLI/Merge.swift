@@ -27,6 +27,31 @@ extension CLI {
             help: "Output file format (optional, one of 'auto', 'geojson', 'mvt').")
         var outputFormat: OutputFormat = .auto
 
+        @Option(
+            name: [.customLong("oC", withSingleDash: true), .long],
+            help: "Output file compression level, between 0=none to 9=best. (default: 9 for mvt, none for geojson)")
+        var compressionLevel: Int?
+
+        @Option(
+            name: [.customLong("oBe", withSingleDash: true), .long],
+            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent). (default: 512 for mvt, none for geojson)")
+        var bufferExtents: Int?
+
+        @Option(
+            name: [.customLong("oBp", withSingleDash: true), .long],
+            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize). Overrides 'buffer-extents'.")
+        var bufferPixels: Int?
+
+        @Option(
+            name: [.customLong("oSe", withSingleDash: true), .long],
+            help: "Simplify output features using tile extents. (default: no simplification)")
+        var simplifyExtents: Int?
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify output features using meters. Overrides 'simplify-extents'.")
+        var simplifyMeters: Int?
+
         @Flag(
             name: .shortAndLong,
             help: "Force overwrite an existing 'output' file.")
@@ -160,14 +185,13 @@ extension CLI {
 
             if options.verbose {
                 if let outputUrl {
-                    print("Merging into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                    print("Merging into \(tile.origin == .none ? "new" : tile.origin.rawValue) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
                 }
                 else {
                     print("Dumping the merged tile to the console")
                 }
 
-                print("Property name: \(propertyName)")
-
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
@@ -187,8 +211,6 @@ extension CLI {
                 {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
-
-                print("Output format: \(outputFormatToUse)")
             }
 
             for path in other {
@@ -215,16 +237,14 @@ extension CLI {
                     x: x,
                     y: y,
                     z: z,
-                    layerWhitelist: layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
+                    layerWhitelist: layerAllowlist)
                 {
                     otherTile = other
                 }
                 else if let other = VectorTile(
                     contentsOfGeoJson: otherUrl,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
-                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
+                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist)
                 {
                     otherTile = other
                 }
@@ -245,11 +265,58 @@ extension CLI {
                 tile.merge(otherTile, ignoreTileCoordinateMismatch: true)
             }
 
+            // Export
+
+            var exportOptions = VectorTile.ExportOptions()
+
+            if let bufferPixels, bufferPixels > 0 {
+                exportOptions.bufferSize = .pixel(bufferPixels)
+            }
+            else if let bufferExtents, bufferExtents > 0 {
+                exportOptions.bufferSize = .extent(bufferExtents)
+            }
+            else if outputFormatToUse == .geojson {
+                exportOptions.bufferSize = .extent(0)
+            }
+            else {
+                exportOptions.bufferSize = .extent(512)
+            }
+
+            if outputUrl != nil { // don't gzip output to the console
+                if let compressionLevel {
+                    if compressionLevel > 0 {
+                        exportOptions.compression = .level(max(0, min(9, compressionLevel)))
+                    }
+                }
+                else if outputFormatToUse == .mvt {
+                    exportOptions.compression = .level(9)
+                }
+            }
+
+            if let simplifyMeters, simplifyMeters > 0 {
+                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
+            }
+            else if let simplifyExtents, simplifyExtents > 0 {
+                exportOptions.simplifyFeatures = .extent(simplifyExtents)
+            }
+
+            if options.verbose {
+                print("Output options:")
+                if outputFormatToUse == .geojson || outputUrl == nil {
+                    print("  - Pretty print: \(prettyPrint)")
+                }
+                print("  - File format: \(outputFormatToUse)")
+                print("  - Buffer size: \(exportOptions.bufferSize)")
+                print("  - Compression: \(exportOptions.compression)")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
+            }
+
             if let outputUrl {
                 if outputFormatToUse == .geojson {
                     if let data = tile.toGeoJson(
                         prettyPrinted: prettyPrint,
-                        layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                        layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                        options: exportOptions)
                     {
                         try data.write(to: outputUrl, options: .atomic)
                     }
@@ -257,15 +324,13 @@ extension CLI {
                 else {
                     tile.write(
                         to: outputUrl,
-                        options: .init(
-                            bufferSize: .extent(512),
-                            compression: .level(9),
-                            simplifyFeatures: .no))
+                        options: exportOptions)
                 }
             }
             else if let resultGeoJson = tile.toGeoJson(
                 prettyPrinted: prettyPrint,
-                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                options: exportOptions)
             {
                 print(resultGeoJson, terminator: "")
                 print()

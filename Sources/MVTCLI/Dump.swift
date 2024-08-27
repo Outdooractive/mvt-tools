@@ -22,12 +22,17 @@ extension CLI {
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
             help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs. Might speed up GeoJSON parsing considerably.")
-        var disableInputLayerProperty: Bool = false
+        var disableInputLayerProperty = false
 
         @Flag(
             name: [.customLong("Do", withSingleDash: true), .long],
             help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
-        var disableOutputLayerProperty: Bool = false
+        var disableOutputLayerProperty = false
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify output features using meters.")
+        var simplifyMeters: Int?
 
         @OptionGroup
         var xyzOptions: XYZOptions
@@ -77,10 +82,15 @@ extension CLI {
                 }
             }
 
+            var exportOptions = VectorTile.ExportOptions()
+            if let simplifyMeters, simplifyMeters > 0 {
+                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
+            }
+
             if options.verbose {
                 print("Dumping \(tile.origin) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
-                print("Property name: \(propertyName)")
 
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
@@ -96,15 +106,22 @@ extension CLI {
 
                 if tile.origin == .mvt
                     || !disableInputLayerProperty,
-                   let layerAllowlist
+                    let layerAllowlist
                 {
                     print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
+
+                print("Output options:")
+                print("  - Pretty print: true")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
+
+                print("GeoJSON:")
             }
 
             guard let data = tile.toGeoJson(
                 prettyPrinted: true,
-                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                options: exportOptions)
             else { throw CLIError("Failed to extract the tile data as GeoJSON") }
 
             print(String(data: data, encoding: .utf8) ?? "", terminator: "")

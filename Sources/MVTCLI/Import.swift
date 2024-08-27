@@ -16,6 +16,31 @@ extension CLI {
             completion: .file(extensions: ["pbf", "mvt"]))
         var outputFile: String
 
+        @Option(
+            name: [.customLong("oC", withSingleDash: true), .long],
+            help: "Output file compression level, between 0=none to 9=best.")
+        var compressionLevel = 9
+
+        @Option(
+            name: [.customLong("oBe", withSingleDash: true), .long],
+            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent). (default: 512)")
+        var bufferExtents: Int?
+
+        @Option(
+            name: [.customLong("oBp", withSingleDash: true), .long],
+            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize). Overrides 'buffer-extents'.")
+        var bufferPixels: Int?
+
+        @Option(
+            name: [.customLong("oSe", withSingleDash: true), .long],
+            help: "Simplify output features using tile extents. (default: no simplification)")
+        var simplifyExtents: Int?
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify output features using meters. Overrides 'simplify-extents'.")
+        var simplifyMeters: Int?
+
         @Flag(
             name: .shortAndLong,
             help: "Overwrite an existing 'output' file.")
@@ -44,7 +69,7 @@ extension CLI {
         @Flag(
             name: [.customLong("Di", withSingleDash: true), .long],
             help: "Don't parse the layer name (option 'property-name') from Feature properties in the input GeoJSONs, just use 'layer-name' or a default. Might speed up GeoJSON parsing considerably.")
-        var disableInputLayerProperty: Bool = false
+        var disableInputLayerProperty = false
 
         @OptionGroup
         var xyzOptions: XYZOptions
@@ -101,15 +126,21 @@ extension CLI {
             guard var tile else { throw CLIError("Failed to create a tile [\(x),\(y)]@\(z)") }
 
             if options.verbose {
-                print("Import into \(tile.origin) tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
-                print("Property name: \(propertyName)")
+                print("Import into \(tile.origin == .none ? "new" : tile.origin.rawValue) tile '\(outputUrl.lastPathComponent)' [\(x),\(y)]@\(z)")
 
+                print("Layer property name: \(propertyName)")
                 if disableInputLayerProperty {
                     print("  - disable input layer property")
                 }
 
                 if let layerName {
                     print("Fallback layer name: \(layerName)")
+                }
+
+                if !disableInputLayerProperty,
+                   let layerAllowlist
+                {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
                 }
             }
 
@@ -132,7 +163,7 @@ extension CLI {
                     throw CLIError("Failed to parse the GeoJSON at '\(path)'")
                 }
 
-                print("- \(otherUrl.lastPathComponent)")
+                print("- \(otherUrl.lastPathComponent) (geojson)")
 
                 if !disableInputLayerProperty,
                    let layerAllowlist
@@ -149,12 +180,48 @@ extension CLI {
                     layerProperty: disableInputLayerProperty ? nil : propertyName)
             }
 
+            // Export
+
+            let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels, bufferPixels > 0 {
+                .pixel(bufferPixels)
+            }
+            else if let bufferExtents, bufferExtents > 0 {
+                .extent(bufferExtents)
+            }
+            else {
+                .extent(512)
+            }
+
+            var compression: VectorTile.ExportOptions.CompressionOptions = .no
+            if compressionLevel > 0 {
+                compression = .level(max(0, min(9, compressionLevel)))
+            }
+
+            let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters, simplifyMeters > 0 {
+                .meters(Double(simplifyMeters))
+            }
+            else if let simplifyExtents, simplifyExtents > 0 {
+                .extent(simplifyExtents)
+            }
+            else {
+                .no
+            }
+
+            let exportOptions: VectorTile.ExportOptions = .init(
+                bufferSize: bufferSize,
+                compression: compression,
+                simplifyFeatures: simplifyFeatures)
+
+            if options.verbose {
+                print("Output options:")
+                print("  - Buffer size: \(exportOptions.bufferSize)")
+                print("  - Compression: \(exportOptions.compression)")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
+            }
+
             tile.write(
                 to: outputUrl,
-                options: .init(
-                    bufferSize: .extent(512),
-                    compression: .level(9),
-                    simplifyFeatures: .no))
+                options: exportOptions)
 
             if options.verbose {
                 print("Done.")

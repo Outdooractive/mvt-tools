@@ -15,6 +15,16 @@ extension CLI {
             completion: .file(extensions: ["geojson", "json"]))
         var outputFile: String
 
+        @Option(
+            name: [.customLong("oC", withSingleDash: true), .long],
+            help: "Output file compression level, between 0=none to 9=best. (default: none)")
+        var compressionLevel: Int?
+
+        @Option(
+            name: [.customLong("oSm", withSingleDash: true), .long],
+            help: "Simplify output features using meters.")
+        var simplifyMeters: Int?
+
         @Flag(
             name: .shortAndLong,
             help: "Overwrite existing files.")
@@ -31,9 +41,9 @@ extension CLI {
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
-            name: [.customLong("Do", withSingleDash: true), .long], 
+            name: [.customLong("Do", withSingleDash: true), .long],
             help: "Don't add the layer name (option 'property-name') as a Feature property in the output GeoJSONs.")
-        var disableOutputLayerProperty: Bool = false
+        var disableOutputLayerProperty = false
 
         @Flag(
             name: .shortAndLong,
@@ -57,19 +67,6 @@ extension CLI {
             let layerAllowlist = layer.nonempty
             let outputUrl = URL(fileURLWithPath: outputFile)
 
-            if options.verbose {
-                print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")
-                print("Property name: \(propertyName)")
-
-                if disableOutputLayerProperty {
-                    print("  - disable output layer property")
-                }
-
-                if let layerAllowlist {
-                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
-                }
-            }
-
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
                 if forceOverwrite {
                     if options.verbose {
@@ -90,9 +87,36 @@ extension CLI {
                 logger: options.verbose ? CLI.logger : nil)
             else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
+            var exportOptions = VectorTile.ExportOptions()
+            if let simplifyMeters, simplifyMeters > 0 {
+                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
+            }
+            if let compressionLevel, compressionLevel > 0 {
+                exportOptions.compression = .level(max(0, min(9, compressionLevel)))
+            }
+
+            if options.verbose {
+                print("Dumping tile '\(url.lastPathComponent)' [\(x),\(y)]@\(z) to '\(outputUrl.lastPathComponent)'")
+
+                print("Layer property name: \(propertyName)")
+                if disableOutputLayerProperty {
+                    print("  - disable output layer property")
+                }
+
+                if let layerAllowlist {
+                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                }
+
+                print("Output options:")
+                print("  - Pretty print: \(prettyPrint)")
+                print("  - Compression: \(exportOptions.compression)")
+                print("  - Simplification: \(exportOptions.simplifyFeatures)")
+            }
+
             guard let data = tile.toGeoJson(
                 prettyPrinted: prettyPrint,
-                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                options: exportOptions)
             else { throw CLIError("Failed to extract the tile data as GeoJSON") }
 
             try data.write(to: outputUrl, options: .atomic)
