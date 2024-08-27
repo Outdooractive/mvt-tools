@@ -34,22 +34,22 @@ extension CLI {
 
         @Option(
             name: [.customLong("oBe", withSingleDash: true), .long],
-            help: "Buffer around tiles with extent \(VectorTile.ExportOptions.extent) (only mvt). (default: 512)")
+            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent) (only mvt). (default: 512)")
         var bufferExtents: Int?
 
         @Option(
             name: [.customLong("oBp", withSingleDash: true), .long],
-            help: "Buffer around tiles with \(VectorTile.ExportOptions.tileSize) pixels (only mvt). Overrides 'buffer-extents'.")
+            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize) (only mvt). Overrides 'buffer-extents'.")
         var bufferPixels: Int?
 
         @Option(
             name: [.customLong("oSe", withSingleDash: true), .long],
-            help: "Simplify features using tile extents (only mvt).")
+            help: "Simplify output features using tile extents (only mvt). (default: no simplification)")
         var simplifyExtents: Int?
 
         @Option(
             name: [.customLong("oSm", withSingleDash: true), .long],
-            help: "Simplify features using meters. Overrides 'simplify-extents' (only mvt).")
+            help: "Simplify output features using meters. Overrides 'simplify-extents' (only mvt).")
         var simplifyMeters: Int?
 
         @Flag(
@@ -280,10 +280,10 @@ extension CLI {
                     }
                 }
                 else {
-                    let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels {
+                    let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels, bufferPixels > 0 {
                         .pixel(bufferPixels)
                     }
-                    else if let bufferExtents {
+                    else if let bufferExtents, bufferExtents > 0 {
                         .extent(bufferExtents)
                     }
                     else {
@@ -295,14 +295,21 @@ extension CLI {
                         compression = .level(max(0, min(9, compressionLevel)))
                     }
 
-                    let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters {
+                    let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters, simplifyMeters > 0 {
                         .meters(Double(simplifyMeters))
                     }
-                    else if let simplifyExtents {
+                    else if let simplifyExtents, simplifyExtents > 0 {
                         .extent(simplifyExtents)
                     }
                     else {
                         .no
+                    }
+
+                    if options.verbose {
+                        print("Output options:")
+                        print("  - Buffer size: \(bufferSize)")
+                        print("  - Compression: \(compression)")
+                        print("  - Simplification: \(simplifyFeatures)")
                     }
 
                     tile.write(
