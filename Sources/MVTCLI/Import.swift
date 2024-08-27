@@ -23,22 +23,22 @@ extension CLI {
 
         @Option(
             name: [.customLong("oBe", withSingleDash: true), .long],
-            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent) (only mvt). (default: 512)")
+            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent). (default: 512)")
         var bufferExtents: Int?
 
         @Option(
             name: [.customLong("oBp", withSingleDash: true), .long],
-            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize) (only mvt). Overrides 'buffer-extents'.")
+            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize). Overrides 'buffer-extents'.")
         var bufferPixels: Int?
 
         @Option(
             name: [.customLong("oSe", withSingleDash: true), .long],
-            help: "Simplify output features using tile extents (only mvt). (default: no simplification)")
+            help: "Simplify output features using tile extents. (default: no simplification)")
         var simplifyExtents: Int?
 
         @Option(
             name: [.customLong("oSm", withSingleDash: true), .long],
-            help: "Simplify output features using meters. Overrides 'simplify-extents' (only mvt).")
+            help: "Simplify output features using meters. Overrides 'simplify-extents'.")
         var simplifyMeters: Int?
 
         @Flag(
@@ -208,12 +208,14 @@ extension CLI {
                 print("  - Simplification: \(simplifyFeatures)")
             }
 
+            let exportOptions: VectorTile.ExportOptions = .init(
+                bufferSize: bufferSize,
+                compression: compression,
+                simplifyFeatures: simplifyFeatures)
+
             tile.write(
                 to: outputUrl,
-                options: .init(
-                    bufferSize: bufferSize,
-                    compression: compression,
-                    simplifyFeatures: simplifyFeatures))
+                options: exportOptions)
 
             if options.verbose {
                 print("Done.")

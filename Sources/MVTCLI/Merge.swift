@@ -29,27 +29,27 @@ extension CLI {
 
         @Option(
             name: [.customLong("oC", withSingleDash: true), .long],
-            help: "Output file compression level, between 0=none to 9=best (only mvt).")
-        var compressionLevel: Int = 9
+            help: "Output file compression level, between 0=none to 9=best. (default: 9 for mvt, none for geojson)")
+        var compressionLevel: Int?
 
         @Option(
             name: [.customLong("oBe", withSingleDash: true), .long],
-            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent) (only mvt). (default: 512)")
+            help: "Output buffer extents for tiles of size \(VectorTile.ExportOptions.extent). (default: 512 for mvt, none for geojson)")
         var bufferExtents: Int?
 
         @Option(
             name: [.customLong("oBp", withSingleDash: true), .long],
-            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize) (only mvt). Overrides 'buffer-extents'.")
+            help: "Output buffer pixels for tiles of size \(VectorTile.ExportOptions.tileSize). Overrides 'buffer-extents'.")
         var bufferPixels: Int?
 
         @Option(
             name: [.customLong("oSe", withSingleDash: true), .long],
-            help: "Simplify output features using tile extents (only mvt). (default: no simplification)")
+            help: "Simplify output features using tile extents. (default: no simplification)")
         var simplifyExtents: Int?
 
         @Option(
             name: [.customLong("oSm", withSingleDash: true), .long],
-            help: "Simplify output features using meters. Overrides 'simplify-extents' (only mvt).")
+            help: "Simplify output features using meters. Overrides 'simplify-extents'.")
         var simplifyMeters: Int?
 
         @Flag(
@@ -270,59 +270,75 @@ extension CLI {
                 tile.merge(otherTile, ignoreTileCoordinateMismatch: true)
             }
 
+            // Export
+
+            let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels, bufferPixels > 0 {
+                .pixel(bufferPixels)
+            }
+            else if let bufferExtents, bufferExtents > 0 {
+                .extent(bufferExtents)
+            }
+            else if outputFormatToUse == .geojson {
+                .extent(0)
+            }
+            else {
+                .extent(512)
+            }
+
+            var compression: VectorTile.ExportOptions.CompressionOptions = .no
+            if outputUrl != nil { // don't gzip output to the console
+                if let compressionLevel {
+                    if compressionLevel > 0 {
+                        compression = .level(max(0, min(9, compressionLevel)))
+                    }
+                }
+                else if outputFormatToUse == .mvt {
+                    compression = .level(9)
+                }
+            }
+
+            let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters, simplifyMeters > 0 {
+                .meters(Double(simplifyMeters))
+            }
+            else if let simplifyExtents, simplifyExtents > 0 {
+                .extent(simplifyExtents)
+            }
+            else {
+                .no
+            }
+
+            if options.verbose {
+                print("Output options:")
+                print("  - Buffer size: \(bufferSize)")
+                print("  - Compression: \(compression)")
+                print("  - Simplification: \(simplifyFeatures)")
+            }
+
+            let exportOptions: VectorTile.ExportOptions = .init(
+                bufferSize: bufferSize,
+                compression: compression,
+                simplifyFeatures: simplifyFeatures)
+
             if let outputUrl {
                 if outputFormatToUse == .geojson {
                     if let data = tile.toGeoJson(
                         prettyPrinted: prettyPrint,
-                        layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                        layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                        options: exportOptions)
                     {
                         try data.write(to: outputUrl, options: .atomic)
                     }
                 }
                 else {
-                    let bufferSize: VectorTile.ExportOptions.BufferSizeOptions = if let bufferPixels, bufferPixels > 0 {
-                        .pixel(bufferPixels)
-                    }
-                    else if let bufferExtents, bufferExtents > 0 {
-                        .extent(bufferExtents)
-                    }
-                    else {
-                        .extent(512)
-                    }
-
-                    var compression: VectorTile.ExportOptions.CompressionOptions = .no
-                    if compressionLevel > 0 {
-                        compression = .level(max(0, min(9, compressionLevel)))
-                    }
-
-                    let simplifyFeatures: VectorTile.ExportOptions.SimplifyFeaturesOptions = if let simplifyMeters, simplifyMeters > 0 {
-                        .meters(Double(simplifyMeters))
-                    }
-                    else if let simplifyExtents, simplifyExtents > 0 {
-                        .extent(simplifyExtents)
-                    }
-                    else {
-                        .no
-                    }
-
-                    if options.verbose {
-                        print("Output options:")
-                        print("  - Buffer size: \(bufferSize)")
-                        print("  - Compression: \(compression)")
-                        print("  - Simplification: \(simplifyFeatures)")
-                    }
-
                     tile.write(
                         to: outputUrl,
-                        options: .init(
-                            bufferSize: bufferSize,
-                            compression: compression,
-                            simplifyFeatures: simplifyFeatures))
+                        options: exportOptions)
                 }
             }
             else if let resultGeoJson = tile.toGeoJson(
                 prettyPrinted: prettyPrint,
-                layerProperty: disableOutputLayerProperty ? nil : propertyName)
+                layerProperty: disableOutputLayerProperty ? nil : propertyName,
+                options: exportOptions)
             {
                 print(resultGeoJson, terminator: "")
                 print()
