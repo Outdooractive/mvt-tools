@@ -69,7 +69,7 @@ enum MVTDecoder {
                 let boundingBoxes: [BoundingBox] = layerFeatures.compactMap({ $0.boundingBox })
 
                 var layerBoundingBox: BoundingBox?
-                if !boundingBoxes.isEmpty {
+                if boundingBoxes.isNotEmpty {
                     layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
                 }
 
@@ -187,7 +187,7 @@ enum MVTDecoder {
             ofType: featureType,
             projectionFunction: projectionFunction)
 
-        guard !multiCoordinates.isEmpty else { return nil }
+        guard multiCoordinates.isNotEmpty else { return nil }
 
         var feature: Feature?
 
@@ -228,14 +228,14 @@ enum MVTDecoder {
                 var currentRings: [Ring] = []
 
                 for ring in rings {
-                    if ring.isUnprojectedClockwise, !currentRings.isEmpty {
+                    if ring.isUnprojectedClockwise, currentRings.isNotEmpty {
                         polygons.append(ifNotNil: Polygon(currentRings.map({ $0.coordinates })))
                         currentRings = []
                     }
                     currentRings.append(ring)
                 }
 
-                if !currentRings.isEmpty {
+                if currentRings.isNotEmpty {
                     polygons.append(ifNotNil: Polygon(currentRings.map({ $0.coordinates })))
                 }
 
@@ -307,7 +307,7 @@ enum MVTDecoder {
                 y += MVTDecoder.zigZagDecode(Int(dy))
 
                 if commandId == MVTDecoder.commandIdMoveTo,
-                   !coordinates.isEmpty
+                   coordinates.isNotEmpty
                 {
                     result.append(coordinates)
                     coordinates = []
@@ -318,7 +318,7 @@ enum MVTDecoder {
             }
         }
 
-        if !coordinates.isEmpty {
+        if coordinates.isNotEmpty {
             result.append(coordinates)
         }
 

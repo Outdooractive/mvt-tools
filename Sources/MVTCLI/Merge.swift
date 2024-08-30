@@ -64,8 +64,13 @@ extension CLI {
 
         @Option(
             name: .shortAndLong,
-            help: "Merge only the specified layers (can be repeated).")
+            help: "Merge the specified layers (can be repeated).")
         var layer: [String] = []
+
+        @Option(
+            name: .shortAndLong,
+            help: "Drop the specified layer (can be repeated).")
+        var dropLayer: [String] = []
 
         @Option(
             name: [.customShort("P"), .long],
@@ -99,7 +104,8 @@ extension CLI {
         var other: [String] = []
 
         mutating func run() async throws {
-            let layerAllowlist = layer.nonempty
+            let layerAllowlist = layer.asSet.subtracting(dropLayer).asArray.nonempty
+            let layerDenylist = dropLayer.asSet.subtracting(layer).asArray.nonempty
 
             var outputUrl: URL?
             if let outputFile {
@@ -206,10 +212,14 @@ extension CLI {
                 }
 
                 if tile.origin == .mvt
-                    || !disableInputLayerProperty,
-                   let layerAllowlist
+                    || !disableInputLayerProperty
                 {
-                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                    if let layerAllowlist {
+                        print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
+                    }
+                    if let layerDenylist {
+                        print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
+                    }
                 }
             }
 
@@ -247,6 +257,12 @@ extension CLI {
                     layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist)
                 {
                     otherTile = other
+                }
+
+                if otherTile != nil, let layerDenylist {
+                    for droppedLayer in layerDenylist {
+                        otherTile?.removeLayer(droppedLayer)
+                    }
                 }
 
                 guard let otherTile else { throw CLIError("Failed to parse the tile at '\(path)'") }

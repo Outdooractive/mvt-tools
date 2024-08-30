@@ -24,7 +24,7 @@ extension VectorTile {
     public mutating func createIndex(sortOption: RTreeSortOption = .hilbert) {
         for layerName in layerNames {
             guard var layerContainer = layers[layerName],
-                  !layerContainer.features.isEmpty
+                  layerContainer.features.isNotEmpty
             else { continue }
 
             layerContainer.rTree = RTree(layerContainer.features, sortOption: sortOption)
@@ -217,7 +217,7 @@ extension VectorTile {
                 }
             }
 
-            if !currentResult.isEmpty {
+            if currentResult.isNotEmpty {
                 results.append(
                     QueryManyResult(
                         coordinate: coordinates[index],

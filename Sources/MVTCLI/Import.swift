@@ -53,8 +53,13 @@ extension CLI {
 
         @Option(
             name: .shortAndLong,
-            help: "Import only the specified layer (can be repeated). ")
+            help: "Import the specified layer (can be repeated). ")
         var layer: [String] = []
+
+        @Option(
+            name: .shortAndLong,
+            help: "Drop the specified layer (can be repeated).")
+        var dropLayer: [String] = []
 
         @Option(
             name: [.customShort("L"), .long],
@@ -84,7 +89,8 @@ extension CLI {
 
         mutating func run() async throws {
             let (x, y, z) = try xyzOptions.parseXYZ(fromPaths: [outputFile] + other)
-            let layerAllowlist = layer.nonempty
+            let layerAllowlist = layer.asSet.subtracting(dropLayer).asArray.nonempty
+            let layerDenylist = dropLayer.asSet.subtracting(layer).asArray.nonempty
 
             let outputUrl = URL(fileURLWithPath: outputFile)
             if (try? outputUrl.checkResourceIsReachable()) ?? false {
@@ -137,10 +143,13 @@ extension CLI {
                     print("Fallback layer name: \(layerName)")
                 }
 
-                if !disableInputLayerProperty,
-                   let layerAllowlist
-                {
-                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                if !disableInputLayerProperty {
+                    if let layerAllowlist {
+                        print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
+                    }
+                    if let layerDenylist {
+                        print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
+                    }
                 }
             }
 
@@ -165,12 +174,17 @@ extension CLI {
 
                 print("- \(otherUrl.lastPathComponent) (geojson)")
 
-                if !disableInputLayerProperty,
-                   let layerAllowlist
-                {
+                if !disableInputLayerProperty {
                     otherGeoJSON.filterFeatures { feature in
                         guard let layerName: String = feature.property(for: propertyName) else { return false }
-                        return layerAllowlist.contains(layerName)
+
+                        if let layerAllowlist, layerAllowlist.contains(layerName) {
+                            return true
+                        }
+                        if let layerDenylist, layerDenylist.contains(layerName) {
+                            return false
+                        }
+                        return true
                     }
                 }
 
