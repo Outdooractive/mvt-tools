@@ -13,8 +13,6 @@ public protocol OptionalProtocol {
 
 extension Optional: OptionalProtocol {
 
-    public var optional: Wrapped? {
-        self
-    }
+    public var optional: Wrapped? { self }
 
 }

@@ -16,6 +16,7 @@ extension VectorTile {
         public let polygonFeatures: Int
         public let unknownFeatures: Int
         public let propertyNames: [String: Int]
+        public let propertyValues: [String: [String: Int]]
         public let version: Int?
     }
 
@@ -31,23 +32,13 @@ extension VectorTile {
         return layerNames(from: data)
     }
 
-    // [{
-    //   name: 'world',
-    //   features: 1,
-    //   point_features: 0,
-    //   linestring_features: 0,
-    //   polygon_features: 1,
-    //   unknown_features: 0,
-    //   property_names: [:],
-    //   version: 2
-    // }]
-
     /// Information about the features in a tile, per layer.
     public func tileInfo() -> [LayerInfo]? {
         var result: [LayerInfo] = []
 
         for (layerName, layerContainer) in layers {
             var propertyNames: [String: Int] = [:]
+            var propertyValues: [String: [String: Int]] = [:]
 
             var pointFeatures = 0
             var lineStringFeatures = 0
@@ -62,8 +53,14 @@ extension VectorTile {
                 default: unknownFeatures += 1
                 }
 
-                for key in feature.properties.keys {
+                for (key, value) in feature.properties {
                     propertyNames[key, default: 0] += 1
+
+                    if let value = value as? CustomStringConvertible {
+                        var thisKeyValues = propertyValues[key] ?? [:]
+                        thisKeyValues[value.description, default: 0] += 1
+                        propertyValues[key] = thisKeyValues
+                    }
                 }
             }
 
@@ -75,6 +72,7 @@ extension VectorTile {
                 polygonFeatures: polygonFeatures,
                 unknownFeatures: unknownFeatures,
                 propertyNames: propertyNames,
+                propertyValues: propertyValues,
                 version: nil))
         }
 
@@ -88,8 +86,9 @@ extension VectorTile {
         var result: [LayerInfo] = []
 
         for layer in tile.layers {
-            let keys: [String] = layer.keys
+            let (keys, values) = MVTDecoder.keysAndValues(forLayer: layer)
             var propertyNames: [String: Int] = [:]
+            var propertyValues: [String: [String: Int]] = [:]
 
             var pointFeatures = 0
             var lineStringFeatures = 0
@@ -105,9 +104,17 @@ extension VectorTile {
                 }
 
                 for tags in feature.tags.pairs() {
-                    guard let key: String = keys.get(at: Int(tags.first)) else { continue }
+                    guard let key: String = keys.get(at: Int(tags.first)),
+                          let value: Sendable = values.get(at: Int(tags.second))
+                    else { continue }
 
                     propertyNames[key, default: 0] += 1
+
+                    if let value = value as? CustomStringConvertible {
+                        var thisKeyValues = propertyValues[key] ?? [:]
+                        thisKeyValues[value.description, default: 0] += 1
+                        propertyValues[key] = thisKeyValues
+                    }
                 }
             }
 
@@ -119,6 +126,7 @@ extension VectorTile {
                 polygonFeatures: polygonFeatures,
                 unknownFeatures: unknownFeatures,
                 propertyNames: propertyNames,
+                propertyValues: propertyValues,
                 version: Int(layer.version)))
         }
 

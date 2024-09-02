@@ -2,9 +2,7 @@ import Foundation
 
 extension Array {
 
-    var nonempty: Self? {
-        isEmpty ? nil : self
-    }
+    var nonempty: Self? { isEmpty ? nil : self }
 
     var isNotEmpty: Bool { !isEmpty }
 
@@ -25,13 +23,9 @@ extension Array {
 
 extension Array  where Element: Hashable {
 
-    var asSet: Set<Element> {
-        Set(self)
-    }
+    var asSet: Set<Element> { Set(self) }
 
-    var uniqued: Self {
-        Array(Set(self))
-    }
+    var uniqued: Self { Array(Set(self)) }
 
 }
 
