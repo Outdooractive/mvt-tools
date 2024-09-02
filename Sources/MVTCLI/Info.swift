@@ -14,9 +14,9 @@ extension CLI {
                         in the input file.
             - properties: Counts of all Feature properties for each layer in the
                           input file.
-            - property=<property>: Count the values for '<property>' across all features
-                                   (can be repeated). Note: This doesn't work for Arrays
-                                   and Dictionary values.
+            - property=<property>: Count the values for '<property>' across all layers
+                                   and features  (can be repeated). Note: This doesn't
+                                   work for Array and Dictionary values.
             """)
 
         @Option(
