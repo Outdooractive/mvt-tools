@@ -42,7 +42,7 @@ extension CLI {
 
         @Option(
             name: .shortAndLong,
-            help: "Drop the specified layer (can be repeated).")
+            help: "Do not search in the specified layer (can be repeated).")
         var dropLayer: [String] = []
 
         @Option(
