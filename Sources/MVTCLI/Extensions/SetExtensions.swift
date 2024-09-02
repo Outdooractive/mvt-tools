@@ -2,8 +2,8 @@ import Foundation
 
 extension Set {
 
-    var asArray: [Element] {
-        Array(self)
-    }
+    var isNotEmpty: Bool { !isEmpty }
+
+    var asArray: [Element] { Array(self) }
 
 }

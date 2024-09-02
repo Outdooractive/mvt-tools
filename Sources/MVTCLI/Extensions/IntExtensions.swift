@@ -2,8 +2,6 @@ import Foundation
 
 extension Int {
 
-    var toString: String {
-        String(self)
-    }
+    var toString: String { String(self) }
 
 }

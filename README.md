@@ -326,7 +326,6 @@ brew install protobuf swift-protobuf swiftlint
 
 - Documentation (!)
 - Tests
-- Decode V1 tiles
 - Locking (when updating/deleting features, indexing)
 - Query option: within/intersects
 

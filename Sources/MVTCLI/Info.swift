@@ -6,11 +6,6 @@ extension CLI {
 
     struct Info: AsyncParsableCommand {
 
-        enum InfoTables: String, CaseIterable {
-            case features
-            case properties
-        }
-
         static let configuration = CommandConfiguration(
             abstract: "Print information about the input file (MVT or GeoJSON)",
             discussion: """
@@ -19,13 +14,21 @@ extension CLI {
                         in the input file.
             - properties: Counts of all Feature properties for each layer in the
                           input file.
+            - property=<property>: Count the values for '<property>' across all layers
+                                   and features  (can be repeated). Note: This doesn't
+                                   work for Array and Dictionary values.
             """)
 
         @Option(
             name: .shortAndLong,
             help: "The tables to print, comma separated list of '\(InfoTables.allCases.map(\.rawValue).joined(separator: ","))'.",
-            transform: { $0.components(separatedBy: ",").compactMap(InfoTables.init(rawValue:)) })
+            transform: InfoTables.parse)
         var infoTables: [InfoTables] = [.features, .properties]
+
+        @Option(
+            name: .shortAndLong,
+            help: "Shortcut for -i property=<property> (can be repeated).")
+        var property: [String] = []
 
         @OptionGroup
         var options: Options
@@ -39,11 +42,15 @@ extension CLI {
             let url = try options.parseUrl(fromPath: path)
 
             guard var layers = VectorTile.tileInfo(at: url)
-                    ?? VectorTile(contentsOfGeoJson: url)?.tileInfo()
+                    ?? VectorTile(contentsOfGeoJson: url, layerProperty: nil)?.tileInfo()
             else { throw CLIError("Error retreiving the tile info for '\(path)'") }
 
             if options.verbose {
                 print("Info for tile '\(url.lastPathComponent)'")
+            }
+
+            if property.isNotEmpty {
+                infoTables = [.property(property.uniqued)]
             }
 
             layers.sort { first, second in
@@ -56,6 +63,8 @@ extension CLI {
                     dumpFeatures(layers)
                 case .properties:
                     dumpProperties(layers)
+                case let .property(names):
+                    dumpProperty(layers, names: names)
                 }
 
                 if index < infoTables.count - 1 {
@@ -105,6 +114,39 @@ extension CLI {
                 for layer in layers {
                     let propertyNames = layer.propertyNames
                     column.append((propertyNames[propertyName] ?? 0).toString)
+                }
+                table.append(column)
+            }
+
+            let result = dumpSideBySide(
+                table,
+                asTableWithHeaders: tableHeader)
+
+            print(result)
+        }
+
+        func dumpProperty(_ layers: [VectorTile.LayerInfo], names: [String]) {
+            let propertyValues: [String: [String: Int]] = layers.reduce(into: [:]) { result, layer in
+                for name in names {
+                    guard let values = layer.propertyValues[name] else { continue }
+
+                    var thisNameValues = result[name] ?? [:]
+                    thisNameValues.merge(values) { $0 + $1 }
+                    result[name] = thisNameValues
+                }
+            }
+            let propertyNames = propertyValues.flatMap({ $1.keys }).sorted()
+
+            var tableHeader = ["Name"]
+            tableHeader.append(contentsOf: propertyNames)
+
+            var table: [[String]] = []
+            table.append(names)
+
+            for propertyName in propertyNames {
+                var column: [String] = []
+                for name in names {
+                    column.append((propertyValues[name]?[propertyName] ?? 0).toString)
                 }
                 table.append(column)
             }
@@ -171,6 +213,57 @@ extension CLI {
             return result.joined(separator: "\n")
         }
 
+    }
+
+    // MARK: - InfoTables
+
+    enum InfoTables: CaseIterable {
+        case features
+        case properties
+        case property([String])
+
+        static var allCases: [InfoTables] {
+            [.features, .properties, .property([])]
+        }
+
+        @Sendable
+        static func parse(_ rawValue: String) -> [InfoTables] {
+            var result: [InfoTables] = []
+            var properties: Set<String> = []
+
+            let components = rawValue.components(separatedBy: ",")
+            for component in components {
+                if component == "features" {
+                    result.append(.features)
+                    continue
+                }
+                if component == "properties" {
+                    result.append(.properties)
+                    continue
+                }
+
+                let propertyParts = component.components(separatedBy: "=")
+                guard propertyParts.count == 2,
+                      propertyParts[0] == "property"
+                else { continue }
+
+                properties.insert(propertyParts[1])
+            }
+
+            if properties.isNotEmpty {
+                result.append(.property(properties.sorted()))
+            }
+
+            return result
+        }
+
+        var rawValue: String {
+            switch self {
+            case .features: "features"
+            case .properties: "properties"
+            case .property: "property"
+            }
+        }
     }
 
 }
