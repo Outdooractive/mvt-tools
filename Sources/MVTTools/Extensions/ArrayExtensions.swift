@@ -2,6 +2,8 @@ import Foundation
 
 extension Array {
 
+    var isNotEmpty: Bool { !isEmpty }
+
     /// Adds a new element at the end of the array if it's not *nil*.
     mutating func append(ifNotNil element: Element?) {
         guard let element else { return }
@@ -13,7 +15,7 @@ extension Array {
 
     /// Returns the array's elements pairwise. For arrays with uneven length, the last element will be skipped.
     func pairs() -> [(first: Element, second: Element)] {
-        guard !isEmpty else { return [] }
+        guard isNotEmpty else { return [] }
 
         return (0 ..< (count / 2)).compactMap { (index) in
             let i = index * 2

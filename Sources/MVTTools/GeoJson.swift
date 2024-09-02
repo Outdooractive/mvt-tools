@@ -62,7 +62,7 @@ extension VectorTile {
         var allFeatures: [Feature] = []
 
         for (layerName, layerContainer) in layers {
-            if !layerNames.isEmpty, !layerNames.contains(layerName) { continue }
+            if layerNames.isNotEmpty, !layerNames.contains(layerName) { continue }
 
             let layerFeatures: [Feature] = if let clipBoundingBox {
                 if simplifyDistance > 0.0 {

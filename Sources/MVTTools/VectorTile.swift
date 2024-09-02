@@ -88,7 +88,7 @@ public struct VectorTile: Sendable {
     var layers: [String: LayerContainer] = [:]
 
     var layersWithContent: [(String, LayerContainer)] {
-        layers.filter({ !$0.value.features.isEmpty })
+        layers.filter({ $0.value.features.isNotEmpty })
     }
 
     /// For logging errors
@@ -447,7 +447,7 @@ extension VectorTile {
 
         let boundingBoxes: [BoundingBox] = features.compactMap({ $0.boundingBox })
         var layerBoundingBox: BoundingBox?
-        if !boundingBoxes.isEmpty {
+        if boundingBoxes.isNotEmpty {
             layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
         }
 
@@ -491,7 +491,7 @@ extension VectorTile {
 
         let boundingBoxes: [BoundingBox] = allFeatures.compactMap({ $0.boundingBox })
         var layerBoundingBox: BoundingBox?
-        if !boundingBoxes.isEmpty {
+        if boundingBoxes.isNotEmpty {
             layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
         }
 
@@ -524,7 +524,7 @@ extension VectorTile {
 
         let boundingBoxes: [BoundingBox] = allFeatures.compactMap({ $0.boundingBox })
         var layerBoundingBox: BoundingBox?
-        if !boundingBoxes.isEmpty {
+        if boundingBoxes.isNotEmpty {
             layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
         }
 

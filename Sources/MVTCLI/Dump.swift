@@ -11,8 +11,13 @@ extension CLI {
 
         @Option(
             name: .shortAndLong,
-            help: "Dump only the specified layer (can be repeated).")
+            help: "Dump the specified layer (can be repeated).")
         var layer: [String] = []
+
+        @Option(
+            name: .shortAndLong,
+            help: "Drop the specified layer (can be repeated).")
+        var dropLayer: [String] = []
 
         @Option(
             name: [.customShort("P"), .long],
@@ -46,8 +51,9 @@ extension CLI {
         var path: String
 
         mutating func run() async throws {
-            let layerAllowlist = layer.nonempty
             let url = try options.parseUrl(fromPath: path)
+            let layerAllowlist = layer.asSet.subtracting(dropLayer).asArray.nonempty
+            let layerDenylist = dropLayer.asSet.subtracting(layer).asArray.nonempty
 
             var tile = VectorTile(
                 contentsOfGeoJson: url,
@@ -73,7 +79,7 @@ extension CLI {
                disableInputLayerProperty
             {
                 if let layerAllowlist,
-                   !layerAllowlist.isEmpty
+                   layerAllowlist.isNotEmpty
                 {
                     if options.verbose {
                         print("Warning: GeoJSON without layers, no filtering possible")
@@ -105,10 +111,14 @@ extension CLI {
                 }
 
                 if tile.origin == .mvt
-                    || !disableInputLayerProperty,
-                    let layerAllowlist
+                    || !disableInputLayerProperty
                 {
-                    print("Layers: '\(layerAllowlist.joined(separator: ","))'")
+                    if let layerAllowlist {
+                        print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
+                    }
+                    if let layerDenylist {
+                        print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
+                    }
                 }
 
                 print("Output options:")
@@ -118,7 +128,13 @@ extension CLI {
                 print("GeoJSON:")
             }
 
+            var layerNames: [String] = []
+            if let layerDenylist {
+                layerNames = tile.layerNames.asSet.subtracting(layerDenylist).asArray
+            }
+
             guard let data = tile.toGeoJson(
+                layerNames: layerNames,
                 prettyPrinted: true,
                 layerProperty: disableOutputLayerProperty ? nil : propertyName,
                 options: exportOptions)

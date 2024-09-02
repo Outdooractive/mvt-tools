@@ -6,6 +6,8 @@ extension Array {
         isEmpty ? nil : self
     }
 
+    var isNotEmpty: Bool { !isEmpty }
+
     func get(at index: Int) -> Element? {
         guard index >= -count,
               index < count
@@ -22,6 +24,10 @@ extension Array {
 }
 
 extension Array  where Element: Hashable {
+
+    var asSet: Set<Element> {
+        Set(self)
+    }
 
     var uniqued: Self {
         Array(Set(self))
