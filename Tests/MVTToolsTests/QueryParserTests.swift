@@ -13,6 +13,7 @@ final class QueryParserTests: XCTestCase {
             "b",
         ],
         "value": 1,
+        "string": "Some name"
     ]
 
     private func result(for pipeline: [QueryParser.Expression]) -> Bool {
@@ -40,6 +41,10 @@ final class QueryParserTests: XCTestCase {
         XCTAssertTrue(result(for: [.valueFor(["value"]), .literal(1), .comparison(.lessThanOrEqual)]))
         XCTAssertTrue(result(for: [.valueFor(["value"]), .literal(1.5), .comparison(.lessThanOrEqual)]))
         XCTAssertFalse(result(for: [.valueFor(["x"]), .literal(1), .comparison(.equals)]))
+        XCTAssertTrue(result(for: [.valueFor(["string"]), .literal("name$"), .comparison(.regex)]))
+        XCTAssertTrue(result(for: [.valueFor(["string"]), .literal("/[Ss]ome/"), .comparison(.regex)]))
+        XCTAssertFalse(result(for: [.valueFor(["string"]), .literal("^some"), .comparison(.regex)]))
+        XCTAssertTrue(result(for: [.valueFor(["string"]), .literal("/^some/i"), .comparison(.regex)]))
     }
 
     func testConditions() throws {

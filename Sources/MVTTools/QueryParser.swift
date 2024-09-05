@@ -11,6 +11,7 @@ public struct QueryParser {
             case greaterThanOrEqual
             case lessThan
             case lessThanOrEqual
+            case regex
         }
 
         // Conditions
@@ -69,6 +70,14 @@ public struct QueryParser {
                     else { return false }
 
                     stack.insert(compare(first: first, second: second, condition: condition), at: 0)
+
+                case .regex:
+                    guard stack.count >= 2,
+                          let regex = stack.removeFirst() as? String,
+                          let value = stack.removeFirst() as? String
+                    else { return false }
+
+                    stack.insert(value.matches(regex), at: 0)
                 }
 
             case let .condition(condition):
@@ -178,12 +187,21 @@ public struct QueryParser {
 
     private func compare<T: Comparable>(left: T, right: T, condition: QueryParser.Expression.Comparison) -> Bool {
         switch condition {
-        case .equals: left == right
-        case .notEquals: left != right
-        case .greaterThan: left > right
-        case .greaterThanOrEqual: left >= right
-        case .lessThan: left < right
-        case .lessThanOrEqual: left <= right
+        case .equals:
+            return left == right
+        case .notEquals:
+            return left != right
+        case .greaterThan:
+            return left > right
+        case .greaterThanOrEqual:
+            return left >= right
+        case .lessThan:
+            return left < right
+        case .lessThanOrEqual:
+            return left <= right
+        case .regex:
+            guard let value = left as? String, let regex = right as? String else { return false }
+            return value.matches(regex)
         }
     }
 
