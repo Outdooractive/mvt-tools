@@ -2,7 +2,9 @@ import Foundation
 
 extension String {
 
-    public func matches(_ regex: String) -> Bool {
+    var isNotEmpty: Bool { !isEmpty }
+
+    func matches(_ regex: String) -> Bool {
         var options: String.CompareOptions = .regularExpression
 
         var regex = regex

@@ -2,9 +2,9 @@ import Foundation
 
 public struct QueryParser {
 
-    public enum Expression {
+    public enum Expression: Equatable {
         // Comparisons
-        public enum Comparison {
+        public enum Comparison: Equatable {
             case equals
             case notEquals
             case greaterThan
@@ -15,23 +15,30 @@ public struct QueryParser {
         }
 
         // Conditions
-        public enum Condition {
+        public enum Condition: Equatable {
             case and
             case or
             case not
         }
 
+        // Key or index
+        public enum KeyOrIndex: Equatable {
+            case key(String)
+            case index(Int)
+        }
+
         case comparison(Comparison)
         case condition(Condition)
-        case literal(Sendable)
-        case valueAt(Int)
-        case valueFor([String])
+        case literal(AnyHashable)
+        case value([KeyOrIndex])
     }
 
     private let reader: Reader?
-    private var pipeline: [Expression]?
+    private(set) var pipeline: [Expression]?
 
-    public init(string: String) {
+    public init?(string: String) {
+        guard string.hasPrefix(".") else { return nil }
+
         self.reader = Reader(characters: Array(string.utf8))
         self.parseQuery()
     }
@@ -41,22 +48,53 @@ public struct QueryParser {
         self.pipeline = pipeline
     }
 
-    public func evaluate(on properties: [String: Sendable]) -> Bool {
+    // Works in a reverse polish notation
+    public func evaluate(on properties: [String: AnyHashable]) -> Bool {
         guard let pipeline else { return false }
 
-        var stack: [Sendable?] = []
+        var stack: [AnyHashable?] = []
 
         for expression in pipeline {
             switch expression {
-            case let .comparison(condition):
-                switch condition {
+            case let .literal(value):
+                stack.insert(value, at: 0)
+
+            case let .value(keys):
+                var current: AnyHashable? = properties
+
+                for keyOrIndex in keys {
+                    switch keyOrIndex {
+                    case let .key(key):
+                        if let object = current as? [String: AnyHashable] {
+                            current = object[key]
+                        }
+                        else {
+                            current = nil
+                            break
+                        }
+
+                    case let .index(index):
+                        if let array = current as? [AnyHashable] {
+                            current = array.get(at: index)
+                        }
+                        else {
+                            current = nil
+                            break
+                        }
+                    }
+                }
+
+                stack.insert(current, at: 0)
+
+            case let .comparison(comparison):
+                switch comparison {
                 case .equals, .notEquals:
                     guard stack.count >= 2,
-                          let second = stack.removeFirst() as? AnyHashable,
-                          let first = stack.removeFirst() as? AnyHashable
+                          let second = stack.removeFirst(),
+                          let first = stack.removeFirst()
                     else { return false }
 
-                    if condition == .equals {
+                    if comparison == .equals {
                         stack.insert(first == second, at: 0)
                     }
                     else {
@@ -69,7 +107,7 @@ public struct QueryParser {
                           let first = stack.removeFirst()
                     else { return false }
 
-                    stack.insert(compare(first: first, second: second, condition: condition), at: 0)
+                    stack.insert(compare(first: first, second: second, condition: comparison), at: 0)
 
                 case .regex:
                     guard stack.count >= 2,
@@ -105,31 +143,6 @@ public struct QueryParser {
 
                     stack.insert(!valueIsTrue, at: 0)
                 }
-
-            case let .literal(value):
-                stack.insert(value, at: 0)
-
-            case let .valueAt(index):
-                guard stack.isNotEmpty,
-                      let array = stack.removeFirst() as? [Sendable]
-                else { return false}
-                
-                stack.insert(array.get(at: index), at: 0)
-
-            case let .valueFor(keys):
-                var current: Sendable? = properties
-
-                for key in keys {
-                    if let object = current as? [String: Sendable] {
-                        current = object[key]
-                    }
-                    else {
-                        current = nil
-                        break
-                    }
-                }
-
-                stack.insert(current, at: 0)
             }
         }
 
@@ -147,34 +160,42 @@ public struct QueryParser {
 
     // This needs improvement - can this be done in a more generic way?
     // Only the most common cases covered for now
-    private func compare(first: Sendable, second: Sendable, condition: QueryParser.Expression.Comparison) -> Bool {
-        if let left = (first as? Int) ?? (first as? Int8)?.asInt ?? (first as? Int16)?.asInt ?? (first as? Int32)?.asInt ?? (first as? Int64)?.asInt {
-            if let right = (second as? Int) ?? (second as? Int8)?.asInt ?? (second as? Int16)?.asInt ?? (second as? Int32)?.asInt ?? (second as? Int64)?.asInt {
+    private func compare(
+        first: AnyHashable,
+        second: AnyHashable,
+        condition: QueryParser.Expression.Comparison)
+        -> Bool
+    {
+        if let left = first as? Int {
+            if let right = second as? Int {
                 return compare(left: left, right: right, condition: condition)
             }
-            else if let right = (second as? UInt)?.asInt ?? (second as? UInt8)?.asInt ?? (second as? UInt16)?.asInt ?? (second as? UInt32)?.asInt ?? (second as? UInt64)?.asInt {
-                return compare(left: left, right: right, condition: condition)
+            else if let right = second as? UInt {
+                return compare(left: UInt(left), right: right, condition: condition)
             }
-            else if let right = (second as? Double) ?? (second as? Float)?.asDouble {
+            else if let right = second as? Double {
                 return compare(left: Double(left), right: right, condition: condition)
             }
         }
-        else if let left = (first as? Double) ?? (first as? Float)?.asDouble {
-            if let right = (second as? Double) ?? (second as? Float)?.asDouble {
+        else if let left = first as? Double {
+            if let right = second as? Double {
                 return compare(left: left, right: right, condition: condition)
             }
-            else if let right = (second as? Int) ?? (second as? Int8)?.asInt ?? (second as? Int16)?.asInt ?? (second as? Int32)?.asInt ?? (second as? Int64)?.asInt {
+            else if let right = second as? Int {
+                return compare(left: left, right: Double(right), condition: condition)
+            }
+            else if let right = second as? UInt {
                 return compare(left: left, right: Double(right), condition: condition)
             }
         }
-        if let left = (first as? UInt) ?? (first as? UInt8)?.asUInt ?? (first as? UInt16)?.asUInt ?? (first as? UInt32)?.asUInt ?? (first as? UInt64)?.asUInt {
-            if let right = (second as? UInt) ?? (second as? UInt8)?.asUInt ?? (second as? UInt16)?.asUInt ?? (second as? UInt32)?.asUInt ?? (second as? UInt64)?.asUInt {
+        else if let left = first as? UInt {
+            if let right = second as? UInt {
                 return compare(left: left, right: right, condition: condition)
             }
-            else if let right = (second as? Int)?.asUInt ?? (second as? Int8)?.asUInt ?? (second as? Int16)?.asUInt ?? (second as? Int32)?.asUInt ?? (second as? Int64)?.asUInt {
-                return compare(left: left, right: right, condition: condition)
+            else if let right = second as? Int {
+                return compare(left: left, right: UInt(right), condition: condition)
             }
-            else if let right = (second as? Double) ?? (second as? Float)?.asDouble {
+            else if let right = second as? Double {
                 return compare(left: Double(left), right: right, condition: condition)
             }
         }
@@ -185,7 +206,12 @@ public struct QueryParser {
         return false
     }
 
-    private func compare<T: Comparable>(left: T, right: T, condition: QueryParser.Expression.Comparison) -> Bool {
+    private func compare<T: Comparable>(
+        left: T,
+        right: T,
+        condition: QueryParser.Expression.Comparison)
+        -> Bool
+    {
         switch condition {
         case .equals:
             return left == right
@@ -206,7 +232,93 @@ public struct QueryParser {
     }
 
     private mutating func parseQuery() {
+        // skipWhitespace returns the first non-whitespace character,
+        // which must be a '.'
+        guard var reader,
+              let firstCharacter = reader.skipWhitespace(),
+              firstCharacter == UInt8(ascii: ".")
+        else { return }
 
+        pipeline = []
+
+        var terms: [Expression] = []
+        var comparison: Expression?
+        var condition: Expression?
+        var isBeginningOfTerm = false
+
+        outer: while let char = reader.peek() {
+            // Check for:
+            // - and, or, not
+            // - ==, !=, >, >=, <, <=, =~
+            if isBeginningOfTerm {
+                let hasAnd = reader.peekString("and")
+                let hasOr = reader.peekString("or")
+                let hasNot = reader.peekString("not")
+
+                if hasAnd || hasOr || hasNot {
+                    pipeline?.append(contentsOf: terms)
+                    if let comparison {
+                        pipeline?.append(comparison)
+                    }
+                    if let condition {
+                        pipeline?.append(condition)
+                    }
+                    terms = []
+                    comparison = nil
+                    condition = nil
+                    isBeginningOfTerm = false
+
+                    if hasAnd {
+                        condition = .condition(.and)
+                        reader.moveIndex(by: 3)
+                    }
+                    else if hasOr {
+                        condition = .condition(.or)
+                        reader.moveIndex(by: 2)
+                    }
+                    else {
+                        pipeline?.append(.condition(.not))
+                        reader.moveIndex(by: 3)
+                    }
+
+                    continue
+                }
+
+                // Must be in the middle, otherwise it's just some literal value
+                if terms.count == 1,
+                   let term = reader.readComparisonExpression()
+                {
+                    isBeginningOfTerm = false
+                    comparison = term
+                    continue
+                }
+            }
+
+            switch char {
+            case UInt8(ascii: " "):
+                reader.skipWhitespace()
+                isBeginningOfTerm = true
+                continue
+
+            case UInt8(ascii: "."):
+                guard let term = reader.readValueExpression() else { return }
+                isBeginningOfTerm = false
+                terms.append(term)
+
+            default:
+                guard let term = reader.readLiteralExpression() else { return }
+                isBeginningOfTerm = false
+                terms.append(term)
+            }
+        }
+
+        pipeline?.append(contentsOf: terms)
+        if let comparison {
+            pipeline?.append(comparison)
+        }
+        if let condition {
+            pipeline?.append(condition)
+        }
     }
 
     // MARK: - Reader
@@ -232,14 +344,274 @@ public struct QueryParser {
             return characters[index]
         }
 
+        mutating func moveIndex(by offset: Int) {
+            index += offset
+        }
+
         func peek(withOffset offset: Int = 0) -> UInt8? {
             guard index + offset < characters.endIndex else { return nil }
 
             return characters[index + offset]
         }
 
-        mutating func moveIndex(by offset: Int) {
-            index += offset
+        func peekString(_ string: String) -> Bool {
+            guard index + string.count <= characters.endIndex else { return false }
+
+            for (offset, char) in string.utf8.enumerated() {
+                if characters[index + offset] != char { return false }
+            }
+
+            return true
+        }
+
+        @discardableResult
+        mutating func skipWhitespace() -> UInt8? {
+            var offset = 0
+
+            while let char = peek(withOffset: offset) {
+                if char == UInt8(ascii: " ") {
+                    offset += 1
+                    continue
+                }
+
+                moveIndex(by: offset)
+                return char
+            }
+
+            return nil
+        }
+
+        mutating func readValueExpression() -> Expression? {
+            guard readNextCharacter() == UInt8(ascii: ".") else { return nil }
+
+            var startIndex = index
+            var offset = 0
+            var parts: [QueryParser.Expression.KeyOrIndex] = []
+
+            outer: while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: " "):
+                    break outer
+
+                case UInt8(ascii: "."):
+                    if let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8),
+                       current.isNotEmpty
+                    {
+                        if let index = Int(current) {
+                            parts.append(.index(index))
+                        }
+                        else {
+                            parts.append(.key(current))
+                        }
+                    }
+
+                    moveIndex(by: offset + 1)
+
+                    startIndex = index
+                    offset = 0
+
+                case UInt8(ascii: "\""):
+                    guard let quotedString = readQuotedString(UInt8(ascii: "\"")) else { return nil }
+
+                    parts.append(.key(quotedString))
+                    startIndex = index
+                    offset = 0
+
+                case UInt8(ascii: "'"):
+                    guard let quotedString = readQuotedString(UInt8(ascii: "'")) else { return nil }
+
+                    parts.append(.key(quotedString))
+                    startIndex = index
+                    offset = 0
+
+                case UInt8(ascii: "["):
+                    guard let arrayIndex = readArrayIndex() else { return nil }
+
+                    parts.append(.index(arrayIndex))
+                    startIndex = index
+                    offset = 0
+
+                default:
+                    offset += 1
+                }
+            }
+
+            moveIndex(by: offset)
+
+            if let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8),
+               current.isNotEmpty
+            {
+                if let index = Int(current) {
+                    parts.append(.index(index))
+                }
+                else {
+                    parts.append(.key(current))
+                }
+            }
+
+            return .value(parts)
+        }
+
+        mutating func readLiteralExpression() -> Expression? {
+            var startIndex = index
+            var offset = 0
+            var result = ""
+
+            outer: while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: " "):
+                    break outer
+
+                case UInt8(ascii: "\""):
+                    guard let quotedString = readQuotedString(UInt8(ascii: "\"")) else { return nil }
+
+                    result += quotedString
+                    startIndex = index
+                    offset = 0
+
+                case UInt8(ascii: "'"):
+                    guard let quotedString = readQuotedString(UInt8(ascii: "'")) else { return nil }
+
+                    result += quotedString
+                    startIndex = index
+                    offset = 0
+
+                default:
+                    offset += 1
+                }
+            }
+
+            moveIndex(by: offset)
+
+            if let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) {
+                result += current
+            }
+
+            guard result.isNotEmpty else { return nil }
+
+            if let int = Int(result) {
+                return .literal(int)
+            }
+            else if let double = Double(result) {
+                return .literal(double)
+            }
+
+            return .literal(result)
+        }
+
+        mutating func readComparisonExpression() -> Expression? {
+            let firstChar = peek()
+
+            guard firstChar == UInt8(ascii: "=")
+                    || firstChar == UInt8(ascii: "!")
+                    || firstChar == UInt8(ascii: ">")
+                    || firstChar == UInt8(ascii: "<")
+            else { return nil }
+
+            if let secondChar = peek(withOffset: 1),
+               secondChar != UInt8(ascii: " ")
+            {
+                if secondChar == UInt8(ascii: "=") {
+                    if firstChar == UInt8(ascii: "=") {
+                        moveIndex(by: 2)
+                        return .comparison(.equals)
+                    }
+                    else if firstChar == UInt8(ascii: "!") {
+                        moveIndex(by: 2)
+                        return .comparison(.notEquals)
+                    }
+                    else if firstChar == UInt8(ascii: ">") {
+                        moveIndex(by: 2)
+                        return .comparison(.greaterThanOrEqual)
+                    }
+                    else if firstChar == UInt8(ascii: "<") {
+                        moveIndex(by: 2)
+                        return .comparison(.lessThanOrEqual)
+                    }
+                }
+                else if secondChar == UInt8(ascii: "~") {
+                    moveIndex(by: 2)
+                    return .comparison(.regex)
+                }
+            }
+            else {
+                if firstChar == UInt8(ascii: ">") {
+                    moveIndex(by: 1)
+                    return .comparison(.greaterThan)
+                }
+                else if firstChar == UInt8(ascii: "<") {
+                    moveIndex(by: 1)
+                    return .comparison(.lessThan)
+                }
+            }
+
+            return nil
+        }
+
+        mutating func readQuotedString(_ quotationCharacter: UInt8) -> String? {
+            guard readNextCharacter() == quotationCharacter else { return nil }
+
+            var startIndex = index
+            var offset = 0
+            var result = ""
+
+            while let char = peek(withOffset: offset) {
+                switch char {
+                case quotationCharacter:
+                    moveIndex(by: offset + 1)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) else { return nil }
+
+                    result += current
+                    return result
+
+                case UInt8(ascii: "\\"):
+                    moveIndex(by: offset)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8),
+                          readNextCharacter() == UInt8(ascii: "\\")
+                    else { return nil }
+
+                    result += current
+
+                    guard let escaped = readNextCharacter() else { return nil }
+
+                    result += String(cString: [escaped, 0])
+
+                    startIndex = index
+                    offset = 0
+
+                default:
+                    offset += 1
+                }
+            }
+
+            return nil
+        }
+
+        private mutating func readArrayIndex() -> Int? {
+            guard readNextCharacter() == UInt8(ascii: "[") else { return nil }
+
+            let startIndex = index
+            var offset = 0
+
+            while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: "]"):
+                    moveIndex(by: offset + 1)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) else {
+                        return nil
+                    }
+
+                    return Int(current)
+
+                default:
+                    offset += 1
+                }
+            }
+
+            return nil
         }
 
     }
