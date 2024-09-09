@@ -12,19 +12,19 @@
 
 # MVTTools
 
-MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
+MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a powerful tool for working with vector tiles and GeoJSONs from the command line.
 
 ## Features
 
-- Load and write Mapnik Vector Tiles from/to disk, data objects or URLs (also handles gzipped input)
-- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
-- Can dump a tile as a GeoJSON object
-- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
-- Fast search (supports indexing), either within a bounding box or with center and radius
-- Extract selected layers into a new tile
-- Merge two tiles into one
+- Load and write MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (also handles gzipped input).
+- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents).
+- Can dump a tile as a GeoJSON object.
+- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space).
+- Fast search (supports indexing), either within a bounding box or with center and radius.
+- Extract selected layers into a new tile.
+- Merge tiles into one.
 - Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files
+- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files.
 
 ## Requirements
 
@@ -359,19 +359,19 @@ Example:
 ```
 
 Values are retrieved by putting a `.` in front of the property name. The property name must be quoted
-if it starts with a number or contains any non-alphabetic characters. Elements in arrays can be
+if it is a number or contains any non-alphabetic characters. Elements in arrays can be
 accesses either by simply using the array index after the dot, or by wrapping it in brackets.
 
 ```
-.foo // true, property "foo" exists
-.foo.bar // true, property "foo" is a dictionary containing "bar"
+.foo       // true, property "foo" exists
+.foo.bar   // true, property "foo" is a dictionary containing "bar"
 ."foo"."bar" // true, same as above but quoted
-.foo.x // false, "foo" doesn't contain "x"
+.foo.x     // false, "foo" doesn't contain "x"
 ."foo.bar" // false, property "foo.bar" doesn't exist
-.foo.[0] // false, "foo" is not an array
-.some.[0] // true, "some" is an array and has an element at index "0"
-.some.0 // true, same as above but without brackets
-.some."0" // false, "0" is a string key but "some" is not a dictionary
+.foo.[0]   // false, "foo" is not an array
+.some.[0]  // true, "some" is an array and has an element at index "0"
+.some.0    // true, same as above but without brackets
+.some."0"  // false, "0" is a string key but "some" is not a dictionary
 ```
 
 Comparisons can be expressed like this:
@@ -390,16 +390,16 @@ Comparisons can be expressed like this:
 .string =~ "^Some"   // true
 ```
 
-Known conditions:
+Conditions (evaluated left to right):
 
 ```
 .foo.bar == 1 and .value == 1 // true
-.foo == 1 or .bar == 2 // false
-.foo == 1 or .value == 1 // true
-.foo not // true if foo does not exist
+.foo == 1 or .bar == 2        // false
+.foo == 1 or .value == 1      // true
+.foo not          // true if foo does not exist
 .foo and .bar not // true if foo and bar don't exist together
-.foo or .bar not // true if neither foo nor bar exist
-.foo.bar not // true if bar in dictionary foo doesn't exist
+.foo or .bar not  // true if neither foo nor bar exist
+.foo.bar not      // true if "bar" in dictionary "foo" doesn't exist
 ```
 
 ---
