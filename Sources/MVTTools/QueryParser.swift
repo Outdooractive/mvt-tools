@@ -32,6 +32,7 @@ public struct QueryParser {
         case condition(Condition)
         case literal(AnyHashable)
         case near(Coordinate3D, Double)
+        case searchValues(String)
         case value([KeyOrIndex])
     }
 
@@ -128,6 +129,16 @@ public struct QueryParser {
                 var result = false
                 if let featureCoordinate  {
                     result = coordinate.distance(from: featureCoordinate) <= tolerance
+                }
+                stack.insert(result, at: 0)
+
+            case let .searchValues(searchString):
+                var result = false
+                for value in properties.values.compactMap({ $0 as? String }) {
+                    if value.localizedCaseInsensitiveContains(searchString) {
+                        result = true
+                        break
+                    }
                 }
                 stack.insert(result, at: 0)
 
@@ -341,8 +352,21 @@ public struct QueryParser {
             pipeline?.append(condition)
         }
 
-        // Searching for a string doesn't work yet
-        return !(pipeline?.allSatisfy({ if case .literal = $0 { true } else { false } }) ?? true)
+        // Only literal values -> global search
+        if pipeline?.allSatisfy({ if case .literal = $0 { true } else { false } }) ?? false,
+           let searchString = pipeline?
+            .compactMap({ expression in
+                if case let .literal(value) = expression {
+                    return value as? String
+                }
+                return nil
+            })
+            .joined(separator: " ")
+        {
+            pipeline = [.searchValues(searchString)]
+        }
+
+        return true
     }
 
     // MARK: - Reader
