@@ -375,7 +375,6 @@ accesses either by simply using the array index after the dot, or by wrapping it
 ```
 
 Comparisons can be expressed like this:
-
 ```
 .value == "bar" // false
 .value == 1  // true
@@ -391,7 +390,6 @@ Comparisons can be expressed like this:
 ```
 
 Conditions (evaluated left to right):
-
 ```
 .foo.bar == 1 and .value == 1 // true
 .foo == 1 or .bar == 2        // false
@@ -400,6 +398,39 @@ Conditions (evaluated left to right):
 .foo and .bar not // true if foo and bar don't exist together
 .foo or .bar not  // true if neither foo nor bar exist
 .foo.bar not      // true if "bar" in dictionary "foo" doesn't exist
+```
+
+Other:
+```
+near(latitude,longitude,tolerance) // true if the feature is within "tolerance" around the coordinate
+```
+
+Some complete examples:
+```
+// Can use single quotes for strings
+mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == 'hospital'"
+
+// ... or double quotes, but they must be escaped
+mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == \"hospital\""
+
+// No need to quote the query if it doesn't conflict with your shell
+// Print all features that have an "area" property
+mvt query -p 14_8716_8015.vector.mvt .area
+// Features which don't have "area" and "name" properties
+mvt query -p 14_8716_8015.vector.mvt .area and .name not
+
+// Case insensitive regular expression
+vt query -p 14_8716_8015.vector.mvt ".name =~ /hopital/i"
+
+// Case sensitive regular expression
+mvt query -p 14_8716_8015.vector.mvt ".name =~ /Recherches?/"
+// Can also use quotes instead of slashes
+mvt query -p 14_8716_8015.vector.mvt ".name =~ 'Recherches?'"
+
+// Features around a coordinate
+mvt query -p 14_8716_8015.vector.mvt "near(3.87324,11.53731,1000)"
+// With other conditions
+mvt query -p 14_8716_8015.vector.mvt ".name =~ /^lac/i and near(3.87324,11.53731,10000)"
 ```
 
 ---

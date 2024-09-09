@@ -62,11 +62,11 @@ extension VectorTile {
                 if let queryParser,
                    let properties = feature.properties as? [String: AnyHashable]
                 {
-                    return queryParser.evaluate(on: properties)
+                    return queryParser.evaluate(on: properties, coordinate: feature.geometry.centroid?.coordinate)
                 }
                 else {
                     for value in feature.properties.values.compactMap({ $0 as? String }) {
-                        if value.contains(term) {
+                        if value.localizedCaseInsensitiveContains(term) {
                             return true
                         }
                     }

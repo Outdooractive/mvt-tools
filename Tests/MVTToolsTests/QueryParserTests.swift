@@ -1,3 +1,4 @@
+import GISTools
 import XCTest
 
 @testable import MVTTools
@@ -18,7 +19,9 @@ final class QueryParserTests: XCTestCase {
     ]
 
     private func result(for pipeline: [QueryParser.Expression]) -> Bool {
-        QueryParser(pipeline: pipeline).evaluate(on: QueryParserTests.properties as! [String: AnyHashable])
+        QueryParser(pipeline: pipeline).evaluate(
+            on: QueryParserTests.properties as! [String: AnyHashable],
+            coordinate: nil)
     }
 
     private func pipeline(for query: String) -> [QueryParser.Expression] {
@@ -32,6 +35,12 @@ final class QueryParserTests: XCTestCase {
         XCTAssertFalse(result(for: [.value([.key("foo.bar")])]))
         XCTAssertFalse(result(for: [.value([.key("foo"), .index(0)])]))
         XCTAssertTrue(result(for: [.value([.key("some"), .index(0)])]))
+    }
+
+    func testNear() throws {
+        XCTAssertEqual(pipeline(for: "near(10.0, 20.0, 1000)"), [
+            .near(Coordinate3D(latitude: 10.0, longitude: 20.0), 1000.0),
+        ])
     }
 
     func testComparisons() throws {
@@ -194,6 +203,11 @@ final class QueryParserTests: XCTestCase {
         XCTAssertEqual(pipeline(for: ".foo.bar not"), [
             .value([.key("foo"), .key("bar")]),
             .condition(.not),
+        ])
+        XCTAssertEqual(pipeline(for: ".foo == 'not'"), [
+            .value([.key("foo")]),
+            .literal("not"),
+            .comparison(.equals),
         ])
     }
 

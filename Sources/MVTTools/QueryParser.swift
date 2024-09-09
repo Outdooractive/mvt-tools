@@ -1,4 +1,5 @@
 import Foundation
+import GISTools
 
 public struct QueryParser {
 
@@ -30,6 +31,7 @@ public struct QueryParser {
         case comparison(Comparison)
         case condition(Condition)
         case literal(AnyHashable)
+        case near(Coordinate3D, Double)
         case value([KeyOrIndex])
     }
 
@@ -37,10 +39,11 @@ public struct QueryParser {
     private(set) var pipeline: [Expression]?
 
     public init?(string: String) {
-        guard string.hasPrefix(".") else { return nil }
-
         self.reader = Reader(characters: Array(string.utf8))
-        self.parseQuery()
+
+        if !self.parseQuery() {
+            return nil
+        }
     }
 
     public init(pipeline: [Expression]) {
@@ -49,43 +52,17 @@ public struct QueryParser {
     }
 
     // Works in a reverse polish notation
-    public func evaluate(on properties: [String: AnyHashable]) -> Bool {
+    public func evaluate(
+        on properties: [String: AnyHashable],
+        coordinate featureCoordinate: Coordinate3D?)
+        -> Bool
+    {
         guard let pipeline else { return false }
 
         var stack: [AnyHashable?] = []
 
         for expression in pipeline {
             switch expression {
-            case let .literal(value):
-                stack.insert(value, at: 0)
-
-            case let .value(keys):
-                var current: AnyHashable? = properties
-
-                for keyOrIndex in keys {
-                    switch keyOrIndex {
-                    case let .key(key):
-                        if let object = current as? [String: AnyHashable] {
-                            current = object[key]
-                        }
-                        else {
-                            current = nil
-                            break
-                        }
-
-                    case let .index(index):
-                        if let array = current as? [AnyHashable] {
-                            current = array.get(at: index)
-                        }
-                        else {
-                            current = nil
-                            break
-                        }
-                    }
-                }
-
-                stack.insert(current, at: 0)
-
             case let .comparison(comparison):
                 switch comparison {
                 case .equals, .notEquals:
@@ -143,6 +120,43 @@ public struct QueryParser {
 
                     stack.insert(!valueIsTrue, at: 0)
                 }
+
+            case let .literal(value):
+                stack.insert(value, at: 0)
+
+            case let .near(coordinate, tolerance):
+                var result = false
+                if let featureCoordinate  {
+                    result = coordinate.distance(from: featureCoordinate) <= tolerance
+                }
+                stack.insert(result, at: 0)
+
+            case let .value(keys):
+                var current: AnyHashable? = properties
+
+                for keyOrIndex in keys {
+                    switch keyOrIndex {
+                    case let .key(key):
+                        if let object = current as? [String: AnyHashable] {
+                            current = object[key]
+                        }
+                        else {
+                            current = nil
+                            break
+                        }
+
+                    case let .index(index):
+                        if let array = current as? [AnyHashable] {
+                            current = array.get(at: index)
+                        }
+                        else {
+                            current = nil
+                            break
+                        }
+                    }
+                }
+
+                stack.insert(current, at: 0)
             }
         }
 
@@ -231,29 +245,27 @@ public struct QueryParser {
         }
     }
 
-    private mutating func parseQuery() {
-        // skipWhitespace returns the first non-whitespace character,
-        // which must be a '.'
-        guard var reader,
-              let firstCharacter = reader.skipWhitespace(),
-              firstCharacter == UInt8(ascii: ".")
-        else { return }
+    private mutating func parseQuery() -> Bool {
+        guard var reader else { return false }
+
+        reader.skipWhitespace()
 
         pipeline = []
 
         var terms: [Expression] = []
         var comparison: Expression?
         var condition: Expression?
-        var isBeginningOfTerm = false
+        var isBeginningOfTerm = true
 
         outer: while let char = reader.peek() {
             // Check for:
             // - and, or, not
             // - ==, !=, >, >=, <, <=, =~
             if isBeginningOfTerm {
-                let hasAnd = reader.peekString("and", caseInsensitive: true)
-                let hasOr = reader.peekString("or", caseInsensitive: true)
-                let hasNot = reader.peekString("not", caseInsensitive: true)
+                let hasAnd = reader.peekWord("and")
+                let hasOr = reader.peekWord("or")
+                let hasNot = reader.peekWord("not")
+                let hasNear = reader.peekString("near(", caseInsensitive: true)
 
                 if hasAnd || hasOr || hasNot {
                     pipeline?.append(contentsOf: terms)
@@ -276,10 +288,19 @@ public struct QueryParser {
                         condition = .condition(.or)
                         reader.moveIndex(by: 2)
                     }
-                    else {
+                    else if hasNot {
                         pipeline?.append(.condition(.not))
                         reader.moveIndex(by: 3)
                     }
+
+                    continue
+                }
+
+                if hasNear {
+                    guard let term = reader.readNear() else { return false }
+
+                    isBeginningOfTerm = false
+                    terms.append(term)
 
                     continue
                 }
@@ -301,12 +322,12 @@ public struct QueryParser {
                 continue
 
             case UInt8(ascii: "."):
-                guard let term = reader.readValueExpression() else { return }
+                guard let term = reader.readValueExpression() else { return false }
                 isBeginningOfTerm = false
                 terms.append(term)
 
             default:
-                guard let term = reader.readLiteralExpression() else { return }
+                guard let term = reader.readLiteralExpression() else { return false }
                 isBeginningOfTerm = false
                 terms.append(term)
             }
@@ -319,6 +340,9 @@ public struct QueryParser {
         if let condition {
             pipeline?.append(condition)
         }
+
+        // Searching for a string doesn't work yet
+        return !(pipeline?.allSatisfy({ if case .literal = $0 { true } else { false } }) ?? true)
     }
 
     // MARK: - Reader
@@ -354,18 +378,34 @@ public struct QueryParser {
             return characters[index + offset]
         }
 
-        func peekString(_ string: String, caseInsensitive: Bool) -> Bool {
+        func peekWord(_ string: String) -> Bool {
+            peekString(string, caseInsensitive: true, checkWordBoundary: true)
+        }
+
+        func peekString(
+            _ string: String,
+            caseInsensitive: Bool = true,
+            checkWordBoundary: Bool = false)
+            -> Bool
+        {
             guard index + string.count <= characters.endIndex else { return false }
 
             let peekString = caseInsensitive ? string.lowercased() : string
 
             for (offset, char) in peekString.utf8.enumerated() {
                 var c = characters[index + offset]
+                // only ASCII A-Z
                 if caseInsensitive, c >= 65, c <= 90 {
                     c += 32
                 }
 
                 if c != char { return false }
+            }
+
+            if checkWordBoundary {
+                guard index + string.count == characters.endIndex
+                        || characters[index + string.count] == UInt8(ascii: " ")
+                else { return false }
             }
 
             return true
@@ -612,6 +652,40 @@ public struct QueryParser {
                     }
 
                     return Int(current)
+
+                default:
+                    offset += 1
+                }
+            }
+
+            return nil
+        }
+
+        mutating func readNear() -> Expression? {
+            guard peekString("near(", caseInsensitive: true) else { return nil }
+
+            moveIndex(by: 5)
+
+            let startIndex = index
+            var offset = 0
+
+            while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: ")"):
+                    moveIndex(by: offset + 1)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) else {
+                        return nil
+                    }
+
+                    let components = current.components(separatedBy: ",").compactMap({ $0.trimmed() })
+                    guard components.count == 3,
+                          let latitude = Double(components[0]),
+                          let longitude = Double(components[1]),
+                          let tolerance = Double(components[2])
+                    else { return nil }
+
+                    return .near(Coordinate3D(latitude: latitude, longitude: longitude), tolerance)
 
                 default:
                     offset += 1
