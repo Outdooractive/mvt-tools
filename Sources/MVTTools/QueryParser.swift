@@ -251,9 +251,9 @@ public struct QueryParser {
             // - and, or, not
             // - ==, !=, >, >=, <, <=, =~
             if isBeginningOfTerm {
-                let hasAnd = reader.peekString("and")
-                let hasOr = reader.peekString("or")
-                let hasNot = reader.peekString("not")
+                let hasAnd = reader.peekString("and", caseInsensitive: true)
+                let hasOr = reader.peekString("or", caseInsensitive: true)
+                let hasNot = reader.peekString("not", caseInsensitive: true)
 
                 if hasAnd || hasOr || hasNot {
                     pipeline?.append(contentsOf: terms)
@@ -354,11 +354,18 @@ public struct QueryParser {
             return characters[index + offset]
         }
 
-        func peekString(_ string: String) -> Bool {
+        func peekString(_ string: String, caseInsensitive: Bool) -> Bool {
             guard index + string.count <= characters.endIndex else { return false }
 
-            for (offset, char) in string.utf8.enumerated() {
-                if characters[index + offset] != char { return false }
+            let peekString = caseInsensitive ? string.lowercased() : string
+
+            for (offset, char) in peekString.utf8.enumerated() {
+                var c = characters[index + offset]
+                if caseInsensitive, c >= 65, c <= 90 {
+                    c += 32
+                }
+
+                if c != char { return false }
             }
 
             return true
