@@ -77,7 +77,7 @@ extension CLI {
         var path: String
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
-        var searchTerm: String
+        var searchTerms: [String]
 
         mutating func run() async throws {
             if let outputFile {
@@ -93,6 +93,8 @@ extension CLI {
                     }
                 }
             }
+
+            let searchTerm = searchTerms.joined(separator: " ")
 
             var coordinate: Coordinate3D?
             var tolerance: CLLocationDistance?

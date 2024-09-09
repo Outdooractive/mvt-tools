@@ -51,15 +51,24 @@ extension VectorTile {
             layerNames
         }
 
+        let queryParser = QueryParser(string: term)
+
         var result: [QueryResult] = []
 
         for layerName in queryLayerNames {
             guard let layerFeatureContainer = layers[layerName] else { continue }
 
             let resultFeatures: [Feature] = layerFeatureContainer.features.filter({ feature in
-                for value in feature.properties.values.compactMap({ $0 as? String }) {
-                    if value.contains(term) {
-                        return true
+                if let queryParser,
+                   let properties = feature.properties as? [String: AnyHashable]
+                {
+                    return queryParser.evaluate(on: properties)
+                }
+                else {
+                    for value in feature.properties.values.compactMap({ $0 as? String }) {
+                        if value.contains(term) {
+                            return true
+                        }
                     }
                 }
 

@@ -12,19 +12,19 @@
 
 # MVTTools
 
-MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a tool for working with vector tiles from the command line.
+MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a powerful tool for working with vector tiles and GeoJSONs from the command line.
 
 ## Features
 
-- Load and write Mapnik Vector Tiles from/to disk, data objects or URLs (also handles gzipped input)
-- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents)
-- Can dump a tile as a GeoJSON object
-- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space)
-- Fast search (supports indexing), either within a bounding box or with center and radius
-- Extract selected layers into a new tile
-- Merge two tiles into one
+- Load and write MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (also handles gzipped input).
+- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents).
+- Can dump a tile as a GeoJSON object.
+- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space).
+- Fast search (supports indexing), either within a bounding box or with center and radius.
+- Extract selected layers into a new tile.
+- Merge tiles into one.
 - Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files
+- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files.
 
 ## Requirements
 
@@ -176,7 +176,10 @@ mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 ---
 ### mvt info
 
-Print some informations about vector tiles/GeoJSONs.
+Print some informations about vector tiles/GeoJSONs:
+- The number of features, points, linestrings, polygons per layer
+- The properties for each layer
+- Counts of specific properties
 
 **Example 1**: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
 
@@ -208,9 +211,36 @@ mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
  geolines  | 4        | 0      | 4           | 0        | 0       | 2
 ```
 ---
+
+**Example 3**: Print information about the properties for each layer.
+
+```bash
+mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+
+ Name               | area | class | group | layer | ldir | len | name | name_de | name_en | name_es | name_fr | network | oneway | ref | reflen | scalerank | type
+--------------------+------+-------+-------+-------+------+-----+------+---------+---------+---------+---------+---------+--------+-----+--------+-----------+-----
+ airport_label      | 0    | 0     | 0     | 0     | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 0      | 0   | 0      | 0         | 0
+ area_label         | 55   | 55    | 0     | 0     | 0    | 0   | 55   | 55      | 55      | 55      | 55      | 0       | 0      | 0   | 0      | 0         | 0
+ barrier_line       | 0    | 4219  | 0     | 0     | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 0      | 0   | 0      | 0         | 0
+ bridge             | 0    | 14    | 0     | 13    | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 14     | 0   | 0      | 0         | 0
+...
+```
+---
+
+**Example 4**: Print information about specific properties.
+
+```bash
+mvt info -p class Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
+
+ Name  | cemetery | driveway | fence | hedge | hospital | industrial | main | major_rail | mini_roundabout | minor_rail | motorway | park | parking | path | pitch | rail | school | service | street | street_limited | wetland | wood
+-------+----------+----------+-------+-------+----------+------------+------+------------+-----------------+------------+----------+------+---------+------+-------+------+--------+---------+--------+----------------+---------+-----
+ class | 4        | 36       | 3895  | 324   | 9        | 2          | 113  | 21         | 1               | 13         | 30       | 95   | 59      | 46   | 21    | 2    | 59     | 187     | 376    | 4              | 4       | 12
+```
+
+---
 ### mvt query
 
-Query a vector tile or GeoJSON file with a search term.
+**Example 1**: Query a vector tile or GeoJSON file with a search term.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
@@ -246,7 +276,7 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
 }
 ```
 ---
-Query a tile with `latitude,longitude,radius`.
+**Example 2**: Query a tile with `latitude,longitude,radius`.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,1000"
@@ -276,6 +306,102 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,10
     ...
 }
 ```
+---
+**Example 3**: Query a tile for properties.
+
+```bash
+mvt query -p Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt ".area > 40000 and .class == 'hospital'"
+
+{
+  "features" : [
+    {
+      "bbox" : [
+        11.510410308837876,
+        3.871287406415171,
+        11.510410308837876,
+        3.871287406415171
+      ],
+      "geometry" : {
+        "coordinates" : [
+          11.510410308837876,
+          3.871287406415171
+        ],
+        "type" : "Point"
+      },
+      "id" : 2,
+      "properties" : {
+        "area" : 48364.9375,
+        "class" : "hospital",
+        "name" : "Hopital Central de Yaoundé",
+        "name_de" : "Hopital Central de Yaoundé",
+        "name_en" : "Hopital Central de Yaoundé",
+        "name_es" : "Hopital Central de Yaoundé",
+        "name_fr" : "Hopital Central de Yaoundé",
+        "vt_layer" : "area_label"
+      },
+      "type" : "Feature"
+    }
+  ],
+  "type" : "FeatureCollection"
+}
+```
+
+The query language is loosely modeled after the jq query language. Here is an overview.
+
+Example:
+```
+"properties": {
+  "foo": {"bar": 1},
+  "some": ["a", "b"],
+  "value": 1,
+  "string": "Some name"
+}
+```
+
+Values are retrieved by putting a `.` in front of the property name. The property name must be quoted
+if it is a number or contains any non-alphabetic characters. Elements in arrays can be
+accesses either by simply using the array index after the dot, or by wrapping it in brackets.
+
+```
+.foo       // true, property "foo" exists
+.foo.bar   // true, property "foo" is a dictionary containing "bar"
+."foo"."bar" // true, same as above but quoted
+.foo.x     // false, "foo" doesn't contain "x"
+."foo.bar" // false, property "foo.bar" doesn't exist
+.foo.[0]   // false, "foo" is not an array
+.some.[0]  // true, "some" is an array and has an element at index "0"
+.some.0    // true, same as above but without brackets
+.some."0"  // false, "0" is a string key but "some" is not a dictionary
+```
+
+Comparisons can be expressed like this:
+
+```
+.value == "bar" // false
+.value == 1  // true
+.value != 1  // false
+.value > 1   // false
+.value >= 1  // true
+.value < 1   // false
+.value <= 1  // true
+.string =~ /[Ss]ome/ // true
+.string =~ /some/    // false
+.string =~ /some/i   // true, case insensitive
+.string =~ "^Some"   // true
+```
+
+Conditions (evaluated left to right):
+
+```
+.foo.bar == 1 and .value == 1 // true
+.foo == 1 or .bar == 2        // false
+.foo == 1 or .value == 1      // true
+.foo not          // true if foo does not exist
+.foo and .bar not // true if foo and bar don't exist together
+.foo or .bar not  // true if neither foo nor bar exist
+.foo.bar not      // true if "bar" in dictionary "foo" doesn't exist
+```
+
 ---
 ### mvt merge
 
