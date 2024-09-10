@@ -4,6 +4,16 @@ extension String {
 
     var isNotEmpty: Bool { !isEmpty }
 
+    /// Trims white space and new line characters
+    public mutating func trim() {
+        self = self.trimmed()
+    }
+
+    /// Trims white space and new line characters, returns a new string
+    public func trimmed() -> String {
+        self.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func matches(_ regex: String) -> Bool {
         var options: String.CompareOptions = .regularExpression
 

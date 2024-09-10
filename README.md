@@ -307,7 +307,7 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,10
 }
 ```
 ---
-**Example 3**: Query a tile for properties.
+**Example 3**: Query Feature properties in a tile.
 
 ```bash
 mvt query -p Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt ".area > 40000 and .class == 'hospital'"
@@ -346,9 +346,10 @@ mvt query -p Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt ".area > 40000
 }
 ```
 
-The query language is loosely modeled after the jq query language. Here is an overview.
+The query language is very loosely modeled after the jq query language.
+The output will contain all features where the query returns `true`.
 
-Example:
+Here is an overview. Example:
 ```
 "properties": {
   "foo": {"bar": 1},
@@ -359,13 +360,14 @@ Example:
 ```
 
 Values are retrieved by putting a `.` in front of the property name. The property name must be quoted
-if it is a number or contains any non-alphabetic characters. Elements in arrays can be
-accesses either by simply using the array index after the dot, or by wrapping it in brackets.
+if it is a number or contains non-alphabetic characters. Elements in arrays can be
+accessed either by simply using the array index after the dot, or by wrapping it in brackets.
 
 ```
 .foo       // true, property "foo" exists
 .foo.bar   // true, property "foo" is a dictionary containing "bar"
 ."foo"."bar" // true, same as above but quoted
+.'foo'.'bar' // true, same as above but quoted
 .foo.x     // false, "foo" doesn't contain "x"
 ."foo.bar" // false, property "foo.bar" doesn't exist
 .foo.[0]   // false, "foo" is not an array
@@ -375,7 +377,6 @@ accesses either by simply using the array index after the dot, or by wrapping it
 ```
 
 Comparisons can be expressed like this:
-
 ```
 .value == "bar" // false
 .value == 1  // true
@@ -386,20 +387,52 @@ Comparisons can be expressed like this:
 .value <= 1  // true
 .string =~ /[Ss]ome/ // true
 .string =~ /some/    // false
-.string =~ /some/i   // true, case insensitive
-.string =~ "^Some"   // true
+.string =~ /some/i   // true, case insensitive regexp
+.string =~ "^Some"   // true, can also use quotes
 ```
 
 Conditions (evaluated left to right):
-
 ```
 .foo.bar == 1 and .value == 1 // true
 .foo == 1 or .bar == 2        // false
 .foo == 1 or .value == 1      // true
-.foo not          // true if foo does not exist
-.foo and .bar not // true if foo and bar don't exist together
-.foo or .bar not  // true if neither foo nor bar exist
-.foo.bar not      // true if "bar" in dictionary "foo" doesn't exist
+.foo not          // false, true if foo does not exist
+.foo and .bar not // true, foo and bar don't exist together
+.foo or .bar not  // false, true if neither foo nor bar exist
+.foo.bar not      // false, true if "bar" in dictionary "foo" doesn't exist
+```
+
+Other:
+```
+near(latitude,longitude,tolerance) // true if the feature is within "tolerance" around the coordinate
+```
+
+Some complete examples:
+```
+// Can use single quotes for strings
+mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == 'hospital'"
+
+// ... or double quotes, but they must be escaped
+mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == \"hospital\""
+
+// No need to quote the query if it doesn't conflict with your shell
+// Print all features that have an "area" property
+mvt query -p 14_8716_8015.vector.mvt .area
+// Features which don't have "area" and "name" properties
+mvt query -p 14_8716_8015.vector.mvt .area and .name not
+
+// Case insensitive regular expression
+vt query -p 14_8716_8015.vector.mvt ".name =~ /hopital/i"
+
+// Case sensitive regular expression
+mvt query -p 14_8716_8015.vector.mvt ".name =~ /Recherches?/"
+// Can also use quotes instead of slashes
+mvt query -p 14_8716_8015.vector.mvt ".name =~ 'Recherches?'"
+
+// Features around a coordinate
+mvt query -p 14_8716_8015.vector.mvt "near(3.87324,11.53731,1000)"
+// With other conditions
+mvt query -p 14_8716_8015.vector.mvt ".name =~ /^lac/i and near(3.87324,11.53731,10000)"
 ```
 
 ---
