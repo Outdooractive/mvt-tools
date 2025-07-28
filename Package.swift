@@ -1,19 +1,14 @@
-// swift-tools-version:5.10
+// swift-tools-version:6.0
 
 import PackageDescription
-
-let swiftSettings: [SwiftSetting] = [
-    .enableExperimentalFeature("StrictConcurrency"), // 5.10
-    .enableUpcomingFeature("StrictConcurrency"), // 6.0
-]
 
 let package = Package(
     name: "mvt-tools",
     platforms: [
-        .iOS(.v13),
+        .iOS(.v15),
         .macOS(.v13),
-        .tvOS(.v13),
-        .watchOS(.v6),
+        .tvOS(.v15),
+        .watchOS(.v8),
     ],
     products: [
         .executable(
@@ -24,11 +19,11 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.8.4"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.13.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", from: "5.2.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.1"),
-        .package(url: "https://github.com/apple/swift-protobuf", from: "1.26.1"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
+        .package(url: "https://github.com/apple/swift-protobuf", from: "1.30.0"),
     ],
     targets: [
         .executableTarget(
@@ -36,8 +31,7 @@ let package = Package(
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .target(name: "MVTTools"),
-            ],
-            swiftSettings: swiftSettings),
+            ]),
         .target(
             name: "MVTTools",
             dependencies: [
@@ -45,12 +39,10 @@ let package = Package(
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-            ],
-            swiftSettings: swiftSettings),
+            ]),
         .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
-            exclude: ["TestData"],
-            swiftSettings: swiftSettings),
+            exclude: ["TestData"]),
     ]
 )

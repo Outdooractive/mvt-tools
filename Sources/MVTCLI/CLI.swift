@@ -61,9 +61,8 @@ struct XYZOptions: ParsableArguments {
     /// Try to extract x, y and z tile coordinates from some file paths or URLs,
     /// if the were not given on the command line
     mutating func parseXYZ(
-        fromPaths paths: [String])
-        throws -> (x: Int, y: Int, z: Int)
-    {
+        fromPaths paths: [String]
+    ) throws -> (x: Int, y: Int, z: Int) {
         for path in paths {
             guard x == nil
                     || y == nil
@@ -122,9 +121,8 @@ struct Options: ParsableArguments {
 
     func parseUrl(
         fromPath path: String,
-        checkPathExistence: Bool = true)
-        throws -> URL
-    {
+        checkPathExistence: Bool = true
+    ) throws -> URL {
         let url: URL
         if path.hasPrefix("http") {
             guard let parsedUrl = URL(string: path) else {

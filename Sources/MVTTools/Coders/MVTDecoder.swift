@@ -16,7 +16,7 @@ enum MVTDecoder {
             data = (try? data.gunzipped()) ?? data
         }
 
-        return try? VectorTile_Tile(serializedData: data)
+        return try? VectorTile_Tile(serializedBytes: data)
     }
 
     static func layers(

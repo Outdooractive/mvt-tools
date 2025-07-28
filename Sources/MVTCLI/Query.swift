@@ -254,9 +254,8 @@ extension CLI {
             tolerance: CLLocationDistance,
             layerName: String? = nil,
             layerProperty: String?,
-            in tile: VectorTile)
-            -> FeatureCollection?
-        {
+            in tile: VectorTile
+        ) -> FeatureCollection? {
             let features: [Feature] = tile.query(at: coordinate, tolerance: tolerance, layerName: layerName)
                 .map({ (result) in
                     var feature = result.feature
@@ -272,9 +271,8 @@ extension CLI {
             term: String,
             layerName: String? = nil,
             layerProperty: String?,
-            in tile: VectorTile)
-            -> FeatureCollection?
-        {
+            in tile: VectorTile
+        ) -> FeatureCollection? {
             let features: [Feature] = tile.query(term: term, layerName: layerName)
                 .map({ (result) in
                     var feature = result.feature
