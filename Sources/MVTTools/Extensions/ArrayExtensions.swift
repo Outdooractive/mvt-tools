@@ -1,5 +1,7 @@
 import Foundation
 
+// MARK: Private
+
 extension Array {
 
     var isNotEmpty: Bool { !isEmpty }
@@ -43,10 +45,10 @@ extension Array {
 
     // MARK: -
 
-    public func divided(
+    func divided(
         byKey keyLookup: (Element) -> (String?),
-        onKey: (String, [Element]) -> Void)
-    {
+        onKey: (String, [Element]) -> Void
+    ) {
         var result: [String: IndexSet] = [:]
 
         for (index, element) in self.enumerated() {

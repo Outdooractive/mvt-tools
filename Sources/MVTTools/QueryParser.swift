@@ -55,9 +55,8 @@ public struct QueryParser {
     // Works in a reverse polish notation
     public func evaluate(
         on properties: [String: AnyHashable],
-        coordinate featureCoordinate: Coordinate3D?)
-        -> Bool
-    {
+        coordinate featureCoordinate: Coordinate3D?
+    ) -> Bool {
         guard let pipeline else { return false }
 
         var stack: [AnyHashable?] = []
@@ -188,9 +187,8 @@ public struct QueryParser {
     private func compare(
         first: AnyHashable,
         second: AnyHashable,
-        condition: QueryParser.Expression.Comparison)
-        -> Bool
-    {
+        condition: QueryParser.Expression.Comparison
+    ) -> Bool {
         if let left = first as? Int {
             if let right = second as? Int {
                 return compare(left: left, right: right, condition: condition)
@@ -234,9 +232,8 @@ public struct QueryParser {
     private func compare<T: Comparable>(
         left: T,
         right: T,
-        condition: QueryParser.Expression.Comparison)
-        -> Bool
-    {
+        condition: QueryParser.Expression.Comparison
+    ) -> Bool {
         switch condition {
         case .equals:
             return left == right
@@ -409,9 +406,8 @@ public struct QueryParser {
         func peekString(
             _ string: String,
             caseInsensitive: Bool = true,
-            checkWordBoundary: Bool = false)
-            -> Bool
-        {
+            checkWordBoundary: Bool = false
+        ) -> Bool {
             guard index + string.count <= characters.endIndex else { return false }
 
             let peekString = caseInsensitive ? string.lowercased() : string
@@ -647,7 +643,7 @@ public struct QueryParser {
 
                     guard let escaped = readNextCharacter() else { return nil }
 
-                    result += String(cString: [escaped, 0])
+                    result += String(decoding: [escaped], as: UTF8.self)
 
                     startIndex = index
                     offset = 0

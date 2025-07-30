@@ -41,9 +41,8 @@ extension VectorTile {
     public func query(
         term: String,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil)
-        -> [QueryResult]
-    {
+        featureFilter: ((Feature) -> Bool)? = nil
+    ) -> [QueryResult] {
         let queryLayerNames: [String] = if let layerName {
             [layerName]
         }
@@ -95,9 +94,8 @@ extension VectorTile {
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil)
-        -> [QueryResult]
-    {
+        featureFilter: ((Feature) -> Bool)? = nil
+    ) -> [QueryResult] {
         let queryBoundingBox = VectorTile.queryBoundingBox(
             at: coordinate,
             tolerance: tolerance,
@@ -113,9 +111,8 @@ extension VectorTile {
     public func query(
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
-        featureFilter: ((Feature) -> Bool)? = nil)
-        -> [QueryResult]
-    {
+        featureFilter: ((Feature) -> Bool)? = nil
+    ) -> [QueryResult] {
         let queryLayerNames: [String] = if let layerName {
             [layerName]
         }
@@ -165,9 +162,8 @@ extension VectorTile {
         tolerance: CLLocationDistance,
         layerName: String? = nil,
         featureFilter: ((Feature) -> Bool)? = nil,
-        includeDuplicates: Bool = true)
-        -> (features: [Feature.Identifier: Feature], results: [QueryManyResult])
-    {
+        includeDuplicates: Bool = true
+    ) -> (features: [Feature.Identifier: Feature], results: [QueryManyResult]) {
         let queryBoundingBoxes: [BoundingBox] = coordinates.map { coordinate in
             VectorTile.queryBoundingBox(
                 at: coordinate,
@@ -240,9 +236,8 @@ extension VectorTile {
     static func queryBoundingBox(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
-        projection: Projection)
-        -> BoundingBox
-    {
+        projection: Projection
+    ) -> BoundingBox {
         let tolerance = fabs(tolerance)
 
         switch projection {

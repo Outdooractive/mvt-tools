@@ -29,7 +29,8 @@ public struct VectorTile: Sendable {
 
     /// A global logger instance for logging errors.
     /// Set this before using `VectorTile`.
-    nonisolated(unsafe) public static var logger: Logger?
+    nonisolated(unsafe)
+    public static var logger: Logger?
 
     /// The tile's x coordinate
     public let x: Int
@@ -38,7 +39,7 @@ public struct VectorTile: Sendable {
     /// The tile's zoom level
     public let z: Int
 
-    /// The tile coordinates as a ``MapTile``.
+    /// The tile coordinates as a `MapTile`.
     public var mapTile: MapTile {
         MapTile(x: x, y: y, z: z)
     }
@@ -103,8 +104,8 @@ public struct VectorTile: Sendable {
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             return nil
@@ -146,8 +147,8 @@ public struct VectorTile: Sendable {
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         self.init(
             x: tile.x,
             y: tile.y,
@@ -166,8 +167,8 @@ public struct VectorTile: Sendable {
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             return nil
@@ -229,8 +230,8 @@ public struct VectorTile: Sendable {
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         self.init(
             data: data,
             x: tile.x,
@@ -251,8 +252,8 @@ public struct VectorTile: Sendable {
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         guard let data = try? Data(contentsOf: url) else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
             return nil
@@ -276,8 +277,8 @@ public struct VectorTile: Sendable {
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         self.init(
             contentsOf: url,
             x: tile.x,
@@ -295,8 +296,8 @@ public struct VectorTile: Sendable {
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         guard let featureCollection = FeatureCollection(jsonData: data),
               let fcBoundingBox = featureCollection.calculateBoundingBox()
         else { return nil }
@@ -350,8 +351,8 @@ public struct VectorTile: Sendable {
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerWhitelist: [String]? = nil,
-        logger: Logger? = nil)
-    {
+        logger: Logger? = nil
+    ) {
         guard let data = try? Data(contentsOf: url) else {
             (logger ?? VectorTile.logger)?.warning("Failed to import GeoJSON from \(url)")
             return nil
@@ -386,9 +387,8 @@ extension VectorTile {
     @discardableResult
     public func write(
         to url: URL,
-        options: ExportOptions? = nil)
-        -> Bool
-    {
+        options: ExportOptions? = nil
+    ) -> Bool {
         guard let data: Data = data(options: options) else { return false }
 
         do {
@@ -431,9 +431,8 @@ extension VectorTile {
     @discardableResult
     public mutating func setFeatures(
         _ features: [Feature],
-        for layerName: String)
-        -> Bool
-    {
+        for layerName: String
+    ) -> Bool {
         let features: [Feature] = features.map { (feature) in
             var feature = feature.projected(to: projection)
             feature.updateBoundingBox(onlyIfNecessary: true)
@@ -469,9 +468,8 @@ extension VectorTile {
     @discardableResult
     public mutating func appendFeatures(
         _ features: [Feature],
-        to layerName: String)
-        -> Bool
-    {
+        to layerName: String
+    ) -> Bool {
         var allFeatures: [Feature] = []
 
         if let layerContainer = layers[layerName] {
@@ -514,9 +512,8 @@ extension VectorTile {
     @discardableResult
     public mutating func removeFeatures(
         fromLayer layerName: String,
-        where shouldBeRemoved: (Feature) -> Bool)
-        -> Bool
-    {
+        where shouldBeRemoved: (Feature) -> Bool
+    ) -> Bool {
         guard let layerContainer = layers[layerName] else { return false }
 
         var allFeatures = layerContainer.features

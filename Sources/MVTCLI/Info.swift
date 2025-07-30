@@ -160,9 +160,8 @@ extension CLI {
 
         private func dumpSideBySide(
             _ strings: [[String]],
-            asTableWithHeaders headers: [String])
-            -> String
-        {
+            asTableWithHeaders headers: [String]
+        ) -> String {
             var result: [String] = []
 
             // Setup

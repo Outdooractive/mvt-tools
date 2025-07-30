@@ -1,5 +1,7 @@
 import Foundation
 
+// MARK: Private
+
 extension Array {
 
     var nonempty: Self? { isEmpty ? nil : self }
@@ -32,7 +34,7 @@ extension Array  where Element: Hashable {
 extension Array where Element: OptionalProtocol {
 
     /// Removes nil and empty elements.
-    public func trimmed() -> [Element.Wrapped] {
+    func trimmed() -> [Element.Wrapped] {
         self.compactMap({ $0.optional == nil ? nil : $0.optional })
     }
 

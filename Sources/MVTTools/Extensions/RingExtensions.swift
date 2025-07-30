@@ -3,7 +3,7 @@
 #endif
 import GISTools
 
-// MARK: - Ring
+// MARK: Private
 
 extension Ring {
 

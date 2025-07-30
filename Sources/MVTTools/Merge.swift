@@ -12,9 +12,8 @@ extension VectorTile {
     @discardableResult
     public mutating func merge(
         _ other: VectorTile,
-        ignoreTileCoordinateMismatch: Bool = false)
-        -> Bool
-    {
+        ignoreTileCoordinateMismatch: Bool = false
+    ) -> Bool {
         if !ignoreTileCoordinateMismatch {
             guard other.x == x,
                   other.y == y,

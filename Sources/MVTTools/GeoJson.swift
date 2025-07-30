@@ -15,9 +15,8 @@ extension VectorTile {
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
         layerProperty: String? = nil,
-        options: VectorTile.ExportOptions? = nil)
-        -> Data?
-    {
+        options: VectorTile.ExportOptions? = nil
+    ) -> Data? {
         var simplifyDistance: CLLocationDistance = 0.0
         var clipBoundingBox: BoundingBox?
 
@@ -124,9 +123,8 @@ extension VectorTile {
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
         layerProperty: String? = nil,
-        options: VectorTile.ExportOptions? = nil)
-        -> Bool
-    {
+        options: VectorTile.ExportOptions? = nil
+    ) -> Bool {
         guard let data: Data = toGeoJson(
             layerNames: layerNames,
             additionalFeatureProperties: additionalFeatureProperties,
@@ -152,8 +150,8 @@ extension VectorTile {
         geoJson: GeoJson,
         layerName: String? = nil,
         layerProperty: String? = nil,
-        layerAllowList: Set<String>? = nil)
-    {
+        layerAllowList: Set<String>? = nil
+    ) {
         guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"
@@ -186,8 +184,8 @@ extension VectorTile {
         geoJson: GeoJson,
         layerName: String? = nil,
         layerProperty: String? = nil,
-        layerAllowList: Set<String>? = nil)
-    {
+        layerAllowList: Set<String>? = nil
+    ) {
         guard let features = geoJson.flattened?.features else { return }
 
         let layerName = layerName ?? "Layer-\(layerNames.count)"

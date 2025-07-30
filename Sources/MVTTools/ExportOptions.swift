@@ -16,9 +16,9 @@ extension VectorTile {
         public enum BufferSizeOptions {
             /// No buffering.
             case no
-            /// Use the same dimension as ``ExportOptions.extent``.
+            /// Use the same dimension as `ExportOptions.extent`.
             case extent(Int)
-            /// Use pixels (see ``ExportOptions.tileSize``).
+            /// Use pixels (see `ExportOptions.tileSize`).
             case pixel(Int)
         }
 
@@ -36,7 +36,7 @@ extension VectorTile {
         public enum SimplifyFeaturesOptions {
             /// Don't simplify featutes.
             case no
-            /// Use the same dimension as ``ExportOptions.extent``.
+            /// Use the same dimension as `ExportOptions.extent`.
             case extent(Int)
             /// Use meters.
             case meters(CLLocationDistance)
@@ -62,8 +62,8 @@ extension VectorTile {
         public init(
             bufferSize: BufferSizeOptions = .no,
             compression: CompressionOptions = .no,
-            simplifyFeatures: SimplifyFeaturesOptions = .no)
-        {
+            simplifyFeatures: SimplifyFeaturesOptions = .no
+        ) {
             self.bufferSize = bufferSize
             self.compression = compression
             self.simplifyFeatures = simplifyFeatures

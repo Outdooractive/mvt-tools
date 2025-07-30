@@ -26,9 +26,8 @@ enum MVTDecoder {
         z: Int,
         projection: Projection = .epsg4326,
         layerWhitelist: Set<String>?,
-        logger: Logger?)
-        -> [String: VectorTile.LayerContainer]?
-    {
+        logger: Logger?
+    ) -> [String: VectorTile.LayerContainer]? {
         if mvtData.isGzipped {
             (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Input data is gzipped")
         }
@@ -87,9 +86,8 @@ enum MVTDecoder {
 
     static func parseVersion2(
         layer: VectorTile_Tile.Layer,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
-        -> [Feature]
-    {
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
+    ) -> [Feature] {
         let (keys, values) = keysAndValues(forLayer: layer)
 
         var layerFeatures: [Feature] = []
@@ -125,7 +123,9 @@ enum MVTDecoder {
         return layerFeatures
     }
 
-    static func keysAndValues(forLayer layer: VectorTile_Tile.Layer) -> (keys: [String], values: [Sendable]) {
+    static func keysAndValues(
+        forLayer layer: VectorTile_Tile.Layer
+    ) -> (keys: [String], values: [Sendable]) {
         let keys: [String] = layer.keys
 
         // Note: Some of the more obscure data types are converted
@@ -179,9 +179,8 @@ enum MVTDecoder {
     static func convertToLayerFeature(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
-        -> Feature?
-    {
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
+    ) -> Feature? {
         let multiCoordinates: [[Coordinate3D]] = multiCoordinatesFrom(
             geometryIntegers: geometryIntegers,
             ofType: featureType,
@@ -258,9 +257,8 @@ enum MVTDecoder {
     static func multiCoordinatesFrom(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D))
-        -> [[Coordinate3D]]
-    {
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
+    ) -> [[Coordinate3D]] {
         var x = 0
         var y = 0
 
@@ -333,9 +331,8 @@ enum MVTDecoder {
 
     static func passThroughFromTile(
         x: Int,
-        y: Int)
-        -> Coordinate3D
-    {
+        y: Int
+    ) -> Coordinate3D {
         Coordinate3D(x: Double(x), y: Double(y), projection: .noSRID)
     }
 
@@ -343,9 +340,8 @@ enum MVTDecoder {
         x: Int,
         y: Int,
         z: Int,
-        extent: Int)
-        -> ((Int, Int) -> Coordinate3D)
-    {
+        extent: Int
+    ) -> ((Int, Int) -> Coordinate3D) {
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
@@ -365,9 +361,8 @@ enum MVTDecoder {
         x: Int,
         y: Int,
         z: Int,
-        extent: Int)
-        -> ((Int, Int) -> Coordinate3D)
-    {
+        extent: Int
+    ) -> ((Int, Int) -> Coordinate3D) {
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 

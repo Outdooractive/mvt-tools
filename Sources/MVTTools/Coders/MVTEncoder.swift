@@ -16,9 +16,8 @@ enum MVTEncoder {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        options: VectorTile.ExportOptions)
-        -> Data?
-    {
+        options: VectorTile.ExportOptions
+    ) -> Data? {
         var tile = VectorTile_Tile()
 
         let extent = UInt32(VectorTile.ExportOptions.extent)
@@ -117,9 +116,8 @@ enum MVTEncoder {
     static func encodeVersion2(
         features: [Feature],
         extent: UInt32,
-        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
-        -> VectorTile_Tile.Layer
-    {
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+    ) -> VectorTile_Tile.Layer {
         var layer = VectorTile_Tile.Layer()
         layer.version = 2
         layer.extent = extent
@@ -213,9 +211,8 @@ enum MVTEncoder {
 
     static func vectorTileFeature(
         from feature: Feature,
-        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
-        -> VectorTile_Tile.Feature?
-    {
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+    ) -> VectorTile_Tile.Feature? {
         var geometryIntegers: [UInt32]?
         var geometryType: VectorTile_Tile.GeomType?
 
@@ -291,9 +288,8 @@ enum MVTEncoder {
     static func geometryIntegers(
         fromMultiCoordinates multiCoordinates: [[Coordinate3D]],
         ofType featureType: VectorTile_Tile.GeomType,
-        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)))
-        -> [UInt32]?
-    {
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+    ) -> [UInt32]? {
         var geometryIntegers: [UInt32] = []
 
         var dx = 0
@@ -400,9 +396,8 @@ enum MVTEncoder {
         x: Int,
         y: Int,
         z: Int,
-        extent: Int)
-        -> ((Coordinate3D) -> (x: Int, y: Int))
-    {
+        extent: Int
+    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 
@@ -421,9 +416,8 @@ enum MVTEncoder {
         x: Int,
         y: Int,
         z: Int,
-        extent: Int)
-        -> ((Coordinate3D) -> (x: Int, y: Int))
-    {
+        extent: Int
+    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
 

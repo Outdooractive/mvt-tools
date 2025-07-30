@@ -1,18 +1,16 @@
 import Foundation
 
-// MARK: OptionalProtocol
+// MARK: Private
 
-public protocol OptionalProtocol {
+protocol OptionalProtocol {
 
     associatedtype Wrapped
     var optional: Wrapped? { get }
 
 }
 
-// MARK: - Optional + OptionalProtocol
-
 extension Optional: OptionalProtocol {
 
-    public var optional: Wrapped? { self }
+    var optional: Wrapped? { self }
 
 }

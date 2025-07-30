@@ -1,16 +1,18 @@
 import Foundation
 
+// MARK: Private
+
 extension String {
 
     var isNotEmpty: Bool { !isEmpty }
 
     /// Trims white space and new line characters
-    public mutating func trim() {
+    mutating func trim() {
         self = self.trimmed()
     }
 
     /// Trims white space and new line characters, returns a new string
-    public func trimmed() -> String {
+    func trimmed() -> String {
         self.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

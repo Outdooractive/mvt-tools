@@ -1,13 +1,14 @@
 import Foundation
 
+// MARK: Private
+
 extension String {
 
     func extractingGroupsUsingPattern(
         _ pattern: String,
         caseInsensitive: Bool = false,
-        treatAsOneLine: Bool = false)
-        -> [String]
-    {
+        treatAsOneLine: Bool = false
+    ) -> [String] {
         var options = NSRegularExpression.Options()
 
         if caseInsensitive { options.insert(.caseInsensitive) }
