@@ -6,7 +6,7 @@ let package = Package(
     name: "mvt-tools",
     platforms: [
         .iOS(.v15),
-        .macOS(.v13),
+        .macOS(.v14),
         .tvOS(.v15),
         .watchOS(.v8),
     ],
@@ -19,9 +19,9 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.13.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.13.2"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", from: "5.2.0"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.1"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.30.0"),
     ],

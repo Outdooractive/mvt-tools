@@ -29,7 +29,8 @@ extension VectorTile {
         }
 
         for layerName in other.layerNames {
-            guard let features = other.features(for: layerName) else { continue }
+            let features = other.features(for: layerName)
+            guard features.isNotEmpty else { continue }
 
             appendFeatures(features, to: layerName)
         }

@@ -423,8 +423,8 @@ extension VectorTile {
 extension VectorTile {
 
     /// Returns an array of GeoJson Features from the given layer
-    public func features(for layerName: String) -> [Feature]? {
-        layers[layerName]?.features
+    public func features(for layerName: String) -> [Feature] {
+        layers[layerName]?.features ?? []
     }
 
     /// Replace or add a layer with `features`
