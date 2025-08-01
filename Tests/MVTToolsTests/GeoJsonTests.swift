@@ -1,45 +1,46 @@
-import XCTest
-
 import CommonCrypto
 import GISTools
 @testable import MVTTools
+import Testing
 
-final class GeoJsonTests: XCTestCase {
+struct GeoJsonTests {
 
-    func testToGeoJSON() async throws {
-        let tileName = "14_8716_8015.vector.mvt"
-        let mvt = TestData.dataFromFile(name: tileName)
-        XCTAssertFalse(mvt.isEmpty)
+    @Test
+    func toGeoJSON() async throws {
+        let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
+        #expect(mvt.isEmpty == false)
 
-        let tile = try XCTUnwrap(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
 
         // Export all layers
-        let allLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson(layerProperty: VectorTile.defaultLayerPropertyName))))
-        let allLayersLayerList = Set(try XCTUnwrap(allLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
-        XCTAssertEqual(Set(tile.layersWithContent.map(\.0)), allLayersLayerList)
+        let allLayersJSONData = try #require(tile.toGeoJson(layerProperty: VectorTile.defaultLayerPropertyName))
+        let allLayersFc = try #require(FeatureCollection(jsonData: allLayersJSONData))
+        let allLayersLayerList = Set(try #require(allLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
+        #expect(Set(tile.layersWithContent.map(\.0)) == allLayersLayerList)
 
         // Export some layers
         let someLayers = ["landuse", "waterway", "water"]
-        let someLayersFc = try XCTUnwrap(FeatureCollection(jsonData: try XCTUnwrap(tile.toGeoJson(layerNames: someLayers, additionalFeatureProperties: ["test": "test"], layerProperty: VectorTile.defaultLayerPropertyName))))
-        let someLayersLayerList = Set(try XCTUnwrap(someLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
-        XCTAssertEqual(Set(someLayers), someLayersLayerList)
-        XCTAssertTrue(someLayersFc.features.allSatisfy({ ($0.properties["test"] as? String) == "test" }))
+        let someLayersJSONData = try #require(tile.toGeoJson(layerNames: someLayers, additionalFeatureProperties: ["test": "test"], layerProperty: VectorTile.defaultLayerPropertyName))
+        let someLayersFc = try #require(FeatureCollection(jsonData: someLayersJSONData))
+        let someLayersLayerList = Set(try #require(someLayersFc.features.compactMap({ $0.properties[VectorTile.defaultLayerPropertyName] as? String })))
+        #expect(Set(someLayers) == someLayersLayerList)
+        #expect(someLayersFc.features.allSatisfy({ ($0.properties["test"] as? String) == "test" }))
     }
 
-    func testGeoJSONWithNull() throws {
+    @Test
+    func geoJSONWithNull() throws {
         let fc = FeatureCollection(Feature(Point(Coordinate3D(latitude: 47.56, longitude: 10.22, m: 1234))))
-        var tile = try XCTUnwrap(VectorTile(x: 8657, y: 5725, z: 14))
+        var tile = try #require(VectorTile(x: 8657, y: 5725, z: 14))
         tile.addGeoJson(geoJson: fc, layerName: "test")
 
-        let data = try XCTUnwrap(tile.data())
-
-        let decodedTile = try XCTUnwrap(VectorTile(data: data, x: 8657, y: 5725, z: 14))
-        let decodedFc = try XCTUnwrap(decodedTile.features(for: "test")?.first)
-        let decodedCoordinate = try XCTUnwrap(decodedFc.geometry.allCoordinates.first)
+        let data = try #require(tile.data())
+        let decodedTile = try #require(VectorTile(data: data, x: 8657, y: 5725, z: 14))
+        let decodedFc = try #require(decodedTile.features(for: "test").first)
+        let decodedCoordinate = try #require(decodedFc.geometry.allCoordinates.first)
 
         // Note: The MVT format doesn't encode altitude/m values, they will get lost
-        XCTAssertEqual(decodedCoordinate.latitude, 47.56, accuracy: 0.00001)
-        XCTAssertEqual(decodedCoordinate.longitude, 10.22, accuracy: 0.00001)
+        #expect(abs(decodedCoordinate.latitude - 47.56) < 0.00001)
+        #expect(abs(decodedCoordinate.longitude - 10.22) < 0.00001)
     }
 
 }

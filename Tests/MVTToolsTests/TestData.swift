@@ -1,44 +1,24 @@
 import Foundation
 import XCTest
 
-class TestData {
+struct TestData {
 
-    class func stringFromFile(name: String) -> String {
+    static func stringFromFile(name: String) throws -> String {
         let path = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("TestData")
             .appendingPathComponent(name)
 
-        do {
-            if try !(path.checkResourceIsReachable()) {
-                XCTAssert(false, "Fixture \(name) not found.")
-                return ""
-            }
-            return try String(contentsOf: path, encoding: .utf8)
-        }
-        catch {
-            XCTAssert(false, "Unable to decode fixture at \(path): \(error).")
-            return ""
-        }
+        return try String(contentsOf: path, encoding: .utf8)
     }
 
-    class func dataFromFile(name: String) -> Data {
+    static func dataFromFile(name: String) throws -> Data {
         let path = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .appendingPathComponent("TestData")
             .appendingPathComponent(name)
 
-        do {
-            if try !(path.checkResourceIsReachable()) {
-                XCTAssert(false, "Fixture \(name) not found.")
-                return Data()
-            }
-            return try Data(contentsOf: path)
-        }
-        catch {
-            XCTAssert(false, "Unable to decode fixture at \(path): \(error).")
-            return Data()
-        }
+        return try Data(contentsOf: path)
     }
 
 }
