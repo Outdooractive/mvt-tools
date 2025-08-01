@@ -171,7 +171,7 @@ extension CLI {
                     }
                 }
 
-                guard tile != nil else { throw CLIError("Failed to load the resource at '\(outputUrl.path())'") }
+                guard tile != nil else { throw CLIError("Failed to load the resource at '\(outputUrl.path)'") }
             }
 
             if tile == nil {
