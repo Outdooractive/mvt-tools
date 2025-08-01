@@ -28,13 +28,13 @@ MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together wit
 
 ## Requirements
 
-This package requires Swift 5.10 or higher (at least Xcode 14), and compiles on iOS (\>= iOS 13), macOS (\>= macOS 13), tvOS (\>= tvOS 13), watchOS (\>= watchOS 6) as well as Linux.
+This package requires Swift 6.0 or higher (at least Xcode 15), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 14), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
 
 ## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.8.0"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.10.1"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
