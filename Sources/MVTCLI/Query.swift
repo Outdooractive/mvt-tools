@@ -1,6 +1,6 @@
 import ArgumentParser
-#if !os(Linux)
-    import CoreLocation
+#if canImport(CoreLocation)
+import CoreLocation
 #endif
 import Foundation
 import GISTools
