@@ -55,7 +55,7 @@ public struct QueryParser {
     // Works in a reverse polish notation
     public func evaluate(
         on properties: [String: AnyHashable],
-        coordinate featureCoordinate: Coordinate3D?
+        coordinate featureCoordinate: Coordinate3D? = nil
     ) -> Bool {
         guard let pipeline else { return false }
 

@@ -34,7 +34,7 @@ This package requires Swift 6.0 or higher (at least Xcode 15), and compiles on i
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.10.1"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "1.10.2"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
