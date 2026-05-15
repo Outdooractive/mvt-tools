@@ -20,7 +20,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Outdooractive/gis-tools", from: "1.13.6"),
-        .package(url: "https://github.com/1024jp/GzipSwift.git", from: "5.2.0"),
+        .package(url: "https://github.com/1024jp/GzipSwift.git", from: "7.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.6.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.33.1"),

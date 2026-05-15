@@ -422,7 +422,7 @@ mvt query -p 14_8716_8015.vector.mvt .area
 mvt query -p 14_8716_8015.vector.mvt .area and .name not
 
 // Case insensitive regular expression
-vt query -p 14_8716_8015.vector.mvt ".name =~ /hopital/i"
+mvt query -p 14_8716_8015.vector.mvt ".name =~ /hopital/i"
 
 // Case sensitive regular expression
 mvt query -p 14_8716_8015.vector.mvt ".name =~ /Recherches?/"
