@@ -7,11 +7,20 @@ import GISTools
 /// The query string syntax supports:
 /// - Literal values (strings, numbers) for full-text search across all properties
 /// - Property path access via ``.``-separated keys and ``[index]`` subscripts
-/// - Comparisons: ``==``, ``!=``, ``>``, ``>=``, ``<``, ``<=``, ``=~`` (regex)
-/// - Boolean operators: ``and``, ``or``, ``not``
-/// - Spatial filter: ``near(lat,lon,tolerance)``
+/// - Comparisons: ``==``, ``!=``, ``>``, ``>=``, ``<``, ``<=``, ``=~`` (regex),
+///   ``=*`` (contains), ``=^`` (starts with), ``=$`` (ends with)
+/// - Set membership: ``.class in ["primary", "secondary"]``
+/// - Boolean operators: ``and``, ``or``, ``not`` (+ ``exists`` for truthy check)
+/// - Spatial filters: ``near(lat,lon,tolerance)``, ``within(minLon,minLat,maxLon,maxLat)``,
+///   ``intersects(minLon,minLat,maxLon,maxLat)``
 ///
-/// Example query: ``"highway == primary and name =~ '^Main'"``
+/// Example queries:
+/// ```
+/// .highway == primary and .name =~ '^Main'
+/// .class in ["primary", "secondary"] and .name =* "Main"
+/// .population > 1000 and within(11.5,3.8,11.6,3.9)
+/// .highway == primary and intersects(11.5,3.8,11.6,3.9)
+/// ```
 public struct QueryParser {
 
     /// A token in the RPN expression pipeline, representing a comparison,
@@ -42,6 +51,18 @@ public struct QueryParser {
 
             /// Regular expression match (``=~``).
             case regex
+
+            /// String contains (``=*``).
+            case contains
+
+            /// String starts with (``=^``).
+            case startsWith
+
+            /// String ends with (``=$``).
+            case endsWith
+
+            /// Value in a set (``in``).
+            case `in`
         }
 
         /// A boolean condition joining expressions.
@@ -55,6 +76,10 @@ public struct QueryParser {
 
             /// Logical NOT.
             case not
+
+            /// Truthy-value check. Evaluates ``true`` if the preceding value
+            /// is non-nil.
+            case exists
         }
 
         /// A key path segment or array index used to reference property values.
@@ -76,6 +101,9 @@ public struct QueryParser {
         /// A literal value token.
         case literal(AnyHashable)
 
+        /// A set of literal values, used with the ``.in`` comparison.
+        case literalSet([AnyHashable])
+
         /// A spatial proximity predicate: ``near(latitude, longitude, tolerance)``.
         case near(Coordinate3D, Double)
 
@@ -85,6 +113,14 @@ public struct QueryParser {
         /// A property value reference, composed of key path segments and/or
         /// array indices (e.g. ``.properties.name``, ``.tags[0]``).
         case value([KeyOrIndex])
+
+        /// A spatial bounding-box predicate: ``within(minLon, minLat, maxLon, maxLat)``.
+        /// Returns ``true`` if the feature's geometry is fully contained by the box.
+        case within(BoundingBox)
+
+        /// A spatial bounding-box intersection predicate: ``intersects(minLon, minLat, maxLon, maxLat)``.
+        /// Returns ``true`` if the feature's geometry intersects the box.
+        case intersects(BoundingBox)
     }
 
     private let reader: Reader?
@@ -114,23 +150,17 @@ public struct QueryParser {
         self.pipeline = pipeline
     }
 
-    /// Evaluates the expression pipeline against the given feature properties
-    /// and, optionally, a feature coordinate.
+    /// Evaluates the expression pipeline against the given feature.
     ///
     /// The pipeline is evaluated as a stack machine in Reverse Polish Notation.
     /// Returns `false` if the pipeline is empty or cannot be reduced.
     ///
-    /// - Parameters:
-    ///   - properties: The feature's property dictionary.
-    ///   - featureCoordinate: The feature's geographic coordinate, required
-    ///     for ``near()`` predicates.
+    /// - Parameter feature: The feature whose properties and geometry are evaluated.
     /// - Returns: `true` if the pipeline evaluates to a truthy value,
     ///   `false` otherwise.
-    public func evaluate(
-        on properties: [String: AnyHashable],
-        coordinate featureCoordinate: Coordinate3D? = nil
-    ) -> Bool {
+    public func evaluate(on feature: Feature) -> Bool {
         guard let pipeline else { return false }
+        let properties = QueryParser.convertToAnyHashable(feature.properties)
 
         var stack: [AnyHashable?] = []
 
@@ -166,6 +196,37 @@ public struct QueryParser {
                     else { return false }
 
                     stack.insert(value.matches(regex), at: 0)
+
+                case .contains:
+                    guard stack.count >= 2,
+                          let needle = stack.removeFirst() as? String,
+                          let haystack = stack.removeFirst() as? String
+                    else { return false }
+
+                    stack.insert(haystack.localizedCaseInsensitiveContains(needle), at: 0)
+
+                case .startsWith:
+                    guard stack.count >= 2,
+                          let needle = stack.removeFirst() as? String,
+                          let haystack = stack.removeFirst() as? String
+                    else { return false }
+
+                    stack.insert(haystack.lowercased().hasPrefix(needle.lowercased()), at: 0)
+
+                case .endsWith:
+                    guard stack.count >= 2,
+                          let needle = stack.removeFirst() as? String,
+                          let haystack = stack.removeFirst() as? String
+                    else { return false }
+
+                    stack.insert(haystack.lowercased().hasSuffix(needle.lowercased()), at: 0)
+
+                case .in:
+                    guard let setValues = stack.removeFirst() as? [AnyHashable],
+                          let value = stack.removeFirst()
+                    else { return false }
+
+                    stack.insert(setValues.contains(value), at: 0)
                 }
 
             case let .condition(condition):
@@ -192,17 +253,34 @@ public struct QueryParser {
                     let valueIsTrue = if let bool = value as? Bool { bool } else { value != nil }
 
                     stack.insert(!valueIsTrue, at: 0)
+
+                case .exists:
+                    guard stack.isNotEmpty else { return false }
+
+                    let value = stack.removeFirst()
+                    let valueIsTrue = if let bool = value as? Bool { bool } else { value != nil }
+                    stack.insert(valueIsTrue, at: 0)
                 }
 
             case let .literal(value):
                 stack.insert(value, at: 0)
 
+            case let .literalSet(values):
+                stack.insert(values as AnyHashable, at: 0)
+
             case let .near(coordinate, tolerance):
                 var result = false
-                if let featureCoordinate  {
-                    result = coordinate.distance(from: featureCoordinate) <= tolerance
+                if let centroid = feature.geometry.centroid {
+                    result = coordinate.distance(from: centroid.coordinate) <= tolerance
                 }
                 stack.insert(result, at: 0)
+
+            case let .within(boundingBox):
+                let featureBox = feature.boundingBox ?? feature.calculateBoundingBox()
+                stack.insert(featureBox.map { boundingBox.contains($0) } ?? false, at: 0)
+
+            case let .intersects(boundingBox):
+                stack.insert(feature.intersects(boundingBox), at: 0)
 
             case let .searchValues(searchString):
                 var result = false
@@ -255,47 +333,84 @@ public struct QueryParser {
         return result != nil
     }
 
-    // This needs improvement - can this be done in a more generic way?
-    // Only the most common cases covered for now
+    /// Recursively converts a ``[String: Sendable]`` dictionary to ``[String: AnyHashable]``,
+    /// handling nested dictionaries and arrays.
+    private static func convertToAnyHashable(_ dict: [String: Sendable]) -> [String: AnyHashable] {
+        dict.mapValues { value in
+            if let nested = value as? [String: Sendable] {
+                return convertToAnyHashable(nested) as AnyHashable
+            }
+            else if let array = value as? [Sendable] {
+                return array.compactMap { $0 as? AnyHashable } as AnyHashable
+            }
+            else if let hashable = value as? AnyHashable {
+                return hashable
+            }
+            else if let int = value as? Int {
+                return int
+            }
+            else if let double = value as? Double {
+                return double
+            }
+            else if let string = value as? String {
+                return string
+            }
+            else if let bool = value as? Bool {
+                return bool
+            }
+            else {
+                return String(describing: value)
+            }
+        }
+    }
+
+    /// Converts an ``AnyHashable`` numeric value to ``Double`` for cross-type ordered comparisons.
+    /// Handles all standard Swift integer and floating-point types.
+    private static func toDouble(_ value: AnyHashable) -> Double? {
+        if let v = value as? Double { return v }
+        if let v = value as? Int { return Double(v) }
+        if let v = value as? Int8 { return Double(v) }
+        if let v = value as? Int16 { return Double(v) }
+        if let v = value as? Int32 { return Double(v) }
+        if let v = value as? Int64 { return Double(v) }
+        if let v = value as? UInt { return Double(v) }
+        if let v = value as? UInt8 { return Double(v) }
+        if let v = value as? UInt16 { return Double(v) }
+        if let v = value as? UInt32 { return Double(v) }
+        if let v = value as? UInt64 { return Double(v) }
+        if let v = value as? Float { return Double(v) }
+        return nil
+    }
+
     private func compare(
         first: AnyHashable,
         second: AnyHashable,
         condition: QueryParser.Expression.Comparison
     ) -> Bool {
-        if let left = first as? Int {
-            if let right = second as? Int {
-                return compare(left: left, right: right, condition: condition)
+        // Equality: try direct AnyHashable comparison first (fast path for same-type),
+        // then fall back to Double-based cross-type check (e.g. Int(1) == Double(1.0)).
+        if condition == .equals || condition == .notEquals {
+            if first == second { return condition == .equals }
+            if let left = QueryParser.toDouble(first),
+               let right = QueryParser.toDouble(second),
+               left == right
+            {
+                return condition == .equals
             }
-            else if let right = second as? UInt {
-                return compare(left: UInt(left), right: right, condition: condition)
-            }
-            else if let right = second as? Double {
-                return compare(left: Double(left), right: right, condition: condition)
-            }
+            return condition == .notEquals
         }
-        else if let left = first as? Double {
-            if let right = second as? Double {
-                return compare(left: left, right: right, condition: condition)
-            }
-            else if let right = second as? Int {
-                return compare(left: left, right: Double(right), condition: condition)
-            }
-            else if let right = second as? UInt {
-                return compare(left: left, right: Double(right), condition: condition)
-            }
+
+        // Ordered comparisons: promote both sides to Double.
+        if let left = QueryParser.toDouble(first),
+           let right = QueryParser.toDouble(second)
+        {
+            return compare(left: left, right: right, condition: condition)
         }
-        else if let left = first as? UInt {
-            if let right = second as? UInt {
-                return compare(left: left, right: right, condition: condition)
-            }
-            else if let right = second as? Int {
-                return compare(left: left, right: UInt(right), condition: condition)
-            }
-            else if let right = second as? Double {
-                return compare(left: Double(left), right: right, condition: condition)
-            }
-        }
-        else if let left = first as? String, let right = second as? String {
+
+        // String comparison fallback.
+        if let left = first as? String,
+           let right = second as? String
+        {
             return compare(left: left, right: right, condition: condition)
         }
 
@@ -308,21 +423,11 @@ public struct QueryParser {
         condition: QueryParser.Expression.Comparison
     ) -> Bool {
         switch condition {
-        case .equals:
-            return left == right
-        case .notEquals:
-            return left != right
-        case .greaterThan:
-            return left > right
-        case .greaterThanOrEqual:
-            return left >= right
-        case .lessThan:
-            return left < right
-        case .lessThanOrEqual:
-            return left <= right
-        case .regex:
-            guard let value = left as? String, let regex = right as? String else { return false }
-            return value.matches(regex)
+        case .greaterThan: return left > right
+        case .greaterThanOrEqual: return left >= right
+        case .lessThan: return left < right
+        case .lessThanOrEqual: return left <= right
+        default: return false
         }
     }
 
@@ -340,15 +445,20 @@ public struct QueryParser {
 
         outer: while let char = reader.peek() {
             // Check for:
-            // - and, or, not
-            // - ==, !=, >, >=, <, <=, =~
+            // - and, or, not, exists
+            // - ==, !=, >, >=, <, <=, =~, =*, =^, =$
+            // - in
             if isBeginningOfTerm {
                 let hasAnd = reader.peekWord("and")
                 let hasOr = reader.peekWord("or")
                 let hasNot = reader.peekWord("not")
+                let hasExists = reader.peekWord("exists")
+                let hasIn = reader.peekWord("in")
                 let hasNear = reader.peekString("near(", caseInsensitive: true)
+                let hasWithin = reader.peekString("within(", caseInsensitive: true)
+                let hasIntersects = reader.peekString("intersects(", caseInsensitive: true)
 
-                if hasAnd || hasOr || hasNot {
+                if hasAnd || hasOr || hasNot || hasExists {
                     pipeline?.append(contentsOf: terms)
                     if let comparison {
                         pipeline?.append(comparison)
@@ -373,12 +483,63 @@ public struct QueryParser {
                         pipeline?.append(.condition(.not))
                         reader.moveIndex(by: 3)
                     }
+                    else if hasExists {
+                        pipeline?.append(.condition(.exists))
+                        reader.moveIndex(by: 6)
+                    }
 
+                    continue
+                }
+
+                if hasIn {
+                    // .value in [literal, ...]
+                    // Flush the current term (the value expression) and comparison
+                    pipeline?.append(contentsOf: terms)
+                    if let comparison {
+                        pipeline?.append(comparison)
+                    }
+                    if let condition {
+                        pipeline?.append(condition)
+                    }
+                    terms = []
+                    comparison = nil
+                    condition = nil
+                    isBeginningOfTerm = false
+
+                    reader.moveIndex(by: 2)
+
+                    // Expect a bracket-delimited set
+                    reader.skipWhitespace()
+                    guard reader.peek() == UInt8(ascii: "[") else { return false }
+                    reader.moveIndex(by: 1)
+
+                    guard let setValues = reader.readLiteralSet() else { return false }
+
+                    terms.append(.literalSet(setValues))
+                    comparison = .comparison(.in)
                     continue
                 }
 
                 if hasNear {
                     guard let term = reader.readNear() else { return false }
+
+                    isBeginningOfTerm = false
+                    terms.append(term)
+
+                    continue
+                }
+
+                if hasWithin {
+                    guard let term = reader.readWithin() else { return false }
+
+                    isBeginningOfTerm = false
+                    terms.append(term)
+
+                    continue
+                }
+
+                if hasIntersects {
+                    guard let term = reader.readIntersects() else { return false }
 
                     isBeginningOfTerm = false
                     terms.append(term)
@@ -518,7 +679,71 @@ public struct QueryParser {
                 return char
             }
 
+            // Advance past any trailing whitespace so callers don't loop.
+            if offset > 0 {
+                moveIndex(by: offset)
+            }
+
             return nil
+        }
+
+        mutating func readLiteralSet() -> [AnyHashable]? {
+            var values: [AnyHashable] = []
+
+            while let char = peek() {
+                switch char {
+                case UInt8(ascii: "]"):
+                    moveIndex(by: 1)
+                    return values
+
+                case UInt8(ascii: " "):
+                    skipWhitespace()
+
+                case UInt8(ascii: ","):
+                    moveIndex(by: 1)
+                    skipWhitespace()
+
+                default:
+                    guard let value = readSetValue() else { return nil }
+                    values.append(value)
+                }
+            }
+
+            return nil
+        }
+
+        /// Reads a single literal value inside a set (delimited by `,`, `]`, or ` `).
+        /// Supports quoted strings (single and double) and unquoted tokens.
+        private mutating func readSetValue() -> AnyHashable? {
+            skipWhitespace()
+
+            // Handle quoted strings.
+            if peek() == UInt8(ascii: "\"") {
+                guard let quoted = readQuotedString(UInt8(ascii: "\"")) else { return nil }
+                return quoted
+            }
+            if peek() == UInt8(ascii: "'") {
+                guard let quoted = readQuotedString(UInt8(ascii: "'")) else { return nil }
+                return quoted
+            }
+
+            // Read an unquoted token delimited by `,`, `]`, or ` `.
+            let startIndex = index
+            var offset = 0
+            while let char = peek(withOffset: offset) {
+                if char == UInt8(ascii: ",") || char == UInt8(ascii: "]") || char == UInt8(ascii: " ") {
+                    break
+                }
+                offset += 1
+            }
+
+            guard offset > 0 else { return nil }
+            let value = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) ?? ""
+            moveIndex(by: offset)
+
+            if let int = Int(value) { return int }
+            if let double = Double(value) { return double }
+            return value
         }
 
         mutating func readValueExpression() -> Expression? {
@@ -599,7 +824,7 @@ public struct QueryParser {
 
             outer: while let char = peek(withOffset: offset) {
                 switch char {
-                case UInt8(ascii: " "):
+                case UInt8(ascii: " "), UInt8(ascii: ","), UInt8(ascii: ")"):
                     break outer
 
                 case UInt8(ascii: "\""):
@@ -672,6 +897,18 @@ public struct QueryParser {
                 else if secondChar == UInt8(ascii: "~") {
                     moveIndex(by: 2)
                     return .comparison(.regex)
+                }
+                else if secondChar == UInt8(ascii: "*") {
+                    moveIndex(by: 2)
+                    return .comparison(.contains)
+                }
+                else if secondChar == UInt8(ascii: "^") {
+                    moveIndex(by: 2)
+                    return .comparison(.startsWith)
+                }
+                else if secondChar == UInt8(ascii: "$") {
+                    moveIndex(by: 2)
+                    return .comparison(.endsWith)
                 }
             }
             else {
@@ -779,6 +1016,82 @@ public struct QueryParser {
                     else { return nil }
 
                     return .near(Coordinate3D(latitude: latitude, longitude: longitude), tolerance)
+
+                default:
+                    offset += 1
+                }
+            }
+
+            return nil
+        }
+
+        mutating func readWithin() -> Expression? {
+            guard peekString("within(", caseInsensitive: true) else { return nil }
+
+            moveIndex(by: 7)
+
+            let startIndex = index
+            var offset = 0
+
+            while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: ")"):
+                    moveIndex(by: offset + 1)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) else {
+                        return nil
+                    }
+
+                    let components = current.components(separatedBy: ",").compactMap({ $0.trimmed() })
+                    guard components.count == 4,
+                          let minLon = Double(components[0]),
+                          let minLat = Double(components[1]),
+                          let maxLon = Double(components[2]),
+                          let maxLat = Double(components[3])
+                    else { return nil }
+
+                    let sw = Coordinate3D(latitude: minLat, longitude: minLon)
+                    let ne = Coordinate3D(latitude: maxLat, longitude: maxLon)
+                    let bbox = BoundingBox(southWest: sw, northEast: ne)
+                    return .within(bbox)
+
+                default:
+                    offset += 1
+                }
+            }
+
+            return nil
+        }
+
+        mutating func readIntersects() -> Expression? {
+            guard peekString("intersects(", caseInsensitive: true) else { return nil }
+
+            moveIndex(by: 11)
+
+            let startIndex = index
+            var offset = 0
+
+            while let char = peek(withOffset: offset) {
+                switch char {
+                case UInt8(ascii: ")"):
+                    moveIndex(by: offset + 1)
+
+                    guard let current = String(bytes: characters[startIndex ..< startIndex + offset], encoding: .utf8) else {
+                        return nil
+                    }
+
+                    let components = current.components(separatedBy: ",").compactMap({ $0.trimmed() })
+                    guard components.count == 4,
+                          let minLon = Double(components[0]),
+                          let minLat = Double(components[1]),
+                          let maxLon = Double(components[2]),
+                          let maxLat = Double(components[3])
+                    else { return nil }
+
+                    let sw = Coordinate3D(latitude: minLat, longitude: minLon)
+                    let ne = Coordinate3D(latitude: maxLat, longitude: maxLon)
+                    let bbox = BoundingBox(southWest: sw, northEast: ne)
+                    return .intersects(bbox)
 
                 default:
                     offset += 1

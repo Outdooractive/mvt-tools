@@ -72,10 +72,8 @@ extension VectorTile {
             guard let layerFeatureContainer = layers[layerName] else { continue }
 
             let resultFeatures: [Feature] = layerFeatureContainer.features.filter({ feature in
-                if let queryParser,
-                   let properties = feature.properties as? [String: AnyHashable]
-                {
-                    return queryParser.evaluate(on: properties, coordinate: feature.geometry.centroid?.coordinate)
+                if let queryParser {
+                    return queryParser.evaluate(on: feature)
                 }
                 else {
                     for value in feature.properties.values.compactMap({ $0 as? String }) {

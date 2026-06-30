@@ -12,19 +12,19 @@
 
 # MVTTools
 
-MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a powerful tool for working with vector tiles and GeoJSONs from the command line.
+MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles and GeoJSON files.
 
 ## Features
 
-- Load and write MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (also handles gzipped input).
-- Export options: Zipped, buffered (in pixels or extents), simplified (in meters or extents).
-- Can dump a tile as a GeoJSON object.
-- Supported projections: EPSG:4326, EPSG:3857 or none (uses the tile's coordinate space).
-- Fast search (supports indexing), either within a bounding box or with center and radius.
-- Extract selected layers into a new tile.
-- Merge tiles into one.
-- Can extract some infos from tiles like feature count, etc.
-- Powerful command line tool (via [Homebrew](#command-line-tool), documentation below) for working with vector tiles and GeoJSON files.
+- **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
+- **GeoJSON import/export** — convert between MVT and GeoJSON formats.
+- **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
+- **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
+- **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
+- **Property queries** — powerful RPN-based query DSL with comparisons, string operators, regex, set membership, boolean logic, and existence checks.
+- **Layer management** — extract, merge, remove, or filter layers and features.
+- **Tile metadata** — per-layer feature counts, geometry-type breakdowns, property histograms.
+- **Command-line tool** — `mvt` with subcommands: `dump`, `info`, `query`, `merge`, `import`, `export`.
 
 ## Requirements
 
@@ -49,55 +49,309 @@ This package uses the [gis-tools](https://github.com/Outdooractive/gis-tools) li
 
 See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools) (via Swift Package Index).
 
-### Read
+### Read MVT
 
 ```swift
 import MVTTools
 
-// Load
-let mvtData = Data(contentsOf: URL(fileURLWithPath: "14_8716_8015.vector.mvt"))!
+let mvtData = try Data(contentsOf: URL(fileURLWithPath: "14_8716_8015.vector.mvt"))
 let tile = VectorTile(data: mvtData, x: 8716, y: 8015, z: 14, indexed: .hilbert)!
 
-print(tile.isIndexed)
-print(tile.layerNames.sorted())
+print(tile.isIndexed)               // true
+print(tile.layerNames.sorted())     // ["admin", "aeroway", "airport_label", …]
 
-let tileAsGeoJsonData: Data? = tile.toGeoJson(prettyPrinted: true)
-...
+// Export as GeoJSON
+let geoJsonData: Data? = tile.toGeoJson(prettyPrinted: true)
 
-let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
-...
+// Spatial query
+let results = tile.query(
+    at: Coordinate3D(latitude: 3.87, longitude: 11.52),
+    tolerance: 100.0)
 ```
 
-### Write
+### Read GeoJSON
 
 ```swift
-import MVTTools
+let geoJsonData = try Data(contentsOf: URL(fileURLWithPath: "features.geojson"))
+let tile = VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")!
 
+// The tile can now be exported as MVT
+let mvtData = tile.data()
+```
+
+### Write MVT
+
+```swift
 var tile = VectorTile(x: 8716, y: 8015, z: 14)!
+
 var feature = Feature(Point(Coordinate3D(latitude: 3.870163, longitude: 11.518585)))
 feature.properties = [
-    "test": 1,
-    "test2": 5.567,
-    "test3": [1, 2, 3],
-    "test4": [
-        "sub1": 1,
-        "sub2": 2
-    ]
+    "name": "Test",
+    "value": 42,
 ]
 
-tile.setFeatures([feature], for: "test")
+tile.setFeatures([feature], for: "my_layer")
 
-// Also have a look at ``VectorTile.ExportOptions``
-let tileData = tile.data()
-...
+// Write with compression and buffering options
+let options = VectorTile.ExportOptions(
+    bufferSize: .pixel(4),
+    compression: .default,
+    simplifyFeatures: .meters(1.0))
+let mvtData = tile.data(options: options)
+try mvtData?.write(to: URL(fileURLWithPath: "output.mvt"))
+
+// Or write directly
+tile.write(to: URL(fileURLWithPath: "output.mvt"), options: options)
+```
+
+### Write GeoJSON
+
+```swift
+let geoJsonData = tile.toGeoJson(
+    layerNames: ["road", "building"],
+    prettyPrinted: true,
+    layerProperty: "vt_layer")
+try geoJsonData?.write(to: URL(fileURLWithPath: "output.geojson"))
+
+// Or write directly
+tile.writeGeoJson(to: URL(fileURLWithPath: "output.geojson"), prettyPrinted: true)
+```
+
+### Layer management
+
+```swift
+// Add features to a layer
+tile.appendFeatures([feature1, feature2], to: "roads")
+
+// Replace a layer
+tile.setFeatures([feature3], for: "buildings")
+
+// Remove features matching a predicate
+tile.removeFeatures(fromLayer: "roads") { $0.properties["class"] as? String == "footway" }
+
+// Remove an entire layer
+tile.removeLayer("temporary_layer")
+
+// Extract layers into a new tile
+let subset = tile.extract(layerNames: ["road", "building"])
+
+// Merge tiles
+tile.merge(anotherTile)
+```
+
+### Merge tiles
+
+```swift
+let tile1 = VectorTile(data: mvtData1, x: 5, y: 13, z: 4)!
+let tile2 = VectorTile(data: mvtData2, x: 5, y: 13, z: 4)!
+tile1.merge(tile2)
+```
+
+### Tile info
+
+```swift
+// Layer names
+let names = VectorTile.layerNames(from: mvtData)  // ["road", "building", …]
+
+// Feature statistics
+if let info = tile.tileInfo() {
+    for layer in info {
+        print(layer.name,
+              layer.features,       // total feature count
+              layer.pointFeatures,  // point count
+              layer.linestringFeatures,
+              layer.polygonFeatures)
+    }
+}
+
+// Static info (no VectorTile instance needed)
+let info = VectorTile.tileInfo(from: mvtData)
+```
+
+### Export options
+
+```swift
+VectorTile.ExportOptions(
+    bufferSize: .extent(512),       // buffer in tile-extent units
+    // or: .pixel(4), .no
+    compression: .level(9),         // gzip compression 0-9
+    // or: .default, .no
+    simplifyFeatures: .meters(1.0)  // simplify geometry to 1m tolerance
+    // or: .extent(10), .no
+)
 ```
 
 ### Playground
 
 On macOS you can use a Swift Playground to inspect the MVTTools API such as `layerNames` and `projection`.
 
-* Load tile using MVTTools
-* Inspect the properties of the `VectorTile`
+- Load a tile using MVTTools
+- Inspect the properties of the `VectorTile`
+
+## Query language
+
+The query language is used by the `mvt query` CLI command and by the programmatic `tile.query(term:)` API. It filters features by evaluating an expression against each feature's properties and geometry. The language uses a Reverse Polish Notation (RPN) internally but the query syntax follows a natural infix style.
+
+### Value access
+
+Properties are accessed by prefixing the key with `.`:
+
+| Query | Meaning |
+|-------|---------|
+| `.name` | Property `name` exists and is truthy |
+| `.foo.bar` | Nested property `foo → bar` |
+| `."foo.bar"` | Property whose key contains a dot |
+| `.foo.[0]` | First element of array property `foo` |
+| `.some.0` | Same as above, shorthand |
+
+Assuming features with this structure:
+```json
+{
+  "properties": {
+    "foo": {"bar": 1, "baz": 10},
+    "some": ["a", "b"],
+    "value": 1,
+    "name": "Some name"
+  }
+}
+```
+
+```
+.foo         → true (exists)
+.foo.bar     → true (1 is truthy)
+.foo.x       → false (key not found)
+.some.[0]    → true ("a" exists)
+.some.2      → false (out of bounds)
+```
+
+### Comparisons
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `==` | Equal | `.value == 1` |
+| `!=` | Not equal | `.value != 2` |
+| `>` | Greater than | `.value > 0` |
+| `>=` | Greater or equal | `.value >= 1` |
+| `<` | Less than | `.value < 2` |
+| `<=` | Less or equal | `.value <= 1` |
+| `=~` | Regex match | `.name =~ /^Some/i` |
+| `=*` | String contains (case-insensitive) | `.name =* "ome"` |
+| `=^` | String starts with (case-insensitive) | `.name =^ "some"` |
+| `=$` | String ends with (case-insensitive) | `.name =$ "name"` |
+
+Cross-type numeric comparisons work automatically (e.g. `Int` vs `Double`, `UInt8` vs `Int`).
+
+```
+.value == 1       → true
+.value != 1       → false
+.value > 0        → true
+.value <= 1       → true
+.name =~ /^Some/  → true (regex, case-sensitive)
+.name =~ /^some/i → true (regex, case-insensitive)
+.name =* "ome"    → true (contains, case-insensitive)
+.name =^ "Some"   → true (starts with, case-insensitive)
+.name =$ "name"   → true (ends with, case-insensitive)
+```
+
+### String values
+
+Strings can be quoted with single or double quotes:
+
+```
+.name == 'Main Street'
+.name == "Main Street"
+.name =~ "Main.*"
+```
+
+### Set membership
+
+```
+.class in ["primary", "secondary"]         → true if .class matches either value
+.value in [1, 3, 5]                        → integer sets
+.name in ['Alice', 'Bob']                  → string sets
+```
+
+Commas inside quoted strings are preserved:
+```
+.tags in ["tag, with, comma", "other"]
+```
+
+### Boolean conditions
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `and` | Logical AND | `.a == 1 and .b == 2` |
+| `or` | Logical OR | `.a == 1 or .b == 1` |
+| `not` | Logical NOT (postfix) | `.a not` |
+| `exists` | Truthy check | `.a exists` |
+
+```
+.foo.bar == 1 and .value == 1      → true
+.foo == 1 or .bar == 2             → false
+.foo not                            → false (foo exists, so !true)
+.foo.bar not                        → false (bar exists in foo)
+.nonexistent not                    → true (property absent)
+.foo exists                         → true (non-nil)
+.nonexistent exists                 → false (nil)
+```
+
+`exists` can be combined with other conditions:
+```
+.bridge exists and .tunnel exists   → true
+.nonexistent exists not             → true
+```
+
+### Spatial predicates
+
+| Predicate | Syntax | Meaning |
+|-----------|--------|---------|
+| `near` | `near(lat, lon, tolerance)` | Feature **centroid** is within `tolerance` meters of the given point |
+| `within` | `within(minLon, minLat, maxLon, maxLat)` | Feature's **bounding box** is fully inside the rectangle |
+| `intersects` | `intersects(minLon, minLat, maxLon, maxLat)` | Feature's **geometry** intersects the rectangle |
+
+```
+near(3.87, 11.52, 1000)                                → features within 1 km
+.area > 40000 and within(11.5, 3.8, 11.6, 3.9)         → large features in area
+.highway == primary and intersects(11.5, 3.8, 11.6, 3.9)  → roads crossing the area
+```
+
+Note: `within` checks bbox containment, `intersects` does a precise geometry-level intersection test (via GISTools' `Feature.intersects(BoundingBox)` which uses a two-phase check: bbox coarse filter + precise geometry intersection).
+
+### Complete examples
+
+```
+# Features with area > 20000 classified as hospital
+.area > 20000 and .class == 'hospital'
+
+# Features named "Hopital" (case-insensitive) near a coordinate
+.name =~ /hopital/i and near(3.87324, 11.53731, 1000)
+
+# Roads or buildings that intersect a bounding box
+.class in ["road", "building"] and intersects(11.5, 3.8, 11.6, 3.9)
+
+# Features that exist and have a name starting with "Lac" or "Lake"
+(.name =^ "Lac" or .name =^ "Lake") — note: parentheses not supported in RPN,
+use the natural evaluation order instead:
+.name =^ "Lac" or .name =^ "Lake"
+
+# Features with no area property
+.area not
+
+# Features with a bridge tag
+.bridge exists
+```
+
+### Using the query API programmatically
+
+```swift
+// Text search (falls back to full-text search if query isn't recognized)
+let results = tile.query(term: "école")
+let results = tile.query(term: ".class == 'hospital' and .area > 1000")
+
+// Direct use of QueryParser
+let parser = QueryParser(string: ".highway in [\"primary\", \"secondary\"] and .name =* \"Main\"")!
+let matches = parser.evaluate(on: someFeature)
+```
 
 # Command line tool
 
@@ -130,9 +384,9 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the input file (mvt or GeoJSON) as pretty-printed GeoJSON to the console
-  info                    Print information about the input file (mvt or GeoJSON)
-  query                   Query the features in the input file (mvt or GeoJSON)
+  dump (default)          Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console
+  info                    Print information about the input file (MVT or GeoJSON)
+  query                   Query the features in the input file (MVT or GeoJSON)
   merge                   Merge any number of vector tiles or GeoJSONs
   import                  Import some GeoJSONs into a vector tile
   export                  Export a vector tile as GeoJSON to a file
@@ -181,7 +435,7 @@ Print some informations about vector tiles/GeoJSONs:
 - The properties for each layer
 - Counts of specific properties
 
-**Example 1**: Print information about the MVTTools test vector tile at zoom 14, at Yaoundé, Cameroon.
+**Example 1**: Print information about a vector tile.
 
 ```bash
 mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -192,14 +446,11 @@ mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
  barrier_line       | 4219     | 0      | 4219        | 0        | 0       | 2
  bridge             | 14       | 0      | 14          | 0        | 0       | 2
  building           | 5414     | 0      | 0           | 5414     | 0       | 2
- building_label     | 413      | 413    | 0           | 0        | 0       | 2
  ...
  road               | 502      | 1      | 497         | 4        | 0       | 2
- road_label         | 309      | 0      | 309         | 0        | 0       | 2
 ```
----
 
-**Example 2**: Inspect a MapLibre vector tile at zoom 2, with an extent showing Norway to India.
+**Example 2**: Inspect a remote MapLibre tile.
 
 ```bash
 mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
@@ -210,229 +461,87 @@ mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
  countries | 113      | 0      | 0           | 113      | 0       | 2
  geolines  | 4        | 0      | 4           | 0        | 0       | 2
 ```
----
 
-**Example 3**: Print information about the properties for each layer.
+**Example 3**: Print property counts per layer.
 
 ```bash
 mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 
- Name               | area | class | group | layer | ldir | len | name | name_de | name_en | name_es | name_fr | network | oneway | ref | reflen | scalerank | type
---------------------+------+-------+-------+-------+------+-----+------+---------+---------+---------+---------+---------+--------+-----+--------+-----------+-----
- airport_label      | 0    | 0     | 0     | 0     | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 0      | 0   | 0      | 0         | 0
- area_label         | 55   | 55    | 0     | 0     | 0    | 0   | 55   | 55      | 55      | 55      | 55      | 0       | 0      | 0   | 0      | 0         | 0
- barrier_line       | 0    | 4219  | 0     | 0     | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 0      | 0   | 0      | 0         | 0
- bridge             | 0    | 14    | 0     | 13    | 0    | 0   | 0    | 0       | 0       | 0       | 0       | 0       | 14     | 0   | 0      | 0         | 0
-...
+ Name               | area | class | group | layer | ldir | len | name | ...
+--------------------+------+-------+-------+-------+------+-----+------+-----
+ airport_label      | 0    | 0     | 0     | 0     | 0    | 0   | 0    | ...
+ area_label         | 55   | 55    | 0     | 0     | 0    | 0   | 55   | ...
+ ...
 ```
----
 
-**Example 4**: Print information about specific properties.
+**Example 4**: Count values for a specific property.
 
 ```bash
 mvt info -p class Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 
- Name  | cemetery | driveway | fence | hedge | hospital | industrial | main | major_rail | mini_roundabout | minor_rail | motorway | park | parking | path | pitch | rail | school | service | street | street_limited | wetland | wood
--------+----------+----------+-------+-------+----------+------------+------+------------+-----------------+------------+----------+------+---------+------+-------+------+--------+---------+--------+----------------+---------+-----
- class | 4        | 36       | 3895  | 324   | 9        | 2          | 113  | 21         | 1               | 13         | 30       | 95   | 59      | 46   | 21    | 2    | 59     | 187     | 376    | 4              | 4       | 12
+ Name  | cemetery | driveway | fence | hedge | hospital | industrial | ...
+-------+----------+----------+-------+-------+----------+------------+-----
+ class | 4        | 36       | 3895  | 324   | 9        | 2          | ...
 ```
 
 ---
 ### mvt query
 
-**Example 1**: Query a vector tile or GeoJSON file with a search term.
+The `mvt query` command uses the [query language](#query-language) described above.
+
+**Example 1**: Full-text search.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
-{
-  "features" : [
-    {
-      "bbox" : [
-        11.537318229675295,
-        3.8732409490233337,
-        11.537318229675295,
-        3.8732409490233337
-      ],
-      "geometry" : {
-        "coordinates" : [
-          11.537318229675295,
-          3.8732409490233337
-        ],
-        "type" : "Point"
-      },
-      "id" : 51,
-      "layer" : "building_label",
-      "properties" : {
-        "area" : 173.97920227050781,
-        "name" : "École Maternelle",
-        "name_de" : "École Maternelle",
-        "name_en" : "École Maternelle",
-        "name_es" : "École Maternelle",
-        "name_fr" : "École Maternelle"
-      },
-      "type" : "Feature"
-    },
-    ...
-}
 ```
----
-**Example 2**: Query a tile with `latitude,longitude,radius`.
+
+**Example 2**: Spatial query by coordinate.
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,1000"
-{
-  "features" : [
-    {
-      "bbox" : [
-        11.529276967048643,
-        3.8803432426251487,
-        11.530832648277283,
-        3.8823074685255259
-      ],
-      "geometry" : {
-        "coordinates" : [
-          ...
-        ],
-        "type" : "LineString"
-      },
-      "id" : 48,
-      "layer" : "road",
-      "properties" : {
-        "class" : "driveway",
-        "oneway" : 0
-      },
-      "type" : "Feature"
-    },
-    ...
-}
 ```
----
-**Example 3**: Query Feature properties in a tile.
+
+**Example 3**: Property query with comparisons.
 
 ```bash
 mvt query -p Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt ".area > 40000 and .class == 'hospital'"
-
-{
-  "features" : [
-    {
-      "bbox" : [
-        11.510410308837876,
-        3.871287406415171,
-        11.510410308837876,
-        3.871287406415171
-      ],
-      "geometry" : {
-        "coordinates" : [
-          11.510410308837876,
-          3.871287406415171
-        ],
-        "type" : "Point"
-      },
-      "id" : 2,
-      "properties" : {
-        "area" : 48364.9375,
-        "class" : "hospital",
-        "name" : "Hopital Central de Yaoundé",
-        "name_de" : "Hopital Central de Yaoundé",
-        "name_en" : "Hopital Central de Yaoundé",
-        "name_es" : "Hopital Central de Yaoundé",
-        "name_fr" : "Hopital Central de Yaoundé",
-        "vt_layer" : "area_label"
-      },
-      "type" : "Feature"
-    }
-  ],
-  "type" : "FeatureCollection"
-}
 ```
 
-The query language is very loosely modeled after the jq query language.
-The output will contain all features where the query returns `true`.
+**Example 4**: Regex, string operators, and set membership.
 
-Here is an overview. Example:
-```
-"properties": {
-  "foo": {"bar": 1},
-  "some": ["a", "b"],
-  "value": 1,
-  "string": "Some name"
-}
-```
-
-Values are retrieved by putting a `.` in front of the property name. The property name must be quoted
-if it is a number or contains non-alphabetic characters. Elements in arrays can be
-accessed either by simply using the array index after the dot, or by wrapping it in brackets.
-
-```
-.foo       // true, property "foo" exists
-.foo.bar   // true, property "foo" is a dictionary containing "bar"
-."foo"."bar" // true, same as above but quoted
-.'foo'.'bar' // true, same as above but quoted
-.foo.x     // false, "foo" doesn't contain "x"
-."foo.bar" // false, property "foo.bar" doesn't exist
-.foo.[0]   // false, "foo" is not an array
-.some.[0]  // true, "some" is an array and has an element at index "0"
-.some.0    // true, same as above but without brackets
-.some."0"  // false, "0" is a string key but "some" is not a dictionary
-```
-
-Comparisons can be expressed like this:
-```
-.value == "bar" // false
-.value == 1  // true
-.value != 1  // false
-.value > 1   // false
-.value >= 1  // true
-.value < 1   // false
-.value <= 1  // true
-.string =~ /[Ss]ome/ // true
-.string =~ /some/    // false
-.string =~ /some/i   // true, case insensitive regexp
-.string =~ "^Some"   // true, can also use quotes
-```
-
-Conditions (evaluated left to right):
-```
-.foo.bar == 1 and .value == 1 // true
-.foo == 1 or .bar == 2        // false
-.foo == 1 or .value == 1      // true
-.foo not          // false, true if foo does not exist
-.foo and .bar not // true, foo and bar don't exist together
-.foo or .bar not  // false, true if neither foo nor bar exist
-.foo.bar not      // false, true if "bar" in dictionary "foo" doesn't exist
-```
-
-Other:
-```
-near(latitude,longitude,tolerance) // true if the feature is within "tolerance" around the coordinate
-```
-
-Some complete examples:
-```
-// Can use single quotes for strings
-mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == 'hospital'"
-
-// ... or double quotes, but they must be escaped
-mvt query -p 14_8716_8015.vector.mvt ".area > 20000 and .class == \"hospital\""
-
-// No need to quote the query if it doesn't conflict with your shell
-// Print all features that have an "area" property
-mvt query -p 14_8716_8015.vector.mvt .area
-// Features which don't have "area" and "name" properties
-mvt query -p 14_8716_8015.vector.mvt .area and .name not
-
-// Case insensitive regular expression
+```bash
+# Case-insensitive regex
 mvt query -p 14_8716_8015.vector.mvt ".name =~ /hopital/i"
 
-// Case sensitive regular expression
-mvt query -p 14_8716_8015.vector.mvt ".name =~ /Recherches?/"
-// Can also use quotes instead of slashes
-mvt query -p 14_8716_8015.vector.mvt ".name =~ 'Recherches?'"
+# String starts with / ends with
+mvt query -p 14_8716_8015.vector.mvt ".name =^ 'Main'"
+mvt query -p 14_8716_8015.vector.mvt ".name =$ 'Street'"
 
-// Features around a coordinate
+# Set membership
+mvt query -p 14_8716_8015.vector.mvt ".class in ['hospital', 'school']"
+```
+
+**Example 5**: Spatial predicates.
+
+```bash
+# Features near a point
 mvt query -p 14_8716_8015.vector.mvt "near(3.87324,11.53731,1000)"
-// With other conditions
+
+# Features within a bounding box
+mvt query -p 14_8716_8015.vector.mvt "within(11.5, 3.8, 11.6, 3.9)"
+
+# Features intersecting a bounding box
+mvt query -p 14_8716_8015.vector.mvt ".class == 'road' and intersects(11.5, 3.8, 11.6, 3.9)"
+```
+
+**Example 6**: Combined queries.
+
+```bash
+# Name + spatial
 mvt query -p 14_8716_8015.vector.mvt ".name =~ /^lac/i and near(3.87324,11.53731,10000)"
+
+# Existence + comparison
+mvt query -p 14_8716_8015.vector.mvt ".bridge exists and .tunnel not"
 ```
 
 ---
@@ -441,16 +550,16 @@ mvt query -p 14_8716_8015.vector.mvt ".name =~ /^lac/i and near(3.87324,11.53731
 Merge two or more vector tiles or GeoJSON files in any combination.
 
 ```bash
-# All vector tiles:
+# Merge vector tiles:
 mvt merge --output merged.mvt path/to/first.mvt path/to/second.mvt
 
-# All GeoJSON files:
+# Merge GeoJSON files:
 mvt merge --output merged.geojson path/to/first.geojson path/to/second.geojson
 
 # Merge GeoJSON files into a vector tile:
 mvt merge --output merged.mvt --output-format mvt path/to/first.geojson path/to/second.geojson
 
-# Merge vector tiles into a GeoJSOn file:
+# Merge vector tiles into a GeoJSON file:
 mvt merge --output merged.geojson --output-format geojson path/to/first.mvt path/to/second.mvt
 ```
 ---
@@ -464,10 +573,10 @@ mvt export --output dumped.geojson --pretty-print Tests/MVTToolsTests/TestData/1
 ---
 ### mvt import
 
-Create a vector tile from GeoJSON.
+Create a vector tile from a GeoJSON file.
 
 ```bash
-mvt import new.mvt -x 8716 -y 8015 -z 14 Tests/MVTToolsTests/TestData/14_8716_8015.geojson
+mvt import --output new.mvt -x 8716 -y 8015 -z 14 Tests/MVTToolsTests/TestData/14_8716_8015.geojson
 ```
 ---
 
@@ -483,10 +592,8 @@ brew install protobuf swift-protobuf swiftlint
 
 # TODOs and future improvements
 
-- Documentation (!)
-- Tests
 - Locking (when updating/deleting features, indexing)
-- Query option: within/intersects
+- Additional format support: GPX, Shapefile, GeoPackage (dependencies already included)
 
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js
