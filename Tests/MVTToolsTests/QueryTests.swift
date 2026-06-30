@@ -52,7 +52,12 @@ struct QueryTests {
         let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
 
         let results = tile.query(term: "lake")
-        #expect(results is [VectorTile.QueryResult])
+        // Results may be empty if no feature properties contain "lake",
+        // but each result should have a layerName and feature.
+        for result in results {
+            #expect(result.layerName.isNotEmpty)
+            #expect(result.feature.geometry.type != .invalid)
+        }
     }
 
     /// Tests that a text search with a non-matching term returns empty results.

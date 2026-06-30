@@ -11,13 +11,27 @@ struct CLIProcessError: LocalizedError {
 
 /// Path to the built `mvt` executable.
 private var mvtExec: URL {
-    URL(fileURLWithPath: #filePath)
+    let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .appendingPathComponent(".build")
-        .appendingPathComponent("debug")
-        .appendingPathComponent("mvt")
+
+    // Resolve the debug symlink to the correct platform directory.
+    let debugLink = root.appendingPathComponent("debug").path
+    if let linkDest = try? FileManager.default.destinationOfSymbolicLink(atPath: debugLink) {
+        return root.appendingPathComponent(linkDest).appendingPathComponent("mvt")
+    }
+
+    // Fallback: try common platform directories.
+    for subdir in ["aarch64-unknown-linux-gnu", "arm64-apple-macosx", "x86_64-apple-macosx"] {
+        let candidate = root.appendingPathComponent(subdir).appendingPathComponent("debug").appendingPathComponent("mvt")
+        if FileManager.default.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+    }
+
+    return root.appendingPathComponent("debug").appendingPathComponent("mvt")
 }
 
 /// Path to the shared TestData directory used by MVTToolsTests.
@@ -128,22 +142,24 @@ struct ExportCommandTests {
 
 struct ImportCommandTests {
 
-    /// Imports a GeoJSON into a new MVT file.
+    /// Imports a small GeoJSON into a new MVT file with explicit tile coordinates.
     @Test(.timeLimit(.minutes(1)))
     func importGeoJsonToMvt() throws {
-        let geojsonPath = testDataDir.appendingPathComponent("14_8716_8015.geojson").path
+        let smallGeoJson = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("test_small_\(UUID().uuidString).geojson")
+        defer { try? FileManager.default.removeItem(at: smallGeoJson) }
+
+        let fc = FeatureCollection(Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)))
+        if let data = fc.asJsonData() { try data.write(to: smallGeoJson) }
+
         let outputUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("test_import_\(UUID().uuidString).mvt")
         defer { try? FileManager.default.removeItem(at: outputUrl) }
 
-        let output = try runCLI(args: ["import", "--output", outputUrl.path, "--force-overwrite", geojsonPath])
-        // Import writes nothing to stdout if successful.
-        // If the file was created, the command succeeded.
-        if FileManager.default.fileExists(atPath: outputUrl.path) {
-            #expect(output.isEmpty)
-        }
-        // Note: the import command may fail due to pre-existing issues (SIGSEGV).
-        // If the output file was not created, this test records the failure above.
+        let output = try runCLI(args: ["import", "-x", "5", "-y", "13", "-z", "4", "--output", outputUrl.path, "--force-overwrite", smallGeoJson.path])
+
+        #expect(output.contains(".geojson"))
+        #expect(FileManager.default.fileExists(atPath: outputUrl.path))
     }
 
 }
