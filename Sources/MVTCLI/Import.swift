@@ -5,6 +5,10 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that imports GeoJSON data into a new or existing vector tile.
+    ///
+    /// Supports layer filtering, output compression, feature simplification,
+    /// customizable buffer sizes, and appending to existing MVT files.
     struct Import: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(

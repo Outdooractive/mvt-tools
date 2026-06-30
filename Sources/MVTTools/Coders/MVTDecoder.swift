@@ -10,6 +10,12 @@ import Logging
 
 enum MVTDecoder {
 
+    /// Deserializes raw MVT protocol buffer data into a ``VectorTile_Tile``.
+    ///
+    /// Automatically decompresses gzipped input before deserializing.
+    ///
+    /// - Parameter mvtData: The raw MVT protobuf bytes, optionally gzip-compressed.
+    /// - Returns: A decoded ``VectorTile_Tile``, or `nil` if deserialization fails.
     static func vectorTile(from mvtData: Data) -> VectorTile_Tile? {
         var data = mvtData
         if data.isGzipped {
@@ -19,6 +25,22 @@ enum MVTDecoder {
         return try? VectorTile_Tile(serializedBytes: data)
     }
 
+    /// Decodes all layers from MVT data into ``VectorTile.LayerContainer`` values.
+    ///
+    /// This is the main entry point for reading a vector tile. It decompresses the data,
+    /// deserializes the protobuf, and parses each layer's features into the appropriate
+    /// projection.
+    ///
+    /// - Parameters:
+    ///   - mvtData: The raw MVT protobuf bytes.
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - projection: The target projection for coordinates (default: ``Projection/epsg4326``).
+    ///   - layerWhitelist: An optional set of layer names to include; `nil` includes all layers.
+    ///   - logger: An optional ``Logger`` for diagnostic messages.
+    /// - Returns: A dictionary mapping layer names to their ``VectorTile.LayerContainer``,
+    ///   or `nil` if the data could not be decoded.
     static func layers(
         from mvtData: Data,
         x: Int,
@@ -59,6 +81,8 @@ enum MVTDecoder {
                     projectionFunction = projectToEpsg3857(x: x, y: y, z: z, extent: extent)
                 case .epsg4326:
                     projectionFunction = projectToEpsg4326(x: x, y: y, z: z, extent: extent)
+                case .epsg4978:
+                    projectionFunction = projectToEpsg4978(x: x, y: y, z: z, extent: extent)
                 }
             }
 
@@ -84,6 +108,16 @@ enum MVTDecoder {
         return layers
     }
 
+    /// Parses a version-2 MVT layer into an array of ``Feature`` values.
+    ///
+    /// Decodes the protobuf geometry, extracts property key/value pairs, and assigns
+    /// a unique identifier to each feature.
+    ///
+    /// - Parameters:
+    ///   - layer: The protobuf ``VectorTile_Tile.Layer`` to parse.
+    ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
+    ///     ``Coordinate3D`` in the target projection.
+    /// - Returns: An array of decoded ``Feature`` values.
     static func parseVersion2(
         layer: VectorTile_Tile.Layer,
         projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
@@ -123,6 +157,13 @@ enum MVTDecoder {
         return layerFeatures
     }
 
+    /// Extracts the key and value arrays from a protobuf layer.
+    ///
+    /// Property values are converted from their protobuf representation to common Swift
+    /// types. JSON-encoded strings (arrays and dictionaries) are deserialized transparently.
+    ///
+    /// - Parameter layer: The protobuf layer to extract from.
+    /// - Returns: A tuple of parallel `keys` and `values` arrays.
     static func keysAndValues(
         forLayer layer: VectorTile_Tile.Layer
     ) -> (keys: [String], values: [Sendable]) {
@@ -176,6 +217,18 @@ enum MVTDecoder {
         return (keys, values)
     }
 
+    /// Converts raw geometry integers and a protobuf geometry type into a ``Feature``.
+    ///
+    /// Decodes the integer command stream into ``Coordinate3D`` values and constructs
+    /// the appropriate ``GISTools`` geometry (``Point``, ``MultiPoint``, ``LineString``,
+    /// ``MultiLineString``, ``Polygon``, or ``MultiPolygon``).
+    ///
+    /// - Parameters:
+    ///   - geometryIntegers: The raw protobuf geometry integer array.
+    ///   - featureType: The protobuf geometry type (point, linestring, polygon).
+    ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
+    ///     ``Coordinate3D`` in the target projection.
+    /// - Returns: A ``Feature`` with the decoded geometry, or `nil` if decoding fails.
     static func convertToLayerFeature(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
@@ -254,6 +307,17 @@ enum MVTDecoder {
     private static let commandIdLineTo: UInt32 = 2
     private static let commandIdClosePath: UInt32 = 7
 
+    /// Decodes a raw MVT geometry integer stream into an array of coordinate arrays.
+    ///
+    /// Interprets MoveTo, LineTo, and ClosePath commands using zigzag decoding and
+    /// applies the projection function to each coordinate.
+    ///
+    /// - Parameters:
+    ///   - geometryIntegers: The raw protobuf geometry integer array.
+    ///   - featureType: The protobuf geometry type (used to validate ClosePath).
+    ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
+    ///     ``Coordinate3D`` in the target projection.
+    /// - Returns: An array of coordinate rings, where each ring is an array of ``Coordinate3D``.
     static func multiCoordinatesFrom(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
@@ -329,6 +393,14 @@ enum MVTDecoder {
 
     // MARK: - Projections
 
+    /// Returns the tile-local (x, y) coordinates as a ``Coordinate3D`` without any projection.
+    ///
+    /// Used when the target projection is ``Projection/noSRID``.
+    ///
+    /// - Parameters:
+    ///   - x: The tile-local x coordinate.
+    ///   - y: The tile-local y coordinate.
+    /// - Returns: A ``Coordinate3D`` with the raw integer values in ``Projection/noSRID``.
     static func passThroughFromTile(
         x: Int,
         y: Int
@@ -336,6 +408,34 @@ enum MVTDecoder {
         Coordinate3D(x: Double(x), y: Double(y), projection: .noSRID)
     }
 
+    /// Returns a projection function that converts tile-local coordinates to EPSG:4978 (ECEF).
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps tile-local (x, y) integers to ``Coordinate3D`` in EPSG:4978.
+    static func projectToEpsg4978(
+        x: Int,
+        y: Int,
+        z: Int,
+        extent: Int
+    ) -> ((Int, Int) -> Coordinate3D) {
+        let projectedTo4326 = projectToEpsg4326(x: x, y: y, z: z, extent: extent)
+        return { (x, y) -> Coordinate3D in
+            projectedTo4326(x, y).projected(to: .epsg4978)
+        }
+    }
+
+    /// Returns a projection function that converts tile-local coordinates to EPSG:3857 (Web Mercator).
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps tile-local (x, y) integers to ``Coordinate3D`` in EPSG:3857.
     static func projectToEpsg3857(
         x: Int,
         y: Int,
@@ -357,6 +457,17 @@ enum MVTDecoder {
     }
 
     // Note: Need to project 4326 to 3857 first
+    /// Returns a projection function that converts tile-local coordinates to EPSG:4326 (WGS84).
+    ///
+    /// The conversion first projects from tile space to EPSG:3857, then re-projects to
+    /// EPSG:4326.
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps tile-local (x, y) integers to ``Coordinate3D`` in EPSG:4326.
     static func projectToEpsg4326(
         x: Int,
         y: Int,

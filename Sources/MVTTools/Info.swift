@@ -8,6 +8,17 @@ import GISTools
 
 extension VectorTile {
 
+    /// Summary statistics for a single layer in a vector tile.
+    ///
+    /// - Parameter name: The layer name.
+    /// - Parameter features: Total count of features in the layer.
+    /// - Parameter pointFeatures: Number of point or multi-point features.
+    /// - Parameter linestringFeatures: Number of line-string or multi-line-string features.
+    /// - Parameter polygonFeatures: Number of polygon or multi-polygon features.
+    /// - Parameter unknownFeatures: Number of features with an unrecognized geometry type.
+    /// - Parameter propertyNames: Dictionary mapping each property key to the number of features that use it.
+    /// - Parameter propertyValues: Dictionary mapping each property key to a dictionary of distinct values and their occurrence counts.
+    /// - Parameter version: The MVT layer version, if known.
     public struct LayerInfo {
         public let name: String
         public let features: Int
@@ -20,19 +31,27 @@ extension VectorTile {
         public let version: Int?
     }
 
-    /// Read a tile from `data` and return its layer names
+    /// Decode a raw MVT `Data` value and return the names of every layer it contains.
+    ///
+    /// - Parameter data: The raw MVT (Mapbox Vector Tile) data to decode.
+    /// - Returns: An array of layer name strings, or `nil` if the data could not be decoded.
     public static func layerNames(from data: Data) -> [String]? {
         guard let tile = MVTDecoder.vectorTile(from: data) else { return nil }
         return tile.layers.map { $0.name }
     }
 
-    /// Read a tile from `url` and return its layer names
+    /// Load a tile from the given file URL and return the names of every layer it contains.
+    ///
+    /// - Parameter url: A file URL pointing to an MVT file on disk.
+    /// - Returns: An array of layer name strings, or `nil` if the file could not be read or decoded.
     public static func layerNames(at url: URL) -> [String]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return layerNames(from: data)
     }
 
-    /// Information about the features in a tile, per layer.
+    /// Gather summary information about the features in each layer of this tile.
+    ///
+    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the tile has no layers.
     public func tileInfo() -> [LayerInfo]? {
         var result: [LayerInfo] = []
 
@@ -79,7 +98,13 @@ extension VectorTile {
         return result
     }
 
-    /// Read a tile from `data` and return some information about the tile per layer.
+    /// Decode a raw MVT `Data` value and gather summary information about each of its layers.
+    ///
+    /// Unlike the instance version of this method, the static variant works directly on raw data
+    /// without requiring a fully-initialized ``VectorTile``.
+    ///
+    /// - Parameter data: The raw MVT data to decode.
+    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
     public static func tileInfo(from data: Data) -> [LayerInfo]? {
         guard let tile = MVTDecoder.vectorTile(from: data) else { return nil }
 
@@ -133,7 +158,10 @@ extension VectorTile {
         return result
     }
 
-    /// Read a tile from `url` and return some information about the tile per layer.
+    /// Load a tile from the given file URL and gather summary information about each of its layers.
+    ///
+    /// - Parameter url: A file URL pointing to an MVT file on disk.
+    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the file could not be read or decoded.
     public static func tileInfo(at url: URL) -> [LayerInfo]? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return tileInfo(from: data)

@@ -4,6 +4,17 @@ import Foundation
 
 extension String {
 
+    /// Extracts capture groups from the string using the given regular
+    /// expression pattern.
+    ///
+    /// - Parameters:
+    ///   - pattern: A regular expression pattern to match against the string.
+    ///   - caseInsensitive: If `true`, the pattern matching is case-insensitive.
+    ///   - treatAsOneLine: If `true`, the `.` metacharacter matches line
+    ///     separators as well.
+    /// - Returns: An array of strings representing the captured groups from
+    ///   all matches. Returns an empty array if the pattern is invalid or no
+    ///   matches are found.
     func extractingGroupsUsingPattern(
         _ pattern: String,
         caseInsensitive: Bool = false,

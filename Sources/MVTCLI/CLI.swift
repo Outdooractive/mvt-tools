@@ -3,9 +3,14 @@ import Foundation
 import Logging
 import MVTTools
 
+/// The main entry point for the `mvt` command line tool.
+///
+/// Provides subcommands for inspecting, converting, and working with
+/// Mapbox Vector Tiles (MVT) and GeoJSON files.
 @main
 struct CLI: AsyncParsableCommand {
 
+    /// A shared logger instance used by CLI commands when verbose mode is enabled.
     static let logger = Logger(label: "mvt")
 
     static let configuration = CommandConfiguration(
@@ -33,14 +38,23 @@ struct CLI: AsyncParsableCommand {
 
 }
 
+/// An error type used to represent recoverable CLI operation failures.
 struct CLIError: LocalizedError {
+
+    /// A human-readable description of the error.
     let errorDescription: String?
 
+    /// Creates a CLI error with the given description.
+    /// - Parameter errorDescription: A description of the error.
     init(_ errorDescription: String) {
         self.errorDescription = errorDescription
     }
 }
 
+/// Parsable arguments that capture optional x, y, and z tile coordinates.
+///
+/// Coordinates can be supplied directly via `--x`, `--y`, `--z` options, or
+/// extracted automatically from file paths or URLs using `parseXYZ(fromPaths:)`.
 struct XYZOptions: ParsableArguments {
 
     @Option(
@@ -58,8 +72,19 @@ struct XYZOptions: ParsableArguments {
         help: "Tile zoom level, if it can't be extracted from the path.")
     var z: Int?
 
-    /// Try to extract x, y and z tile coordinates from some file paths or URLs,
-    /// if the were not given on the command line
+    /// Extracts x, y, and z tile coordinates from file paths or URLs when
+    /// they were not provided explicitly on the command line.
+    ///
+    /// This method searches each path for patterns like `/z/x/y` or `z_x_y`
+    /// and fills in any missing coordinate values. If coordinates are still
+    /// missing after scanning all paths, validation is performed to ensure
+    /// they are within valid tile range for the given zoom level.
+    ///
+    /// - Parameter paths: An array of file paths or URLs to scan for tile
+    ///   coordinate patterns.
+    /// - Returns: A tuple `(x, y, z)` of validated tile coordinates.
+    /// - Throws: `CLIError` if coordinates cannot be determined or are
+    ///   outside the valid range for the given zoom level.
     mutating func parseXYZ(
         fromPaths paths: [String]
     ) throws -> (x: Int, y: Int, z: Int) {
@@ -112,6 +137,10 @@ struct XYZOptions: ParsableArguments {
 
 }
 
+/// Parsable arguments shared across CLI subcommands.
+///
+/// Provides common options such as `--verbose` and a helper for parsing
+/// file or URL paths.
 struct Options: ParsableArguments {
 
     @Flag(
@@ -119,6 +148,17 @@ struct Options: ParsableArguments {
         help: "Print some debug info.")
     var verbose = false
 
+    /// Parses a path string into a `URL`, handling both remote URLs and
+    /// local file paths.
+    ///
+    /// - Parameters:
+    ///   - path: A string containing either an HTTP/HTTPS URL or a local
+    ///     file path.
+    ///   - checkPathExistence: When `true` (the default), verifies that a
+    ///     local file path refers to an existing resource.
+    /// - Returns: A `URL` representing the parsed location.
+    /// - Throws: `CLIError` if the URL is malformed or the file does not
+    ///   exist (when `checkPathExistence` is `true`).
     func parseUrl(
         fromPath path: String,
         checkPathExistence: Bool = true

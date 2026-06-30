@@ -6,21 +6,26 @@ import GISTools
 
 extension VectorTile {
 
+    /// A single search result pairing the layer name with a matching feature.
     public typealias QueryResult = (
         layerName: String,
         feature: Feature)
 
+    /// Results for a multi-coordinate query, grouping the feature identifiers found at each coordinate.
     public typealias QueryManyResult = (
         coordinate: Coordinate3D,
         results: [QueryManyLayerAndId])
 
+    /// Identifies a single feature within a ``QueryManyResult`` by its layer name and feature identifier.
     public typealias QueryManyLayerAndId = (
         layerName: String,
         featureId: Feature.Identifier)
 
     // MARK: - Indexing
 
-    /// Create an R-Tree index on this tile for faster querying
+    /// Create an R-Tree spatial index on every layer of this tile to accelerate subsequent bounding-box queries.
+    ///
+    /// - Parameter sortOption: The sort heuristic used during R-Tree construction (default: `.hilbert`).
     public mutating func createIndex(sortOption: RTreeSortOption = .hilbert) {
         for layerName in layerNames {
             guard var layerContainer = layers[layerName],
@@ -37,7 +42,16 @@ extension VectorTile {
 
     // MARK: - Searching
 
-    /// Search for `term` in feature properties
+    /// Search for features whose properties match `term`.
+    ///
+    /// When `term` contains special characters (e.g. `=`, `>`, `<`, `LIKE`, `AND`, `OR`, `NOT`),
+    /// it is parsed using the built-in query DSL. Otherwise a simple case-insensitive substring
+    /// match is performed against every string-valued property.
+    ///
+    /// - Parameter term: The search term or query DSL expression.
+    /// - Parameter layerName: If provided, only features in this layer are searched.
+    /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
+    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
     public func query(
         term: String,
         layerName: String? = nil,
@@ -86,10 +100,18 @@ extension VectorTile {
         return result
     }
 
-    /// Search for content in this tile around `coordinate`
+    /// Search for features near `coordinate` within the given `tolerance`.
     ///
-    /// Note: The meaning of *tolerance* depends on the projection.
-    /// For *epsg3857* and *epsg4326*, it will be meters. For *tile*, it's a value in the tile's coordinate space.
+    /// The search uses a bounding box centered on `coordinate` and expanded by `tolerance`.
+    ///
+    /// - Note: The meaning of *tolerance* depends on the projection.
+    ///   For `epsg3857` and `epsg4326` it is in meters. For `noSRID` it is in the tile's coordinate space.
+    ///
+    /// - Parameter coordinate: The center point of the search.
+    /// - Parameter tolerance: The search radius around `coordinate`.
+    /// - Parameter layerName: If provided, only this layer is searched.
+    /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
+    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
     public func query(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
@@ -107,7 +129,14 @@ extension VectorTile {
             featureFilter: featureFilter)
     }
 
-    /// Search for content in this tile inside of `queryBoundingBox`
+    /// Search for features that intersect `queryBoundingBox`.
+    ///
+    /// Uses the R-Tree spatial index when available; otherwise performs a linear scan.
+    ///
+    /// - Parameter queryBoundingBox: The bounding box to test for intersection.
+    /// - Parameter layerName: If provided, only this layer is searched.
+    /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
+    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
     public func query(
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
@@ -153,10 +182,17 @@ extension VectorTile {
         return result
     }
 
-    /// Search for content in this tile at `coordinates`
+    /// Search for features near multiple `coordinates` within the given `tolerance`.
     ///
-    /// Note: The meaning of *tolerance* depends on the projection.
-    /// For *epsg3857* and *epsg4326*, it will be meters. For *tile*, it's a value in the tile's coordinate space.
+    /// - Note: The meaning of *tolerance* depends on the projection.
+    ///   For `epsg3857` and `epsg4326` it is in meters. For `noSRID` it is in the tile's coordinate space.
+    ///
+    /// - Parameter coordinates: An array of center points to search around.
+    /// - Parameter tolerance: The search radius applied to every coordinate.
+    /// - Parameter layerName: If provided, only this layer is searched.
+    /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
+    /// - Parameter includeDuplicates: When `false`, a feature is only reported once even if it matches multiple coordinates.
+    /// - Returns: A tuple containing a deduplicated `features` dictionary and a `results` array mapping each coordinate to its matching feature identifiers.
     public func queryMany(
         at coordinates: [Coordinate3D],
         tolerance: CLLocationDistance,
@@ -188,7 +224,7 @@ extension VectorTile {
                 guard let layerFeatureContainer = layers[layerName],
                       let boundingBox = layerFeatureContainer.boundingBox,
                       boundingBox.intersects(queryBoundingBox)
-                else { break }
+                else { continue }
 
                 let resultFeatures: [Feature] = if let rTree = layerFeatureContainer.rTree {
                     // The search will only return features that intersect with the bounding box
@@ -233,6 +269,12 @@ extension VectorTile {
         return (features: features, results: results)
     }
 
+    /// Compute a bounding box centred on `coordinate` and expanded by `tolerance`.
+    ///
+    /// - Parameter coordinate: The centre point.
+    /// - Parameter tolerance: The distance to extend in each direction.
+    /// - Parameter projection: The projection of `coordinate`; determines how `tolerance` is interpreted.
+    /// - Returns: A bounding box centred on `coordinate` with the requested padding.
     static func queryBoundingBox(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
@@ -254,7 +296,7 @@ extension VectorTile {
                         projection: projection),
                 ])!
 
-        case .epsg3857, .epsg4326:
+        case .epsg3857, .epsg4326, .epsg4978:
             return BoundingBox(
                 coordinates: [
                     Coordinate3D(

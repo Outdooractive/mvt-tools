@@ -4,6 +4,7 @@ import Foundation
 
 extension Float {
 
+    /// The floating-point value converted to `Double`.
     var asDouble: Double { Double(self) }
 
 }

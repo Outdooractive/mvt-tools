@@ -4,6 +4,11 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that prints the contents of a vector tile or GeoJSON file
+    /// as pretty-printed GeoJSON to the console.
+    ///
+    /// Supports layer filtering, output simplification, and control over
+    /// the GeoJSON layer property name.
     struct Dump: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(

@@ -7,14 +7,14 @@ struct QueryParserTests {
     private static let properties: [String: Sendable] = [
         "foo": [
             "bar": 1,
-            "baz": UInt8(10)
+            "baz": UInt8(10),
         ],
         "some": [
             "a",
             "b",
         ],
         "value": 1,
-        "string": "Some name"
+        "string": "Some name",
     ]
 
     private func result(for pipeline: [QueryParser.Expression]) -> Bool {
@@ -27,8 +27,9 @@ struct QueryParserTests {
         QueryParser(string: query)?.pipeline ?? []
     }
 
+    /// Tests value access expressions: `.key`, `.key.subkey`, array index, and missing keys.
     @Test
-    func values() async throws {
+    func values() {
         #expect(result(for: [.value([.key("foo")])]))
         #expect(result(for: [.value([.key("foo"), .key("bar")])]))
         #expect(result(for: [.value([.key("foo"), .key("x")])]) == false)
@@ -37,15 +38,17 @@ struct QueryParserTests {
         #expect(result(for: [.value([.key("some"), .index(0)])]))
     }
 
+    /// Tests parsing the `near(lat, lon, tolerance)` expression.
     @Test
-    func near() async throws {
+    func near() {
         #expect(pipeline(for: "near(10.0, 20.0, 1000)") == [
             .near(Coordinate3D(latitude: 10.0, longitude: 20.0), 1000.0),
         ])
     }
 
+    /// Tests comparison operators: `==`, `!=`, `>`, `>=`, `<`, `<=`, and `=~` (regex).
     @Test
-    func comparisons() async throws {
+    func comparisons() {
         #expect(result(for: [.value([.key("value")]), .literal("bar"), .comparison(.equals)]) == false)
         #expect(result(for: [.value([.key("value")]), .literal(1), .comparison(.equals)]))
         #expect(result(for: [.value([.key("value")]), .literal(1.0), .comparison(.equals)]))
@@ -64,8 +67,9 @@ struct QueryParserTests {
         #expect(result(for: [.value([.key("string")]), .literal("/^some/i"), .comparison(.regex)]))
     }
 
+    /// Tests logical conditions: `and`, `or`, `not` in various combinations.
     @Test
-    func conditions() async throws {
+    func conditions() {
         #expect(result(for: [
             .value([.key("foo"), .key("bar")]),
             .literal(1),
@@ -131,8 +135,9 @@ struct QueryParserTests {
         ]))
     }
 
+    /// Tests parsing dot-notation value expressions.
     @Test
-    func valueQueries() async throws {
+    func valueQueries() {
         #expect(pipeline(for: ".foo") == [.value([.key("foo")])])
         #expect(pipeline(for: ".foo.bar") == [.value([.key("foo"), .key("bar")])])
         #expect(pipeline(for: ".foo.x") == [.value([.key("foo"), .key("x")])])
@@ -142,8 +147,9 @@ struct QueryParserTests {
         #expect(pipeline(for: ".some.0") == [.value([.key("some"), .index(0)])])
     }
 
+    /// Tests parsing comparison expressions (`==`, `!=`, `>`, `>=`, `<`, `<=`, `=~`).
     @Test
-    func comparisonQueries() async throws {
+    func comparisonQueries() {
         #expect(pipeline(for: ".value == \"bar\"") == [.value([.key("value")]), .literal("bar"), .comparison(.equals)])
         #expect(pipeline(for: ".value == 'bar'") == [.value([.key("value")]), .literal("bar"), .comparison(.equals)])
         #expect(pipeline(for: ".value == 'bar\"baz'") == [.value([.key("value")]), .literal("bar\"baz"), .comparison(.equals)])
@@ -161,8 +167,9 @@ struct QueryParserTests {
         #expect(pipeline(for: ".string =~ \"^Some\"") == [.value([.key("string")]), .literal("^Some"), .comparison(.regex)])
     }
 
+    /// Tests parsing logical condition expressions (`and`, `or`, `not`).
     @Test
-    func conditionQueries() async throws {
+    func conditionQueries() {
         #expect(pipeline(for: ".foo.bar == 1 and .value == 1") == [
                 .value([.key("foo"), .key("bar")]),
                 .literal(1),
@@ -215,6 +222,19 @@ struct QueryParserTests {
             .literal("not"),
             .comparison(.equals),
         ])
+    }
+
+    /// Tests query parser returns a search expression even for empty/whitespace strings.
+    @Test
+    func emptyQueryParsesToSearchValues() throws {
+        let emptyParser = try #require(QueryParser(string: ""))
+        if case .searchValues("") = try #require(emptyParser.pipeline?.first) {
+            // expected: empty string becomes searchValues
+        }
+        else {
+            Issue.record("Expected searchValues for empty query")
+        }
+
     }
 
 }

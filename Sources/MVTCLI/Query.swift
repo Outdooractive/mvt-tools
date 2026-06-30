@@ -9,6 +9,10 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that queries features in a vector tile or GeoJSON file.
+    ///
+    /// Supports spatial queries (by coordinate and tolerance) and text-based
+    /// queries (by search term), with output to a file or the console.
     struct Query: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
@@ -249,6 +253,17 @@ extension CLI {
             }
         }
 
+        /// Queries features in a tile by spatial proximity to a coordinate.
+        ///
+        /// - Parameters:
+        ///   - coordinate: The center point to search around.
+        ///   - tolerance: The search radius in meters.
+        ///   - layerName: An optional layer name to restrict the search to.
+        ///   - layerProperty: The property name to store the layer name in
+        ///     each returned feature.
+        ///   - tile: The tile to search.
+        /// - Returns: A ``FeatureCollection`` of matching features, or `nil`
+        ///   if no features were found.
         private func search(
             around coordinate: Coordinate3D,
             tolerance: CLLocationDistance,
@@ -267,6 +282,16 @@ extension CLI {
             return FeatureCollection(features)
         }
 
+        /// Queries features in a tile by a text search term.
+        ///
+        /// - Parameters:
+        ///   - term: The text to search for in feature properties.
+        ///   - layerName: An optional layer name to restrict the search to.
+        ///   - layerProperty: The property name to store the layer name in
+        ///     each returned feature.
+        ///   - tile: The tile to search.
+        /// - Returns: A ``FeatureCollection`` of matching features, or `nil`
+        ///   if no features were found.
         private func search(
             term: String,
             layerName: String? = nil,

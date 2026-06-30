@@ -4,6 +4,7 @@ import Foundation
 
 extension Array {
 
+    /// A Boolean value indicating whether the collection is not empty.
     var isNotEmpty: Bool { !isEmpty }
 
     /// Adds a new element at the end of the array if it's not *nil*.
@@ -45,6 +46,12 @@ extension Array {
 
     // MARK: -
 
+    /// Partitions the array elements into groups by a string key and invokes a handler
+    /// for each group.
+    ///
+    /// - Parameters:
+    ///   - keyLookup: A closure that returns an optional key string for each element.
+    ///   - onKey: A closure that receives each key and the array of elements sharing that key.
     func divided(
         byKey keyLookup: (Element) -> (String?),
         onKey: (String, [Element]) -> Void
