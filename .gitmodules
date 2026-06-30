@@ -1,0 +1,3 @@
+[submodule "Dependencies/maplibre-tile-spec"]
+	path = Dependencies/maplibre-tile-spec
+	url = https://github.com/maplibre/maplibre-tile-spec

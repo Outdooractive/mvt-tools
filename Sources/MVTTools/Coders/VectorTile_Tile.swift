@@ -15,12 +15,12 @@ import SwiftProtobuf
 // incompatible with the version of SwiftProtobuf to which you are linking.
 // Please ensure that you are building against the same version of the API
 // that was used to generate this file.
-fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAPIVersionCheck {
+fileprivate nonisolated struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAPIVersionCheck {
   struct _2: SwiftProtobuf.ProtobufAPIVersion_2 {}
   typealias Version = _2
 }
 
-struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
+nonisolated struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -30,7 +30,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   /// GeomType is described in section 4.3.4 of the specification
-  enum GeomType: Int, SwiftProtobuf.Enum, Swift.CaseIterable {
+  nonisolated enum GeomType: Int, SwiftProtobuf.Enum, Swift.CaseIterable {
     case unknown = 0
     case point = 1
     case linestring = 2
@@ -44,72 +44,72 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
 
   /// Variant type encoding
   /// The use of values is described in section 4.1 of the specification
-  struct Value: SwiftProtobuf.ExtensibleMessage, Sendable {
+  nonisolated struct Value: SwiftProtobuf.ExtensibleMessage, Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
     /// Exactly one of these values must be present in a valid message
     var stringValue: String {
-      get {return _stringValue ?? String()}
+      get {_stringValue ?? String()}
       set {_stringValue = newValue}
     }
     /// Returns true if `stringValue` has been explicitly set.
-    var hasStringValue: Bool {return self._stringValue != nil}
+    var hasStringValue: Bool {self._stringValue != nil}
     /// Clears the value of `stringValue`. Subsequent reads from it will return its default value.
     mutating func clearStringValue() {self._stringValue = nil}
 
     var floatValue: Float {
-      get {return _floatValue ?? 0}
+      get {_floatValue ?? 0}
       set {_floatValue = newValue}
     }
     /// Returns true if `floatValue` has been explicitly set.
-    var hasFloatValue: Bool {return self._floatValue != nil}
+    var hasFloatValue: Bool {self._floatValue != nil}
     /// Clears the value of `floatValue`. Subsequent reads from it will return its default value.
     mutating func clearFloatValue() {self._floatValue = nil}
 
     var doubleValue: Double {
-      get {return _doubleValue ?? 0}
+      get {_doubleValue ?? 0}
       set {_doubleValue = newValue}
     }
     /// Returns true if `doubleValue` has been explicitly set.
-    var hasDoubleValue: Bool {return self._doubleValue != nil}
+    var hasDoubleValue: Bool {self._doubleValue != nil}
     /// Clears the value of `doubleValue`. Subsequent reads from it will return its default value.
     mutating func clearDoubleValue() {self._doubleValue = nil}
 
     var intValue: Int64 {
-      get {return _intValue ?? 0}
+      get {_intValue ?? 0}
       set {_intValue = newValue}
     }
     /// Returns true if `intValue` has been explicitly set.
-    var hasIntValue: Bool {return self._intValue != nil}
+    var hasIntValue: Bool {self._intValue != nil}
     /// Clears the value of `intValue`. Subsequent reads from it will return its default value.
     mutating func clearIntValue() {self._intValue = nil}
 
     var uintValue: UInt64 {
-      get {return _uintValue ?? 0}
+      get {_uintValue ?? 0}
       set {_uintValue = newValue}
     }
     /// Returns true if `uintValue` has been explicitly set.
-    var hasUintValue: Bool {return self._uintValue != nil}
+    var hasUintValue: Bool {self._uintValue != nil}
     /// Clears the value of `uintValue`. Subsequent reads from it will return its default value.
     mutating func clearUintValue() {self._uintValue = nil}
 
     var sintValue: Int64 {
-      get {return _sintValue ?? 0}
+      get {_sintValue ?? 0}
       set {_sintValue = newValue}
     }
     /// Returns true if `sintValue` has been explicitly set.
-    var hasSintValue: Bool {return self._sintValue != nil}
+    var hasSintValue: Bool {self._sintValue != nil}
     /// Clears the value of `sintValue`. Subsequent reads from it will return its default value.
     mutating func clearSintValue() {self._sintValue = nil}
 
     var boolValue: Bool {
-      get {return _boolValue ?? false}
+      get {_boolValue ?? false}
       set {_boolValue = newValue}
     }
     /// Returns true if `boolValue` has been explicitly set.
-    var hasBoolValue: Bool {return self._boolValue != nil}
+    var hasBoolValue: Bool {self._boolValue != nil}
     /// Clears the value of `boolValue`. Subsequent reads from it will return its default value.
     mutating func clearBoolValue() {self._boolValue = nil}
 
@@ -128,17 +128,17 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
   }
 
   /// Features are described in section 4.2 of the specification
-  struct Feature: Sendable {
+  nonisolated struct Feature: Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
 
     var id: UInt64 {
-      get {return _id ?? 0}
+      get {_id ?? 0}
       set {_id = newValue}
     }
     /// Returns true if `id` has been explicitly set.
-    var hasID: Bool {return self._id != nil}
+    var hasID: Bool {self._id != nil}
     /// Clears the value of `id`. Subsequent reads from it will return its default value.
     mutating func clearID() {self._id = nil}
 
@@ -150,11 +150,11 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
 
     /// The type of geometry stored in this feature.
     var type: VectorTile_Tile.GeomType {
-      get {return _type ?? .unknown}
+      get {_type ?? .unknown}
       set {_type = newValue}
     }
     /// Returns true if `type` has been explicitly set.
-    var hasType: Bool {return self._type != nil}
+    var hasType: Bool {self._type != nil}
     /// Clears the value of `type`. Subsequent reads from it will return its default value.
     mutating func clearType() {self._type = nil}
 
@@ -172,7 +172,7 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
   }
 
   /// Layers are described in section 4.1 of the specification
-  struct Layer: SwiftProtobuf.ExtensibleMessage, Sendable {
+  nonisolated struct Layer: SwiftProtobuf.ExtensibleMessage, Sendable {
     // SwiftProtobuf.Message conformance is added in an extension below. See the
     // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
     // methods supported on all messages.
@@ -182,20 +182,20 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
     /// implementation for this version number before proceeding to
     /// decode other parts of this message.
     var version: UInt32 {
-      get {return _version ?? 1}
+      get {_version ?? 1}
       set {_version = newValue}
     }
     /// Returns true if `version` has been explicitly set.
-    var hasVersion: Bool {return self._version != nil}
+    var hasVersion: Bool {self._version != nil}
     /// Clears the value of `version`. Subsequent reads from it will return its default value.
     mutating func clearVersion() {self._version = nil}
 
     var name: String {
-      get {return _name ?? String()}
+      get {_name ?? String()}
       set {_name = newValue}
     }
     /// Returns true if `name` has been explicitly set.
-    var hasName: Bool {return self._name != nil}
+    var hasName: Bool {self._name != nil}
     /// Clears the value of `name`. Subsequent reads from it will return its default value.
     mutating func clearName() {self._name = nil}
 
@@ -211,11 +211,11 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
     /// Although this is an "optional" field it is required by the specification.
     /// See https://github.com/mapbox/vector-tile-spec/issues/47
     var extent: UInt32 {
-      get {return _extent ?? 4096}
+      get {_extent ?? 4096}
       set {_extent = newValue}
     }
     /// Returns true if `extent` has been explicitly set.
-    var hasExtent: Bool {return self._extent != nil}
+    var hasExtent: Bool {self._extent != nil}
     /// Clears the value of `extent`. Subsequent reads from it will return its default value.
     mutating func clearExtent() {self._extent = nil}
 
@@ -236,9 +236,9 @@ struct VectorTile_Tile: SwiftProtobuf.ExtensibleMessage, Sendable {
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "vector_tile"
+fileprivate nonisolated let _protobuf_package = "vector_tile"
 
-extension VectorTile_Tile: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+nonisolated extension VectorTile_Tile: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".Tile"
   static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\u{3}layers\0")
 
@@ -278,11 +278,11 @@ extension VectorTile_Tile: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
   }
 }
 
-extension VectorTile_Tile.GeomType: SwiftProtobuf._ProtoNameProviding {
+nonisolated extension VectorTile_Tile.GeomType: SwiftProtobuf._ProtoNameProviding {
   static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{2}\0UNKNOWN\0\u{1}POINT\0\u{1}LINESTRING\0\u{1}POLYGON\0")
 }
 
-extension VectorTile_Tile.Value: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+nonisolated extension VectorTile_Tile.Value: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = VectorTile_Tile.protoMessageName + ".Value"
   static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}string_value\0\u{3}float_value\0\u{3}double_value\0\u{3}int_value\0\u{3}uint_value\0\u{3}sint_value\0\u{3}bool_value\0")
 
@@ -355,7 +355,7 @@ extension VectorTile_Tile.Value: SwiftProtobuf.Message, SwiftProtobuf._MessageIm
   }
 }
 
-extension VectorTile_Tile.Feature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+nonisolated extension VectorTile_Tile.Feature: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = VectorTile_Tile.protoMessageName + ".Feature"
   static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}id\0\u{1}tags\0\u{1}type\0\u{1}geometry\0")
 
@@ -404,7 +404,7 @@ extension VectorTile_Tile.Feature: SwiftProtobuf.Message, SwiftProtobuf._Message
   }
 }
 
-extension VectorTile_Tile.Layer: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+nonisolated extension VectorTile_Tile.Layer: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = VectorTile_Tile.protoMessageName + ".Layer"
   static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}name\0\u{1}features\0\u{1}keys\0\u{1}values\0\u{1}extent\0\u{2}\u{a}version\0")
 
