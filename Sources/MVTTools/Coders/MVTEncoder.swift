@@ -10,6 +10,21 @@ import Gzip
 
 enum MVTEncoder {
 
+    /// Encodes layers into MVT protocol buffer data, with optional clipping, simplification,
+    /// buffering, and compression.
+    ///
+    /// This is the main entry point for writing a vector tile. It projects each feature's
+    /// coordinates, optionally clips and simplifies them, serializes to protobuf, and
+    /// applies gzip compression if requested.
+    ///
+    /// - Parameters:
+    ///   - layers: A dictionary of layer names to their ``VectorTile.LayerContainer``.
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - projection: The source projection of the input coordinates (default: ``Projection/epsg4326``).
+    ///   - options: Export options controlling buffer size, simplification, and compression.
+    /// - Returns: The serialized MVT protobuf bytes (optionally gzip-compressed), or `nil` on failure.
     static func mvtDataFor(
         layers: [String: VectorTile.LayerContainer],
         x: Int,
@@ -33,6 +48,9 @@ enum MVTEncoder {
         case .epsg4326:
             projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
             clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
+        case .epsg4978:
+            projectionFunction = projectFromEpsg4978(x: x, y: y, z: z, extent: Int(extent))
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4978)
         }
 
         var bufferSize = 0
@@ -113,6 +131,17 @@ enum MVTEncoder {
         }
     }
 
+    /// Encodes a collection of ``Feature`` values into a version-2 protobuf layer.
+    ///
+    /// Deduplicates property keys and values across features and assigns them
+    /// integer indices in the layer's key/value tables.
+    ///
+    /// - Parameters:
+    ///   - features: The features to encode.
+    ///   - extent: The tile extent value for the layer.
+    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///     (x, y) integers.
+    /// - Returns: A ``VectorTile_Tile.Layer`` populated with the encoded features, keys, and values.
     static func encodeVersion2(
         features: [Feature],
         extent: UInt32,
@@ -209,6 +238,17 @@ enum MVTEncoder {
         return layer
     }
 
+    /// Converts a ``Feature`` into a ``VectorTile_Tile.Feature`` with encoded geometry.
+    ///
+    /// Handles all geometry types: ``Point``, ``MultiPoint``, ``LineString``,
+    /// ``MultiLineString``, ``Polygon``, and ``MultiPolygon``.
+    ///
+    /// - Parameters:
+    ///   - feature: The source feature to encode.
+    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///     (x, y) integers.
+    /// - Returns: A protobuf feature with geometry integers, or `nil` if the geometry
+    ///   type is unsupported.
     static func vectorTileFeature(
         from feature: Feature,
         projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
@@ -285,6 +325,17 @@ enum MVTEncoder {
     private static let commandIdLineTo: UInt32 = 2
     private static let commandIdClosePath: UInt32 = 7
 
+    /// Encodes coordinate arrays into an MVT geometry integer stream using zigzag encoding.
+    ///
+    /// Produces MoveTo, LineTo, and ClosePath commands appropriate for the geometry type.
+    /// Polygon rings are automatically closed with a ClosePath command.
+    ///
+    /// - Parameters:
+    ///   - multiCoordinates: An array of coordinate rings to encode.
+    ///   - featureType: The protobuf geometry type (point, linestring, polygon).
+    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///     (x, y) integers.
+    /// - Returns: An array of encoded geometry integers, or `nil` if the input is invalid.
     static func geometryIntegers(
         fromMultiCoordinates multiCoordinates: [[Coordinate3D]],
         ofType featureType: VectorTile_Tile.GeomType,
@@ -386,12 +437,27 @@ enum MVTEncoder {
 
     // MARK: - Projections
 
+    /// Returns a projection function that passes coordinate values through as-is.
+    ///
+    /// Used when the source projection is ``Projection/noSRID``.
+    ///
+    /// - Returns: A closure that converts a ``Coordinate3D`` to tile-local (x, y) integers
+    ///   by truncating the coordinate values.
     static func passThroughToTile() -> ((Coordinate3D) -> (x: Int, y: Int)) {
         { (coordinate) -> (Int, Int) in
             (x: Int(coordinate.x), y: Int(coordinate.y))
         }
     }
 
+    /// Returns a projection function that converts EPSG:3857 (Web Mercator) coordinates
+    /// to tile-local integer values.
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:3857 to tile-local (x, y) integers.
     static func projectFromEpsg3857(
         x: Int,
         y: Int,
@@ -412,6 +478,40 @@ enum MVTEncoder {
         }
     }
 
+    /// Returns a projection function that converts EPSG:4978 (ECEF) coordinates
+    /// to tile-local integer values.
+    ///
+    /// The conversion first re-projects from EPSG:4978 to EPSG:4326, then to tile space.
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:4978 to tile-local (x, y) integers.
+    static func projectFromEpsg4978(
+        x: Int,
+        y: Int,
+        z: Int,
+        extent: Int
+    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
+        let projectedFrom4326 = projectFromEpsg4326(x: x, y: y, z: z, extent: extent)
+        return { (coordinate) -> (Int, Int) in
+            projectedFrom4326(coordinate.projected(to: .epsg4326))
+        }
+    }
+
+    /// Returns a projection function that converts EPSG:4326 (WGS84) coordinates
+    /// to tile-local integer values.
+    ///
+    /// The conversion first re-projects from EPSG:4326 to EPSG:3857, then maps into tile space.
+    ///
+    /// - Parameters:
+    ///   - x: The tile column index.
+    ///   - y: The tile row index.
+    ///   - z: The tile zoom level.
+    ///   - extent: The tile extent in pixels.
+    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:4326 to tile-local (x, y) integers.
     static func projectFromEpsg4326(
         x: Int,
         y: Int,

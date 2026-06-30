@@ -4,11 +4,22 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that merges multiple vector tiles or GeoJSON files into one.
+    ///
+    /// Supports both MVT and GeoJSON input and output, with layer filtering,
+    /// output compression, feature simplification, and customizable buffer sizes.
     struct Merge: AsyncParsableCommand {
 
+        /// The output format for the merged result.
         enum OutputFormat: String, ExpressibleByArgument {
+
+            /// Automatically detect the format from the output file extension or input data.
             case auto
+
+            /// Output in GeoJSON format.
             case geojson
+
+            /// Output in MVT (Mapbox Vector Tile) format.
             case mvt
         }
 
@@ -348,7 +359,7 @@ extension CLI {
                 layerProperty: disableOutputLayerProperty ? nil : propertyName,
                 options: exportOptions)
             {
-                print(resultGeoJson, terminator: "")
+                print(String(data: resultGeoJson, encoding: .utf8) ?? "", terminator: "")
                 print()
             }
 

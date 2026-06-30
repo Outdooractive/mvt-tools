@@ -1,44 +1,101 @@
 import Foundation
 import GISTools
 
+/// A parser and evaluator for a Reverse Polish Notation (RPN) query DSL
+/// used to filter vector tile features by their properties and location.
+///
+/// The query string syntax supports:
+/// - Literal values (strings, numbers) for full-text search across all properties
+/// - Property path access via ``.``-separated keys and ``[index]`` subscripts
+/// - Comparisons: ``==``, ``!=``, ``>``, ``>=``, ``<``, ``<=``, ``=~`` (regex)
+/// - Boolean operators: ``and``, ``or``, ``not``
+/// - Spatial filter: ``near(lat,lon,tolerance)``
+///
+/// Example query: ``"highway == primary and name =~ '^Main'"``
 public struct QueryParser {
 
+    /// A token in the RPN expression pipeline, representing a comparison,
+    /// condition, literal value, spatial predicate, full-text search, or
+    /// a property/array-element value reference.
     public enum Expression: Equatable {
-        // Comparisons
+
+        /// A comparison operator between two values.
         public enum Comparison: Equatable {
+
+            /// Equal to (``==``).
             case equals
+
+            /// Not equal to (``!=``).
             case notEquals
+
+            /// Greater than (``>``).
             case greaterThan
+
+            /// Greater than or equal to (``>=``).
             case greaterThanOrEqual
+
+            /// Less than (``<``).
             case lessThan
+
+            /// Less than or equal to (``<=``).
             case lessThanOrEqual
+
+            /// Regular expression match (``=~``).
             case regex
         }
 
-        // Conditions
+        /// A boolean condition joining expressions.
         public enum Condition: Equatable {
+
+            /// Logical AND.
             case and
+
+            /// Logical OR.
             case or
+
+            /// Logical NOT.
             case not
         }
 
-        // Key or index
+        /// A key path segment or array index used to reference property values.
         public enum KeyOrIndex: Equatable {
+
+            /// A dictionary key.
             case key(String)
+
+            /// An array index.
             case index(Int)
         }
 
+        /// A comparison operator token.
         case comparison(Comparison)
+
+        /// A boolean condition token.
         case condition(Condition)
+
+        /// A literal value token.
         case literal(AnyHashable)
+
+        /// A spatial proximity predicate: ``near(latitude, longitude, tolerance)``.
         case near(Coordinate3D, Double)
+
+        /// A full-text search token that matches any property value.
         case searchValues(String)
+
+        /// A property value reference, composed of key path segments and/or
+        /// array indices (e.g. ``.properties.name``, ``.tags[0]``).
         case value([KeyOrIndex])
     }
 
     private let reader: Reader?
     private(set) var pipeline: [Expression]?
 
+    /// Creates a parser by tokenizing the given query string.
+    ///
+    /// Returns `nil` if the string cannot be parsed into a valid expression
+    /// pipeline.
+    ///
+    /// - Parameter string: A query string in the RPN-based DSL.
     public init?(string: String) {
         self.reader = Reader(characters: Array(string.utf8))
 
@@ -47,12 +104,28 @@ public struct QueryParser {
         }
     }
 
+    /// Creates a parser with a pre-built expression pipeline, skipping
+    /// string parsing.
+    ///
+    /// - Parameter pipeline: An ordered array of ``Expression`` tokens in
+    ///   Reverse Polish Notation.
     public init(pipeline: [Expression]) {
         self.reader = nil
         self.pipeline = pipeline
     }
 
-    // Works in a reverse polish notation
+    /// Evaluates the expression pipeline against the given feature properties
+    /// and, optionally, a feature coordinate.
+    ///
+    /// The pipeline is evaluated as a stack machine in Reverse Polish Notation.
+    /// Returns `false` if the pipeline is empty or cannot be reduced.
+    ///
+    /// - Parameters:
+    ///   - properties: The feature's property dictionary.
+    ///   - featureCoordinate: The feature's geographic coordinate, required
+    ///     for ``near()`` predicates.
+    /// - Returns: `true` if the pipeline evaluates to a truthy value,
+    ///   `false` otherwise.
     public func evaluate(
         on properties: [String: AnyHashable],
         coordinate featureCoordinate: Coordinate3D? = nil

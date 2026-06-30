@@ -1,6 +1,7 @@
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
+import Foundation
 import GISTools
 import struct GISTools.Polygon
 @testable import MVTTools
@@ -8,8 +9,10 @@ import Testing
 
 struct MVTEncoderTests {
 
+    /// Tests that `geometryIntegers` produces correct MVT command integers
+    /// for all geometry types (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon).
     @Test
-    func featureGeometryEncoder() {
+    func featureGeometryEncoder() throws {
         // Point
         let point = Coordinate3D(latitude: 17.0, longitude: 25.0)
         let pointGeometryIntegers = MVTEncoder.geometryIntegers(
@@ -102,8 +105,10 @@ struct MVTEncoderTests {
         #expect(multiPolygonGeometryIntegers == multiPolygonResult)
     }
 
+    /// Tests that `vectorTileFeature` converts `Feature` objects to protobuf `VectorTile_Tile.Feature`
+    /// with correct geometry integers, type, and ID for each geometry type.
     @Test
-    func featureConversion() async throws {
+    func featureConversion() throws {
         // Point
         let point = Feature(Point(Coordinate3D(latitude: 17.0, longitude: 25.0)), id: .int(500))
         let pointFeature = try #require(MVTEncoder.vectorTileFeature(
@@ -202,8 +207,10 @@ struct MVTEncoderTests {
         #expect(multiPolygonFeature.id == 505)
     }
 
+    /// Tests a complete encode-decode round trip: create a tile with a point, encode to MVT,
+    /// decode back, and verify the coordinate and feature ID match within precision limits.
     @Test
-    func encodeDecode() async throws {
+    func encodeDecode() throws {
         var tile = try #require(VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326))
         let point = Feature(Point(Coordinate3D(latitude: 25.0, longitude: 25.0)), id: .int(600))
         tile.addGeoJson(geoJson: point, layerName: "test")
@@ -223,8 +230,10 @@ struct MVTEncoderTests {
         #expect(decodedTileFeatures[0].id == .int(600))
     }
 
+    /// Tests that the gzip compression option produces a smaller compressed output
+    /// and that the compressed data is flagged as gzipped.
     @Test
-    func compressOption() async throws {
+    func compressOption() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
@@ -235,8 +244,10 @@ struct MVTEncoderTests {
         #expect(compressed.count < mvt.count, "Compressed tile should be smaller")
     }
 
+    /// Tests that the buffer size option clips features to the tile boundary,
+    /// ensuring no features extend beyond the tile's bounding box.
     @Test
-    func bufferSizeOption() async throws {
+    func bufferSizeOption() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
@@ -252,8 +263,10 @@ struct MVTEncoderTests {
         #expect(features.allSatisfy({ bounds.contains($0.coordinate) }))
     }
 
+    /// Tests that the simplify options reduces geometry complexity while
+    /// preserving the same number of features.
     @Test
-    func simplifyOption() async throws {
+    func simplifyOption() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
@@ -264,12 +277,52 @@ struct MVTEncoderTests {
         #expect(tile.features(for: "road").count == simplifiedTile.features(for: "road").count)
     }
 
-}
+    /// Tests encoding a tile with no layers produces valid protobuf data.
+    @Test
+    func emptyLayersProducesValidData() throws {
+        let tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        let data = tile.data()
+        #expect(data != nil)
+    }
 
-extension Data {
+    /// Tests encoding with EPSG:3857 projection round-trips correctly.
+    @Test
+    func encodeDecodeWithEpsg3857() throws {
+        var tile = try #require(VectorTile(x: 0, y: 0, z: 0, projection: .epsg3857))
+        let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg3857)), id: .int(100))
+        tile.appendFeatures([point], to: "test")
 
-    private func utf8EncodedString() -> String? {
-        String(data: self, encoding: .utf8)
+        let data = try #require(tile.data())
+        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .epsg3857))
+        let decodedFeatures = decoded.features(for: "test")
+        #expect(decodedFeatures.count == 1)
+    }
+
+    /// Tests encoding with .noSRID projection round-trips correctly.
+    @Test
+    func encodeDecodeWithNoSRID() throws {
+        var tile = try #require(VectorTile(x: 0, y: 0, z: 0, projection: .noSRID))
+        let point = Feature(Point(Coordinate3D(x: 100.0, y: 200.0, projection: .noSRID)), id: .int(101))
+        tile.appendFeatures([point], to: "test")
+
+        let data = try #require(tile.data())
+        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .noSRID))
+        let decodedFeatures = decoded.features(for: "test")
+        #expect(decodedFeatures.count == 1)
+        #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.x - 100.0) < 1.0)
+        #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.y - 200.0) < 1.0)
+    }
+
+    /// Tests encoding with EPSG:4978 projection produces valid data.
+    @Test
+    func encodeWithEpsg4978() throws {
+        var tile = try #require(VectorTile(x: 0, y: 0, z: 0, projection: .epsg4978))
+        let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg4978)), id: .int(102))
+        tile.appendFeatures([point], to: "test")
+
+        let data = tile.data()
+        #expect(data != nil)
+        #expect(data?.isEmpty == false)
     }
 
 }

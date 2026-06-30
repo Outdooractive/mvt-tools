@@ -7,14 +7,16 @@ import GISTools
 
 extension Ring {
 
-    /// Note: Vector tiles have a flipped y axis, so
-    /// clockwise/counterClockwise are reverted
+    /// A Boolean value indicating whether the ring appears clockwise in unprojected tile space.
+    ///
+    /// Vector tiles have a flipped y axis, so clockwise/counterClockwise are reverted.
     var isUnprojectedClockwise: Bool {
         !isClockwise
     }
 
-    /// Note: Vector tiles have a flipped y axis, so
-    /// clockwise/counterClockwise are reverted
+    /// A Boolean value indicating whether the ring appears counter-clockwise in unprojected tile space.
+    ///
+    /// Vector tiles have a flipped y axis, so clockwise/counterClockwise are reverted.
     var isUnprojectedCounterClockwise: Bool {
         !isCounterClockwise
     }

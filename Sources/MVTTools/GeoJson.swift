@@ -9,7 +9,15 @@ import Gzip
 
 extension VectorTile {
 
-    /// Export the tile's content as GeoJSON
+    /// Export the tile's content as a GeoJSON `Data` value.
+    ///
+    /// - Parameter layerNames: When non-empty, only features from the named layers are exported.
+    ///   An empty array means all layers.
+    /// - Parameter additionalFeatureProperties: A dictionary of extra properties to merge into every exported feature.
+    /// - Parameter prettyPrinted: When `true`, the resulting JSON is human-readable with line breaks and indentation.
+    /// - Parameter layerProperty: If set, each feature receives an additional property with this key whose value is the source layer name.
+    /// - Parameter options: Export options controlling clipping, simplification, and compression.
+    /// - Returns: The GeoJSON data, or `nil` if serialization fails.
     public func toGeoJson(
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
@@ -115,7 +123,16 @@ extension VectorTile {
         }
     }
 
-    /// Write the tile's content as GeoJSON to `url`
+    /// Write the tile's content as GeoJSON to a file URL.
+    ///
+    /// - Parameter url: The destination file URL.
+    /// - Parameter layerNames: When non-empty, only features from the named layers are exported.
+    ///   An empty array means all layers.
+    /// - Parameter additionalFeatureProperties: A dictionary of extra properties to merge into every exported feature.
+    /// - Parameter prettyPrinted: When `true`, the resulting JSON is human-readable with line breaks and indentation.
+    /// - Parameter layerProperty: If set, each feature receives an additional property with this key whose value is the source layer name.
+    /// - Parameter options: Export options controlling clipping, simplification, and compression.
+    /// - Returns: `true` when the file was written successfully, `false` otherwise.
     @discardableResult
     public func writeGeoJson(
         to url: URL,
@@ -145,7 +162,13 @@ extension VectorTile {
 
     // MARK: - GeoJSON support
 
-    /// Add some GeoJSON to this tile
+    /// Add features from a ``GeoJson`` object to this tile.
+    ///
+    /// - Parameter geoJson: The source GeoJSON data.
+    /// - Parameter layerName: The target layer name. When `nil`, a layer name is auto-generated.
+    /// - Parameter layerProperty: When set, features are divided into layers based on the value of this property,
+    ///   and the property is stripped from each feature after routing.
+    /// - Parameter layerAllowList: When non-nil, only layers whose names appear in this set receive features.
     public mutating func addGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
@@ -179,7 +202,16 @@ extension VectorTile {
         }
     }
 
-    /// Replace some GeoJSON in this tile
+    /// Replace all features in this tile with those from a ``GeoJson`` object.
+    ///
+    /// Unlike ``addGeoJson(geoJson:layerName:layerProperty:layerAllowList:)``,
+    /// this method clears existing features from each target layer before adding the new ones.
+    ///
+    /// - Parameter geoJson: The source GeoJSON data.
+    /// - Parameter layerName: The target layer name. When `nil`, a layer name is auto-generated.
+    /// - Parameter layerProperty: When set, features are divided into layers based on the value of this property,
+    ///   and the property is stripped from each feature after routing.
+    /// - Parameter layerAllowList: When non-nil, only layers whose names appear in this set receive features.
     public mutating func setGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,

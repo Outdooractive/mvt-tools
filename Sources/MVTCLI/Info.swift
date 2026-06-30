@@ -4,6 +4,10 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that prints information about a vector tile or GeoJSON file.
+    ///
+    /// Displays configurable tables of per-layer feature counts, property
+    /// histograms, and property value distributions.
     struct Info: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
@@ -77,6 +81,8 @@ extension CLI {
             }
         }
 
+        /// Prints a table of feature counts for each layer.
+        /// - Parameter layers: The layer information to display.
         private func dumpFeatures(_ layers: [VectorTile.LayerInfo]) {
             let tableHeader = ["Name", "Features", "Points", "LineStrings", "Polygons", "Unknown", "Version"]
             let table: [[String]] = [
@@ -96,6 +102,8 @@ extension CLI {
             print(result)
         }
 
+        /// Prints a table of property counts for each layer.
+        /// - Parameter layers: The layer information to display.
         private func dumpProperties(_ layers: [VectorTile.LayerInfo]) {
             var tableHeader = ["Name"]
 
@@ -125,6 +133,11 @@ extension CLI {
             print(result)
         }
 
+        /// Prints a table of value distributions for the given property names
+        /// across all layers.
+        /// - Parameters:
+        ///   - layers: The layer information to display.
+        ///   - names: The property names whose values to count.
         func dumpProperty(_ layers: [VectorTile.LayerInfo], names: [String]) {
             let propertyValues: [String: [String: Int]] = layers.reduce(into: [:]) { result, layer in
                 for name in names {
@@ -158,6 +171,12 @@ extension CLI {
             print(result)
         }
 
+        /// Formats a collection of string columns into a side-by-side table
+        /// with the given headers.
+        /// - Parameters:
+        ///   - strings: The columns of data to format.
+        ///   - headers: The column headers.
+        /// - Returns: A formatted string representation of the table.
         private func dumpSideBySide(
             _ strings: [[String]],
             asTableWithHeaders headers: [String]
@@ -216,15 +235,30 @@ extension CLI {
 
     // MARK: - InfoTables
 
+    /// The set of available info table types.
     enum InfoTables: CaseIterable {
+
+        /// A table of feature counts for each layer.
         case features
+
+        /// A table of property name counts for each layer.
         case properties
+
+        /// A table of value distributions for a specific set of property names.
         case property([String])
 
         static var allCases: [InfoTables] {
             [.features, .properties, .property([])]
         }
 
+        /// Parses a comma-separated string of table specifiers into an array
+        /// of ``InfoTables`` values.
+        ///
+        /// Supported specifiers are `features`, `properties`, and
+        /// `property=<name>` (which can be repeated).
+        ///
+        /// - Parameter rawValue: A comma-separated string of table specifiers.
+        /// - Returns: An array of ``InfoTables`` values parsed from the input.
         @Sendable
         static func parse(_ rawValue: String) -> [InfoTables] {
             var result: [InfoTables] = []

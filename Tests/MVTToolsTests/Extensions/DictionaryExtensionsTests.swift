@@ -3,8 +3,9 @@ import Testing
 
 struct DictionaryExtensionsTests {
 
+    /// Tests that `hasKey(_:)` correctly identifies present and absent keys.
     @Test
-    func hasKey() async throws {
+    func hasKey() {
         let dict: [String: Any] = [
             "a": "value",
         ]

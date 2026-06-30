@@ -4,6 +4,10 @@ import MVTTools
 
 extension CLI {
 
+    /// A command that exports a vector tile to a GeoJSON file.
+    ///
+    /// Supports layer filtering, output compression, feature simplification,
+    /// and customizable buffer sizes.
     struct Export: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(

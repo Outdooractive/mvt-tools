@@ -1,6 +1,7 @@
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
+import Foundation
 import GISTools
 import struct GISTools.Polygon
 @testable import MVTTools
@@ -8,8 +9,10 @@ import Testing
 
 struct MVTDecoderTests {
 
+    /// Tests that `multiCoordinatesFrom` correctly decodes MVT geometry command integers
+    /// for all geometry types (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon).
     @Test
-    func featureGeometryDecoder() async throws {
+    func featureGeometryDecoder() throws {
         // Point
         let geometry1: [UInt32] = [9, 50, 34]
         let coordinates1 = try #require(MVTDecoder.multiCoordinatesFrom(
@@ -61,7 +64,7 @@ struct MVTDecoderTests {
         ]]
         #expect(coordinates4 == result4)
 
-        // Polygon
+        // Polygon (with ClosePath command)
         let geometry5: [UInt32] = [9, 6, 12, 18, 10, 12, 24, 44, 15]
         let coordinates5 = MVTDecoder.multiCoordinatesFrom(
             geometryIntegers: geometry5,
@@ -108,8 +111,10 @@ struct MVTDecoderTests {
         #expect(rings[2].isUnprojectedCounterClockwise, "Third polygon ring is not oriented counter-clockwise")
     }
 
+    /// Tests that `convertToLayerFeature` produces correct `Feature` objects with
+    /// the right geometry type, coordinate values, and bounding box for each MVT geometry type.
     @Test
-    func featureConversion() async throws {
+    func featureConversion() throws {
         // Point
         let geometry1: [UInt32] = [9, 50, 34]
         let feature1 = try #require(MVTDecoder.convertToLayerFeature(
@@ -218,6 +223,68 @@ struct MVTDecoderTests {
         ]]]))
         #expect(multiPolygon6 == result6)
         #expect(boundingBox6 == result6.calculateBoundingBox())
+    }
+
+    /// Tests that `vectorTile(from:)` returns nil for completely invalid data.
+    @Test
+    func invalidDataReturnsNil() throws {
+        let invalidData = Data([0x00, 0x01, 0x02, 0x03])
+        #expect(MVTDecoder.vectorTile(from: invalidData) == nil)
+    }
+
+    /// Tests that `vectorTile(from:)` can parse empty data (protobuf empty message is valid).
+    @Test
+    func emptyDataParsesSuccessfully() throws {
+        let tile = MVTDecoder.vectorTile(from: Data())
+        #expect(tile != nil)
+        #expect(tile?.layers.isEmpty == true)
+    }
+
+    /// Tests that `layers(from:...)` with a layer whitelist filters correctly.
+    @Test
+    func layerWhitelistFiltersCorrectly() throws {
+        let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
+        let whitelist: Set<String> = ["road", "building"]
+
+        let layers = try #require(MVTDecoder.layers(
+            from: mvt,
+            x: 8716,
+            y: 8015,
+            z: 14,
+            projection: .epsg4326,
+            layerWhitelist: whitelist,
+            logger: nil))
+
+        #expect(layers.keys.count == 2)
+        #expect(layers.keys.contains("road"))
+        #expect(layers.keys.contains("building"))
+    }
+
+    /// Tests that `layers(from:...)` with an empty whitelist returns an empty dictionary.
+    @Test
+    func emptyWhitelistReturnsNoLayers() throws {
+        let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
+        let layers = MVTDecoder.layers(
+            from: mvt,
+            x: 8716,
+            y: 8015,
+            z: 14,
+            projection: .epsg4326,
+            layerWhitelist: [],
+            logger: nil)
+
+        #expect(layers?.isEmpty == true)
+    }
+
+    /// Tests that `keysAndValues(forLayer:)` correctly extracts keys and values.
+    @Test
+    func keysAndValuesString() throws {
+        let tile = try #require(MVTDecoder.vectorTile(from: TestData.dataFromFile(name: "14_8716_8015.vector.mvt")))
+        let layer = try #require(tile.layers.first)
+        let (keys, values) = MVTDecoder.keysAndValues(forLayer: layer)
+
+        #expect(keys.isNotEmpty)
+        #expect(values.isNotEmpty)
     }
 
 }

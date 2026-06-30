@@ -8,7 +8,17 @@ import GISTools
 
 extension VectorTile {
 
-    /// Merge another vector tile into this tile.
+    /// Merge all features from another ``VectorTile`` into this tile.
+    ///
+    /// Features are appended layer-by-layer. Layers that exist in `other` but not in `self`
+    /// are created automatically. The tile coordinates (`z`/`x`/`y`) must match unless
+    /// `ignoreTileCoordinateMismatch` is `true`.
+    ///
+    /// - Parameter other: The source tile whose features are to be merged.
+    /// - Parameter ignoreTileCoordinateMismatch: When `true`, the tile coordinate check is skipped
+    ///   (default: `false`). A warning is still emitted if the projections differ.
+    /// - Returns: `true` on success, or `false` when the tile coordinates differ and the check
+    ///   is not ignored.
     @discardableResult
     public mutating func merge(
         _ other: VectorTile,
