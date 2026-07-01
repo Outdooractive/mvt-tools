@@ -2,9 +2,11 @@ import CMLT
 import Foundation
 import GISTools
 
-/// Errors thrown by MLT decoding.
+/// Errors thrown by MLT operations.
 public enum MLTError: Error {
     case decodeFailed
+    case encodeFailed
+    case unsupportedGeometry
 }
 
 /// A decoded MapLibre Tile (MLT), wrapping the C++ decoder via C bridge.
@@ -228,8 +230,8 @@ public struct MLTFeature {
         var found: Bool = false
         let ptr = mlt_feature_property_string(layer.tile.handle, layer.index, index, key, &found)
         let val = ptr.map { String(cString: $0) }
-        // Free the copy allocated in the C bridge
-        if let ptr { ptr.deallocate() }
+        // Free the malloc'd copy from the C bridge
+        if let ptr { free(UnsafeMutablePointer(mutating: ptr)) }
         return (val, found)
     }
 
@@ -275,6 +277,109 @@ public struct MLTFeature {
             feature.id = Feature.Identifier.uint(UInt(featureID))
         }
         return feature
+    }
+
+}
+
+// MARK: - Encode
+
+extension MLTTile {
+
+    /// Encodes a set of layers (name → features) into MLT binary data.
+    public static func encode(layers: [(name: String, extent: UInt32, features: [Feature])]) throws -> Data {
+        let encoder = mlt_encoder_create()
+        defer { mlt_encoder_destroy(encoder) }
+
+        for (layerName, extent, features) in layers {
+            mlt_encoder_begin_layer(encoder, layerName, extent)
+
+            for feature in features {
+                // MLT only supports numeric IDs. String and double IDs are skipped.
+                let numericId = feature.id?.uint64Value
+                let hasId = numericId != nil
+                let featureId = numericId ?? 0
+
+                // Extract coordinates as flat float arrays
+                let coords = feature.geometry.allCoordinates
+                var xs = coords.map { Float($0.x) }
+                var ys = coords.map { Float($0.y) }
+
+                let geomType: Int32
+                switch feature.geometry.type {
+                case .point:             geomType = Int32(kMLTGeometryPoint)
+                case .multiPoint:        geomType = Int32(kMLTGeometryMultiPoint)
+                case .lineString:        geomType = Int32(kMLTGeometryLineString)
+                case .multiLineString:   geomType = Int32(kMLTGeometryMultiLineString)
+                case .polygon:           geomType = Int32(kMLTGeometryPolygon)
+                case .multiPolygon:      geomType = Int32(kMLTGeometryMultiPolygon)
+                default:                 throw MLTError.unsupportedGeometry
+                }
+
+                // Build typed property arrays.
+                var mltProps: [MLTProperty] = []
+                for (key, value) in feature.properties {
+                    let (type, strValue): (Int32, String)
+                    if value is String {
+                        type = Int32(kMLTPropString)
+                        strValue = value as! String
+                    }
+                    else if let i = value as? Int {
+                        type = Int32(kMLTPropInt)
+                        strValue = String(i)
+                    }
+                    else if let i = value as? Int64 {
+                        type = Int32(kMLTPropInt)
+                        strValue = String(i)
+                    }
+                    else if let u = value as? UInt {
+                        type = Int32(kMLTPropUInt)
+                        strValue = String(u)
+                    }
+                    else if let d = value as? Double {
+                        type = Int32(kMLTPropDouble)
+                        strValue = String(d)
+                    }
+                    else if let f = value as? Float {
+                        type = Int32(kMLTPropFloat)
+                        strValue = String(f)
+                    }
+                    else if let b = value as? Bool {
+                        type = Int32(kMLTPropBool)
+                        strValue = b ? "true" : "false"
+                    }
+                    else {
+                        type = Int32(kMLTPropString)
+                        strValue = String(describing: value)
+                    }
+                    guard let k = strdup(key), let v = strdup(strValue) else { continue }
+                    var prop = MLTProperty()
+                    prop.key = UnsafePointer(k)
+                    prop.type = type
+                    prop.value = UnsafePointer(v)
+                    mltProps.append(prop)
+                }
+                defer {
+                    for prop in mltProps {
+                        if let k = prop.key { free(UnsafeMutablePointer(mutating: k)) }
+                        if let v = prop.value { free(UnsafeMutablePointer(mutating: v)) }
+                    }
+                }
+
+                mlt_encoder_add_feature(
+                    encoder, featureId, hasId,
+                    geomType,
+                    &xs, &ys, xs.count,
+                    &mltProps, mltProps.count)
+            }
+        }
+
+        var outLength: Int = 0
+        guard let buffer = mlt_encoder_finish(encoder, &outLength) else {
+            throw MLTError.encodeFailed
+        }
+        defer { mlt_buffer_free(buffer) }
+
+        return Data(bytes: buffer, count: outLength)
     }
 
 }

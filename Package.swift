@@ -96,6 +96,7 @@ let package = Package(
             ],
             publicHeadersPath: "include",
             cxxSettings: [
+                .headerSearchPath("patches"),
                 .headerSearchPath("cpp/include"),
                 .headerSearchPath("cpp/src"),
                 .headerSearchPath("vendor/fastpfor/headers"),

@@ -13,16 +13,16 @@ extern "C" {
 typedef void* MLTDecoderHandle;
 typedef void* MLTTileHandle;
 
-// MARK: - Geometry type enum
+// MARK: - Geometry type enum (matches mlt::metadata::tileset::GeometryType)
 
 enum {
-    kMLTGeometryUnknown = 0,
-    kMLTGeometryPoint = 1,
-    kMLTGeometryMultiPoint = 2,
-    kMLTGeometryLineString = 3,
+    kMLTGeometryPoint = 0,
+    kMLTGeometryLineString = 1,
+    kMLTGeometryPolygon = 2,
+    kMLTGeometryMultiPoint = 3,
     kMLTGeometryMultiLineString = 4,
-    kMLTGeometryPolygon = 5,
-    kMLTGeometryMultiPolygon = 6,
+    kMLTGeometryMultiPolygon = 5,
+    kMLTGeometryUnknown = 99,
 };
 
 // MARK: - Decoder lifetime
@@ -81,6 +81,49 @@ int64_t mlt_feature_property_int(MLTTileHandle tile, size_t layerIndex, size_t f
 double mlt_feature_property_double(MLTTileHandle tile, size_t layerIndex, size_t featureIndex, const char* key, bool* found);
 const char* mlt_feature_property_string(MLTTileHandle tile, size_t layerIndex, size_t featureIndex, const char* key, bool* found);
 bool mlt_feature_property_bool(MLTTileHandle tile, size_t layerIndex, size_t featureIndex, const char* key, bool* found);
+
+// MARK: - Encoder
+
+typedef void* MLTEncoderHandle;
+
+/// Property value type tag.
+enum {
+    kMLTPropString = 0,
+    kMLTPropInt = 1,
+    kMLTPropDouble = 2,
+    kMLTPropBool = 3,
+    kMLTPropUInt = 4,
+    kMLTPropFloat = 5,
+};
+
+/// A typed property key-value pair.
+typedef struct {
+    const char* key;
+    int32_t type;   /// one of kMLTProp*
+    const char* value; /// string representation (always null-terminated)
+} MLTProperty;
+
+MLTEncoderHandle mlt_encoder_create(void);
+void mlt_encoder_destroy(MLTEncoderHandle encoder);
+
+/// Start a new layer. Call before adding features.
+void mlt_encoder_begin_layer(MLTEncoderHandle encoder, const char* name, uint32_t extent);
+
+/// Add a feature to the current layer.
+/// `xs`/`ys` are flat float arrays of coordinate data.
+/// `geomType` is one of the kMLTGeometry* constants.
+void mlt_encoder_add_feature(
+    MLTEncoderHandle encoder,
+    uint64_t featureId, bool hasId,
+    int32_t geomType,
+    const float* xs, const float* ys, size_t coordCount,
+    const MLTProperty* props, size_t propCount);
+
+/// Finish encoding and return the MLT binary data. Caller must free with `mlt_buffer_free`.
+uint8_t* mlt_encoder_finish(MLTEncoderHandle encoder, size_t* outLength);
+
+/// Free a buffer returned by `mlt_encoder_finish`.
+void mlt_buffer_free(uint8_t* buffer);
 
 #ifdef __cplusplus
 }
