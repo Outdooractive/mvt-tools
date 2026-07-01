@@ -47,19 +47,19 @@ size_t mlt_tile_layer_count(MLTTileHandle tile) { try {
 
 const char* mlt_tile_layer_name(MLTTileHandle tile, size_t layerIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return nullptr;
+    if (layerIndex >= layers.size()) { return nullptr; }
     return layers[layerIndex].getName().c_str();
 } CATCH_BRIDGE_RET(nullptr)}
 
 uint32_t mlt_tile_layer_extent(MLTTileHandle tile, size_t layerIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     return layers[layerIndex].getExtent();
 } CATCH_BRIDGE_RET(0)}
 
 size_t mlt_tile_layer_feature_count(MLTTileHandle tile, size_t layerIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     return layers[layerIndex].getFeatures().size();
 } CATCH_BRIDGE_RET(0)}
 
@@ -67,17 +67,17 @@ size_t mlt_tile_layer_feature_count(MLTTileHandle tile, size_t layerIndex) { try
 
 bool mlt_feature_has_id(MLTTileHandle tile, size_t layerIndex, size_t featureIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return false;
+    if (layerIndex >= layers.size()) { return false; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return false;
+    if (featureIndex >= features.size()) { return false; }
     return features[featureIndex].getID().has_value();
 } CATCH_BRIDGE_RET(false)}
 
 uint64_t mlt_feature_id(MLTTileHandle tile, size_t layerIndex, size_t featureIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
     auto id = features[featureIndex].getID();
     return id.has_value() ? id.value() : 0;
 } CATCH_BRIDGE_RET(0)}
@@ -86,9 +86,9 @@ int32_t mlt_feature_geometry_type(MLTTileHandle tile, size_t layerIndex, size_t 
     using GT = mlt::metadata::tileset::GeometryType;
 
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
 
     auto& geom = features[featureIndex].getGeometry();
     switch (geom.type) {
@@ -110,9 +110,9 @@ static size_t collectCoordinates(const mlt::geometry::Geometry& geom, float* out
 
     auto write = [&](const mlt::CoordVec& coords) {
         for (const auto& c : coords) {
-            if (written >= maxCount) return;
-            if (outX) outX[written] = c.x;
-            if (outY) outY[written] = c.y;
+            if (written >= maxCount) { return; }
+            if (outX) { outX[written] = c.x; }
+            if (outY) { outY[written] = c.y; }
             written++;
         }
     };
@@ -121,8 +121,8 @@ static size_t collectCoordinates(const mlt::geometry::Geometry& geom, float* out
         case GT::POINT: {
             const auto& pt = static_cast<const mlt::geometry::Point&>(geom);
             if (written < maxCount) {
-                if (outX) outX[written] = pt.getCoordinate().x;
-                if (outY) outY[written] = pt.getCoordinate().y;
+                if (outX) { outX[written] = pt.getCoordinate().x; }
+                if (outY) { outY[written] = pt.getCoordinate().y; }
                 written++;
             }
             break;
@@ -165,18 +165,18 @@ static size_t collectCoordinates(const mlt::geometry::Geometry& geom, float* out
 
 size_t mlt_feature_coordinate_count(MLTTileHandle tile, size_t layerIndex, size_t featureIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
     return collectCoordinates(features[featureIndex].getGeometry(), nullptr, nullptr, SIZE_MAX);
 } CATCH_BRIDGE_RET(0)}
 
 size_t mlt_feature_coordinates(MLTTileHandle tile, size_t layerIndex, size_t featureIndex,
                                 float* outX, float* outY, size_t maxCount) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
     return collectCoordinates(features[featureIndex].getGeometry(), outX, outY, maxCount);
 } CATCH_BRIDGE_RET(0)}
 
@@ -186,9 +186,9 @@ size_t mlt_feature_ring_count(MLTTileHandle tile, size_t layerIndex, size_t feat
     using GT = mlt::metadata::tileset::GeometryType;
 
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
 
     auto& geom = features[featureIndex].getGeometry();
     using GT = mlt::metadata::tileset::GeometryType;
@@ -214,9 +214,9 @@ size_t mlt_feature_ring_size(MLTTileHandle tile, size_t layerIndex, size_t featu
     using GT = mlt::metadata::tileset::GeometryType;
 
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
 
     auto& geom = features[featureIndex].getGeometry();
     size_t idx = 0;
@@ -237,13 +237,13 @@ size_t mlt_feature_ring_size(MLTTileHandle tile, size_t layerIndex, size_t featu
         case GT::MULTIPOLYGON: {
             for (const auto& poly : static_cast<const mlt::geometry::MultiPolygon&>(geom).getPolygons()) {
                 auto* ring = findRing(poly);
-                if (ring) return ring->size();
+                if (ring) { return ring->size(); }
             }
             return 0;
         }
         case GT::MULTILINESTRING: {
             const auto& lines = static_cast<const mlt::geometry::MultiLineString&>(geom).getLineStrings();
-            if (ringIndex < lines.size()) return lines[ringIndex].size();
+            if (ringIndex < lines.size()) { return lines[ringIndex].size(); }
             return 0;
         }
         default:
@@ -256,20 +256,20 @@ size_t mlt_feature_ring_coordinates(MLTTileHandle tile, size_t layerIndex, size_
     using GT = mlt::metadata::tileset::GeometryType;
 
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     const auto& features = layers[layerIndex].getFeatures();
-    if (featureIndex >= features.size()) return 0;
+    if (featureIndex >= features.size()) { return 0; }
 
     auto& geom = features[featureIndex].getGeometry();
     size_t idx = 0;
     size_t written = 0;
 
     auto writeRing = [&](const mlt::CoordVec& coords) {
-        if (ringIndex != idx++) return;
+        if (ringIndex != idx++) { return; }
         for (const auto& c : coords) {
-            if (written >= maxCount) break;
-            if (outX) outX[written] = c.x;
-            if (outY) outY[written] = c.y;
+            if (written >= maxCount) { break; }
+            if (outX) { outX[written] = c.x; }
+            if (outY) { outY[written] = c.y; }
             written++;
         }
     };
@@ -305,15 +305,15 @@ size_t mlt_feature_ring_coordinates(MLTTileHandle tile, size_t layerIndex, size_
 
 size_t mlt_layer_property_key_count(MLTTileHandle tile, size_t layerIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return 0;
+    if (layerIndex >= layers.size()) { return 0; }
     return layers[layerIndex].getProperties().size();
 } CATCH_BRIDGE_RET(0)}
 
 const char* mlt_layer_property_key(MLTTileHandle tile, size_t layerIndex, size_t keyIndex) { try {
     const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
-    if (layerIndex >= layers.size()) return nullptr;
+    if (layerIndex >= layers.size()) { return nullptr; }
     const auto& props = layers[layerIndex].getProperties();
-    if (keyIndex >= props.size()) return nullptr;
+    if (keyIndex >= props.size()) { return nullptr; }
 
     auto it = props.begin();
     std::advance(it, keyIndex);
@@ -325,7 +325,7 @@ const char* mlt_layer_property_key(MLTTileHandle tile, size_t layerIndex, size_t
 static const mlt::PresentProperties* findPropertyColumn(const mlt::Layer& layer, const char* key) {
     const auto& props = layer.getProperties();
     auto it = props.find(key);
-    if (it == props.end()) return nullptr;
+    if (it == props.end()) { return nullptr; }
     return &it->second;
 }
 
@@ -339,26 +339,26 @@ int64_t mlt_feature_property_int(MLTTileHandle tile, size_t layerIndex, size_t f
             if (prop.has_value()) {
                 auto& p = prop.value();
                 if (std::holds_alternative<std::int32_t>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return static_cast<int64_t>(std::get<std::int32_t>(p));
                 }
                 if (std::holds_alternative<std::int64_t>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return std::get<std::int64_t>(p);
                 }
                 if (std::holds_alternative<std::uint32_t>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return static_cast<int64_t>(std::get<std::uint32_t>(p));
                 }
                 if (std::holds_alternative<std::uint64_t>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return static_cast<int64_t>(std::get<std::uint64_t>(p));
                 }
                 // float/double are intentionally excluded — handled by property_double.
             }
         }
     }
-    if (found) *found = false;
+    if (found) { *found = false; }
     return 0;
 } CATCH_BRIDGE_RET(0)}
 
@@ -372,18 +372,18 @@ double mlt_feature_property_double(MLTTileHandle tile, size_t layerIndex, size_t
             if (prop.has_value()) {
                 auto& p = prop.value();
                 if (std::holds_alternative<double>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return std::get<double>(p);
                 }
                 if (std::holds_alternative<float>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return static_cast<double>(std::get<float>(p));
                 }
                 // integer types are intentionally excluded — handled by property_int.
             }
         }
     }
-    if (found) *found = false;
+    if (found) { *found = false; }
     return 0.0;
 } CATCH_BRIDGE_RET(0.0)}
 
@@ -404,13 +404,13 @@ const char* mlt_feature_property_string(MLTTileHandle tile, size_t layerIndex, s
                         std::memcpy(buf, sv.data(), sv.size());
                         buf[sv.size()] = '\0';
                     }
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return buf;
                 }
             }
         }
     }
-    if (found) *found = false;
+    if (found) { *found = false; }
     return nullptr;
 } CATCH_BRIDGE_RET(nullptr)}
 
@@ -424,20 +424,20 @@ bool mlt_feature_property_bool(MLTTileHandle tile, size_t layerIndex, size_t fea
             if (prop.has_value()) {
                 auto& p = prop.value();
                 if (std::holds_alternative<bool>(p)) {
-                    if (found) *found = true;
+                    if (found) { *found = true; }
                     return std::get<bool>(p);
                 }
                 if (std::holds_alternative<std::optional<bool>>(p)) {
                     auto opt = std::get<std::optional<bool>>(p);
                     if (opt.has_value()) {
-                        if (found) *found = true;
+                        if (found) { *found = true; }
                         return opt.value();
                     }
                 }
             }
         }
     }
-    if (found) *found = false;
+    if (found) { *found = false; }
     return false;
 } CATCH_BRIDGE_RET(false)}
 
@@ -527,11 +527,12 @@ void mlt_encoder_add_feature(
 { try {
     auto* state = static_cast<EncoderState*>(encoder);
     mlt::Encoder::Feature feat;
-    if (hasId) feat.id = featureId;
+    if (hasId) { feat.id = featureId; }
     feat.geometry = geometryFromCoords(xs, ys, coordCount, geomType);
     for (size_t i = 0; i < propCount; i++) {
-        if (props[i].key && props[i].value)
+        if (props[i].key && props[i].value) {
             feat.properties[props[i].key] = typedPropertyFromString(props[i].type, props[i].value);
+        }
     }
     state->currentFeatures.push_back(std::move(feat));
 } CATCH_BRIDGE_VOID}

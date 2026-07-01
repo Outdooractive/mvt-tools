@@ -55,6 +55,17 @@ swift test            # run all tests (Swift Testing)
 - Assume strict Swift concurrency rules are being applied
 - Use `#require(...)` (not `try #require(...)`) for Optional-returning expressions in tests
 
+## C/C++ instructions (CMLT bridge)
+
+- All `if`, `else`, `for`, `while` blocks MUST use braces `{}`, even for single-statement bodies
+  - Correct: `if (x) { return; }`
+  - Wrong: `if (x) return;`
+- Use 4-space indentation (same as Swift)
+- Use `// MARK: -` comments to organize sections (same pattern as Swift)
+- C++ exceptions must be caught at the C bridge boundary via `TRY_BRIDGE`/`CATCH_BRIDGE_RET`/`CATCH_BRIDGE_VOID` macros
+- Prefer C-style `/* ... */` for multi-line comments, `//` for single-line
+- Function names use `snake_case` (MLT C API convention)
+
 ## Code style conventions
 
 ### Spacing
