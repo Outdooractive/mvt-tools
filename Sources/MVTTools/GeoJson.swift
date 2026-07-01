@@ -168,12 +168,12 @@ extension VectorTile {
     /// - Parameter layerName: The target layer name. When `nil`, a layer name is auto-generated.
     /// - Parameter layerProperty: When set, features are divided into layers based on the value of this property,
     ///   and the property is stripped from each feature after routing.
-    /// - Parameter layerAllowList: When non-nil, only layers whose names appear in this set receive features.
+    /// - Parameter layerAllowlist: When non-nil, only layers whose names appear in this set receive features.
     public mutating func addGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
         layerProperty: String? = nil,
-        layerAllowList: Set<String>? = nil
+        layerAllowlist: Set<String>? = nil
     ) {
         guard let features = geoJson.flattened?.features else { return }
 
@@ -186,7 +186,7 @@ extension VectorTile {
                     return mapping
                 },
                 onKey: { key, features in
-                    if let layerAllowList, !layerAllowList.contains(key) { return }
+                    if let layerAllowlist, !layerAllowlist.contains(key) { return }
                     appendFeatures(
                         features.map({ feature in
                             var feature = feature
@@ -197,26 +197,26 @@ extension VectorTile {
                 })
         }
         else {
-            if let layerAllowList, !layerAllowList.contains(layerName) { return }
+            if let layerAllowlist, !layerAllowlist.contains(layerName) { return }
             appendFeatures(features, to: layerName)
         }
     }
 
     /// Replace all features in this tile with those from a ``GeoJson`` object.
     ///
-    /// Unlike ``addGeoJson(geoJson:layerName:layerProperty:layerAllowList:)``,
+    /// Unlike ``addGeoJson(geoJson:layerName:layerProperty:layerAllowlist:)``,
     /// this method clears existing features from each target layer before adding the new ones.
     ///
     /// - Parameter geoJson: The source GeoJSON data.
     /// - Parameter layerName: The target layer name. When `nil`, a layer name is auto-generated.
     /// - Parameter layerProperty: When set, features are divided into layers based on the value of this property,
     ///   and the property is stripped from each feature after routing.
-    /// - Parameter layerAllowList: When non-nil, only layers whose names appear in this set receive features.
+    /// - Parameter layerAllowlist: When non-nil, only layers whose names appear in this set receive features.
     public mutating func setGeoJson(
         geoJson: GeoJson,
         layerName: String? = nil,
         layerProperty: String? = nil,
-        layerAllowList: Set<String>? = nil
+        layerAllowlist: Set<String>? = nil
     ) {
         guard let features = geoJson.flattened?.features else { return }
 
@@ -229,7 +229,7 @@ extension VectorTile {
                     return mapping
                 },
                 onKey: { key, features in
-                    if let layerAllowList, !layerAllowList.contains(key) { return }
+                    if let layerAllowlist, !layerAllowlist.contains(key) { return }
                     setFeatures(
                         features.map({ feature in
                             var feature = feature
@@ -240,7 +240,7 @@ extension VectorTile {
                 })
         }
         else {
-            if let layerAllowList, !layerAllowList.contains(layerName) { return }
+            if let layerAllowlist, !layerAllowlist.contains(layerName) { return }
             setFeatures(features, for: layerName)
         }
     }

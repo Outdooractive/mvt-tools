@@ -251,7 +251,7 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["building_label"]))
+        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["building_label"]))
 
         let bufferedTileData = try #require(tile.data(options: .init(bufferSize: .extent(0))))
         let bufferedTile = try #require(VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14))
@@ -270,7 +270,7 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["road"]))
+        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["road"]))
 
         let simplifiedTileData = try #require(tile.data(options: .init(bufferSize: .extent(4096), simplifyFeatures: .extent(1024))))
         let simplifiedTile = try #require(VectorTile(data: simplifiedTileData, x: 8716, y: 8015, z: 14))

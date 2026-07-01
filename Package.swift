@@ -18,11 +18,11 @@ let package = Package(
             name: "MVTTools",
             targets: ["MVTTools"]),
         .library(
-            name: "MLTTools",
-            targets: ["MLTTools"]),
+            name: "MLT",
+            targets: ["MLT"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.3"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", from: "1.0.0"),
@@ -49,7 +49,7 @@ let package = Package(
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .target(name: "MLTTools"),
+                .target(name: "MLT"),
             ],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
 
@@ -113,16 +113,18 @@ let package = Package(
         // MARK: - Swift wrapper for MLT
 
         .target(
-            name: "MLTTools",
+            name: "MLT",
             dependencies: [
                 .target(name: "CMLT"),
                 .product(name: "GISTools", package: "gis-tools"),
+                .product(name: "Gzip", package: "GzipSwift"),
+                .product(name: "Logging", package: "swift-log"),
             ],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
 
         .testTarget(
-            name: "MLTToolsTests",
-            dependencies: ["MLTTools"],
+            name: "MLTTests",
+            dependencies: ["MLT"],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
     ]
 )

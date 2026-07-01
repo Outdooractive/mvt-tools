@@ -120,7 +120,7 @@ struct MVTDecoderTests {
         let feature1 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry1,
             ofType: .point,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let point1: Point = try #require(feature1.geometry as? Point)
         let boundingBox1: BoundingBox = try #require(feature1.boundingBox)
         let result1 = Point(Coordinate3D(x: 25.0, y: 17.0, projection: .noSRID))
@@ -132,7 +132,7 @@ struct MVTDecoderTests {
         let feature2 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry2,
             ofType: .point,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let multiPoint2: MultiPoint = try #require(feature2.geometry as? MultiPoint)
         let boundingBox2: BoundingBox = try #require(feature2.boundingBox)
         let result2 = try #require(MultiPoint([
@@ -147,7 +147,7 @@ struct MVTDecoderTests {
         let feature3 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry3,
             ofType: .linestring,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let lineString3: LineString = try #require(feature3.geometry as? LineString)
         let boundingBox3: BoundingBox = try #require(feature3.boundingBox)
         let result3 = try #require(LineString([
@@ -163,7 +163,7 @@ struct MVTDecoderTests {
         let feature4 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry4,
             ofType: .linestring,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let multiLineString4: MultiLineString = try #require(feature4.geometry as? MultiLineString)
         let boundingBox4: BoundingBox = try #require(feature4.boundingBox)
         let result4 = try #require(MultiLineString([[
@@ -182,7 +182,7 @@ struct MVTDecoderTests {
         let feature5 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry5,
             ofType: .polygon,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let polygon5: Polygon = try #require(feature5.geometry as? Polygon)
         let boundingBox5: BoundingBox = try #require(feature5.boundingBox)
         let result5 = try #require(Polygon([[
@@ -199,7 +199,7 @@ struct MVTDecoderTests {
         let feature6 = try #require(MVTDecoder.convertToLayerFeature(
             geometryIntegers: geometry6,
             ofType: .polygon,
-            projectionFunction: MVTDecoder.passThroughFromTile))
+            projectionFunction: MVTDecoder.passThroughFromTile, calculateBoundingBox: true))
         let multiPolygon6: MultiPolygon = try #require(feature6.geometry as? MultiPolygon)
         let boundingBox6: BoundingBox = try #require(feature6.boundingBox)
         let result6 = try #require(MultiPolygon([[[
@@ -242,9 +242,9 @@ struct MVTDecoderTests {
 
     /// Tests that `layers(from:...)` with a layer whitelist filters correctly.
     @Test
-    func layerWhitelistFiltersCorrectly() throws {
+    func layerAllowlistFiltersCorrectly() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let whitelist: Set<String> = ["road", "building"]
+        let allowlist: Set<String> = ["road", "building"]
 
         let layers = try #require(MVTDecoder.layers(
             from: mvt,
@@ -252,7 +252,7 @@ struct MVTDecoderTests {
             y: 8015,
             z: 14,
             projection: .epsg4326,
-            layerWhitelist: whitelist,
+            layerAllowlist: allowlist,
             logger: nil))
 
         #expect(layers.keys.count == 2)
@@ -270,7 +270,7 @@ struct MVTDecoderTests {
             y: 8015,
             z: 14,
             projection: .epsg4326,
-            layerWhitelist: [],
+            layerAllowlist: [],
             logger: nil)
 
         #expect(layers?.isEmpty == true)

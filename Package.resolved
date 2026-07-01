@@ -1,13 +1,13 @@
 {
-  "originHash" : "afb362a3470ed78556545323b0c63c128c1358d5fbbb235d9f08d6d04661184e",
+  "originHash" : "084a1c76cb92418a8b1a14abf52ff9d5453ffa27a5b644186213941d5cb79d73",
   "pins" : [
     {
       "identity" : "gis-tools",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Outdooractive/gis-tools",
       "state" : {
-        "revision" : "df5523dd46272c6d6d3c07b3d1f15b3abf1eff32",
-        "version" : "2.0.1"
+        "revision" : "17b6fe5ec5b364e8ab0c02a303f22bda2cd2af10",
+        "version" : "2.0.3"
       }
     },
     {

@@ -37,7 +37,8 @@ enum MVTDecoder {
     ///   - y: The tile row index.
     ///   - z: The tile zoom level.
     ///   - projection: The target projection for coordinates (default: ``Projection/epsg4326``).
-    ///   - layerWhitelist: An optional set of layer names to include; `nil` includes all layers.
+    ///   - layerAllowlist: An optional set of layer names to include; `nil` includes all layers.
+    ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
     ///   - logger: An optional ``Logger`` for diagnostic messages.
     /// - Returns: A dictionary mapping layer names to their ``VectorTile.LayerContainer``,
     ///   or `nil` if the data could not be decoded.
@@ -47,7 +48,8 @@ enum MVTDecoder {
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        layerWhitelist: Set<String>?,
+        layerAllowlist: Set<String>?,
+        calculateBoundingBox: Bool = false,
         logger: Logger?
     ) -> [String: VectorTile.LayerContainer]? {
         if mvtData.isGzipped {
@@ -65,7 +67,7 @@ enum MVTDecoder {
         var projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D) = passThroughFromTile
 
         for layer in tile.layers {
-            guard (layerWhitelist?.contains(layer.name) ?? true) else { continue }
+            guard (layerAllowlist?.contains(layer.name) ?? true) else { continue }
 
             let name: String = layer.name
             let extent = Int(layer.extent)
@@ -88,7 +90,10 @@ enum MVTDecoder {
 
             switch version {
             case 2:
-                let layerFeatures: [Feature] = parseVersion2(layer: layer, projectionFunction: projectionFunction)
+                let layerFeatures: [Feature] = parseVersion2(
+                    layer: layer,
+                    projectionFunction: projectionFunction,
+                    calculateBoundingBox: calculateBoundingBox)
                 let boundingBoxes: [BoundingBox] = layerFeatures.compactMap({ $0.boundingBox })
 
                 var layerBoundingBox: BoundingBox?
@@ -117,10 +122,12 @@ enum MVTDecoder {
     ///   - layer: The protobuf ``VectorTile_Tile.Layer`` to parse.
     ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
     ///     ``Coordinate3D`` in the target projection.
+    ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
     /// - Returns: An array of decoded ``Feature`` values.
     static func parseVersion2(
         layer: VectorTile_Tile.Layer,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D),
+        calculateBoundingBox: Bool
     ) -> [Feature] {
         let (keys, values) = keysAndValues(forLayer: layer)
 
@@ -131,7 +138,8 @@ enum MVTDecoder {
             guard var layerFeature: Feature = convertToLayerFeature(
                 geometryIntegers: feature.geometry,
                 ofType: feature.type,
-                projectionFunction: projectionFunction)
+                projectionFunction: projectionFunction,
+                calculateBoundingBox: calculateBoundingBox)
             else { continue }
 
             var properties: [String: Sendable] = [:]
@@ -232,7 +240,8 @@ enum MVTDecoder {
     static func convertToLayerFeature(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
-        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D)
+        projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D),
+        calculateBoundingBox: Bool
     ) -> Feature? {
         let multiCoordinates: [[Coordinate3D]] = multiCoordinatesFrom(
             geometryIntegers: geometryIntegers,
@@ -248,29 +257,29 @@ enum MVTDecoder {
             if multiCoordinates.count == 1,
                let coordinate = multiCoordinates.first?.first
             {
-                feature = Feature(Point(coordinate), calculateBoundingBox: true)
+                feature = Feature(Point(coordinate), calculateBoundingBox: calculateBoundingBox)
             }
             else {
                 let flattened: [Coordinate3D] = Array(multiCoordinates.joined())
                 guard let multiPoint = MultiPoint(flattened) else { return nil }
-                feature = Feature(multiPoint, calculateBoundingBox: true)
+                feature = Feature(multiPoint, calculateBoundingBox: calculateBoundingBox)
             }
 
         case .linestring:
             if multiCoordinates.count == 1 {
                 let coordinates = multiCoordinates[0]
                 guard let lineString = LineString(coordinates) else { return nil }
-                feature = Feature(lineString, calculateBoundingBox: true)
+                feature = Feature(lineString, calculateBoundingBox: calculateBoundingBox)
             }
             else {
                 guard let multiLineString = MultiLineString(multiCoordinates) else { return nil }
-                feature = Feature(multiLineString, calculateBoundingBox: true)
+                feature = Feature(multiLineString, calculateBoundingBox: calculateBoundingBox)
             }
 
         case .polygon:
             if multiCoordinates.count == 1 {
                 if let polygon = Polygon(multiCoordinates) {
-                    feature = Feature(polygon, calculateBoundingBox: true)
+                    feature = Feature(polygon, calculateBoundingBox: calculateBoundingBox)
                 }
             }
             else {
@@ -292,7 +301,7 @@ enum MVTDecoder {
                 }
 
                 if let multiPolygon = MultiPolygon(polygons.map({ $0.coordinates })) {
-                    feature = Feature(multiPolygon, calculateBoundingBox: true)
+                    feature = Feature(multiPolygon, calculateBoundingBox: calculateBoundingBox)
                 }
             }
 

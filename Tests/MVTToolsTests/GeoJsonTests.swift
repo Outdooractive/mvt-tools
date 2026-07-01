@@ -95,7 +95,7 @@ struct GeoJsonTests {
         feature2.setProperty("blocked_layer", for: "vt_layer")
 
         let fc = FeatureCollection([feature1, feature2])
-        tile.addGeoJson(geoJson: fc, layerProperty: "vt_layer", layerAllowList: ["allowed_layer"])
+        tile.addGeoJson(geoJson: fc, layerProperty: "vt_layer", layerAllowlist: ["allowed_layer"])
 
         #expect(tile.hasLayer("allowed_layer"))
         #expect(tile.hasLayer("blocked_layer") == false)

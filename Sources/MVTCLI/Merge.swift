@@ -258,14 +258,14 @@ extension CLI {
                     x: x,
                     y: y,
                     z: z,
-                    layerWhitelist: layerAllowlist)
+                    layerAllowlist: layerAllowlist)
                 {
                     otherTile = other
                 }
                 else if let other = VectorTile(
                     contentsOfGeoJson: otherUrl,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
-                    layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist)
+                    layerAllowlist: disableInputLayerProperty ? nil : layerAllowlist)
                 {
                     otherTile = other
                 }

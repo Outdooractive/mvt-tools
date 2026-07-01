@@ -93,7 +93,7 @@ extension CLI {
                 x: x,
                 y: y,
                 z: z,
-                layerWhitelist: layerAllowlist,
+                layerAllowlist: layerAllowlist,
                 logger: options.verbose ? CLI.logger : nil)
             else { throw CLIError("Failed to parse the resource at '\(path)'") }
 

@@ -186,7 +186,7 @@ public struct VectorTile: Sendable {
     ///   - z: The tile's zoom level.
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
     public init?(
@@ -196,7 +196,7 @@ public struct VectorTile: Sendable {
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         guard x >= 0, y >= 0, z >= 0 else {
@@ -217,8 +217,8 @@ public struct VectorTile: Sendable {
         self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
-            Set(layerWhitelist)
+        let layerAllowlistSet: Set<String>? = if let layerAllowlist {
+            Set(layerAllowlist)
         }
         else {
             nil
@@ -240,7 +240,8 @@ public struct VectorTile: Sendable {
             y: y,
             z: z,
             projection: projection,
-            layerWhitelist: layerWhitelistSet,
+            layerAllowlist: layerAllowlistSet,
+            calculateBoundingBox: true,
             logger: logger)
         else { return nil }
 
@@ -260,7 +261,7 @@ public struct VectorTile: Sendable {
     ///   - tile: The map tile coordinate.
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
     public init?(
@@ -268,7 +269,7 @@ public struct VectorTile: Sendable {
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         self.init(
@@ -278,7 +279,7 @@ public struct VectorTile: Sendable {
             z: tile.z,
             projection: projection,
             indexed: sortOption,
-            layerWhitelist: layerWhitelist,
+            layerAllowlist: layerAllowlist,
             logger: logger)
     }
 
@@ -291,7 +292,7 @@ public struct VectorTile: Sendable {
     ///   - z: The tile's zoom level.
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
     public init?(
@@ -301,7 +302,7 @@ public struct VectorTile: Sendable {
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         guard let data = try? Data(contentsOf: url) else {
@@ -316,7 +317,7 @@ public struct VectorTile: Sendable {
             z: z,
             projection: projection,
             indexed: sortOption,
-            layerWhitelist: layerWhitelist,
+            layerAllowlist: layerAllowlist,
             logger: logger)
     }
 
@@ -327,7 +328,7 @@ public struct VectorTile: Sendable {
     ///   - tile: The map tile coordinate.
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
     public init?(
@@ -335,7 +336,7 @@ public struct VectorTile: Sendable {
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         self.init(
@@ -345,7 +346,7 @@ public struct VectorTile: Sendable {
             z: tile.z,
             projection: projection,
             indexed: sortOption,
-            layerWhitelist: layerWhitelist,
+            layerAllowlist: layerAllowlist,
             logger: logger)
     }
 
@@ -358,14 +359,14 @@ public struct VectorTile: Sendable {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the GeoJSON data cannot be parsed or the tile coordinates are invalid.
     public init?(
         geoJsonData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         guard let featureCollection = FeatureCollection(jsonData: data),
@@ -394,8 +395,8 @@ public struct VectorTile: Sendable {
         self.logger = logger
 
         // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
-            Set(layerWhitelist)
+        let layerAllowlistSet: Set<String>? = if let layerAllowlist {
+            Set(layerAllowlist)
         }
         else {
             nil
@@ -408,7 +409,7 @@ public struct VectorTile: Sendable {
         setGeoJson(
             geoJson: featureCollection,
             layerProperty: layerProperty,
-            layerAllowList: layerWhitelistSet)
+            layerAllowlist: layerAllowlistSet)
 
         if let sortOption {
             createIndex(sortOption: sortOption)
@@ -422,14 +423,14 @@ public struct VectorTile: Sendable {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Returns: `nil` when the file cannot be read or the GeoJSON data cannot be parsed.
     public init?(
         contentsOfGeoJson url: URL,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
-        layerWhitelist: [String]? = nil,
+        layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) {
         guard let data = try? Data(contentsOf: url) else {
@@ -441,7 +442,7 @@ public struct VectorTile: Sendable {
             geoJsonData: data,
             indexed: sortOption,
             layerProperty: layerProperty,
-            layerWhitelist: layerWhitelist,
+            layerAllowlist: layerAllowlist,
             logger: logger)
     }
 
