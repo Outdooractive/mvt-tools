@@ -5,8 +5,6 @@
 #include <type_traits>
 #include <vector>
 
-// PATCHED: increased buffer from 10 to 12 to safely handle
-// UINT64_MAX varint encoding (takes 11 bytes for the data pointer end).
 namespace mlt::util::encoding {
 
 template <typename T>
@@ -35,7 +33,7 @@ std::size_t encodeVarint(T value, std::uint8_t* out) noexcept {
 template <typename T>
     requires(std::is_integral_v<T> && std::is_unsigned_v<T>)
 void encodeVarint(T value, std::vector<std::uint8_t>& out) {
-    std::array<std::uint8_t, 12> buf; // PATCHED: was 10, increased to 12
+    std::array<std::uint8_t, 12> buf;
     const auto n = encodeVarint(value, buf.data());
     out.insert(out.end(), buf.data(), &buf[n]);
 }
