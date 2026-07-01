@@ -5,15 +5,15 @@ import Gzip
 import Logging
 
 /// Errors thrown by MLT decoding.
-public enum MLTDecoderError: Error {
+enum MLTDecoderError: Error {
     case decodeFailed
 }
 
 /// Decodes MapLibre Tile (MLT) binary data into GISTools ``Feature`` objects
 /// grouped by layer name.
-public enum MLTDecoder {
+enum MLTDecoder {
 
-    /// Decode MLT data into a dictionary of layer names to GISTools ``Feature`` arrays.
+    /// Decode MLT data into a dictionary of layer names to ``VectorTile.LayerContainer`` values.
     ///
     /// Automatically decompresses gzipped input before decoding. The raw tile-extent
     /// coordinates are projected to the target projection using the given tile
@@ -28,9 +28,9 @@ public enum MLTDecoder {
     ///   - layerAllowlist: An optional set of layer names to include; `nil` includes all layers.
     ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
     ///   - logger: An optional logger for diagnostic messages.
-    /// - Returns: A dictionary keyed by layer name, each value an array of ``Feature`` objects.
+    /// - Returns: A dictionary keyed by layer name, each value a ``VectorTile.LayerContainer``.
     /// - Throws: ``MLTDecoderError/decodeFailed`` if the data is not valid MLT.
-    public static func decode(
+    static func decode(
         from data: Data,
         x: Int,
         y: Int,
@@ -39,7 +39,7 @@ public enum MLTDecoder {
         layerAllowlist: Set<String>? = nil,
         calculateBoundingBox: Bool = false,
         logger: Logger? = nil
-    ) throws -> [String: [Feature]] {
+    ) throws -> [String: VectorTile.LayerContainer] {
         // Auto-decompress gzipped input.
         var mvtData = data
         if mvtData.isGzipped {
@@ -65,7 +65,7 @@ public enum MLTDecoder {
 
         // Iterate layers and convert every feature.
         let layerCount = Int(mlt_tile_layer_count(handle))
-        var result: [String: [Feature]] = [:]
+        var result: [String: VectorTile.LayerContainer] = [:]
         result.reserveCapacity(layerCount)
 
         for li in 0 ..< layerCount {
@@ -75,10 +75,8 @@ public enum MLTDecoder {
             let propertyKeys = layerPropertyKeys(handle: handle, layerIndex: li)
             let extent = Int(mlt_tile_layer_extent(handle, li))
 
-            let projectFn = forwardProjection(
-                for: projection,
-                x: x, y: y, z: z,
-                extent: extent)
+            let projectFn = Projections.forwardProjection(
+                for: projection, x: x, y: y, z: z, extent: extent)
             let toCoord: (Double, Double) -> Coordinate3D = { fx, fy in
                 projectFn(Int(fx), Int(fy))
             }
@@ -100,7 +98,14 @@ public enum MLTDecoder {
             }
 
             if !features.isEmpty {
-                result[layerName] = features
+                var layerBoundingBox: BoundingBox?
+                let boundingBoxes = features.compactMap(\.boundingBox)
+                if boundingBoxes.isNotEmpty {
+                    layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
+                }
+                result[layerName] = VectorTile.LayerContainer(
+                    features: features,
+                    boundingBox: layerBoundingBox)
             }
         }
 
@@ -292,23 +297,49 @@ public enum MLTDecoder {
                 return coords + [coords[0]]
             }
 
-            var rings: [[Coordinate3D]] = []
-            for ri in 0 ..< ringCount {
+            /// Read ring at global index `ri`, return its coordinates or nil.
+            func readRing(_ ri: Int) -> [Coordinate3D]? {
                 let size = mlt_feature_ring_size(
                     handle, layerIndex, featureIndex, ri)
-                if size < 3 { continue }
+                guard size >= 3 else { return nil }
                 var xs = [Float](repeating: 0, count: size)
                 var ys = [Float](repeating: 0, count: size)
                 let written = mlt_feature_ring_coordinates(
                     handle, layerIndex, featureIndex, ri, &xs, &ys, size)
-                guard written == size else { continue }
-                let coords = zip(xs, ys).map {
-                    toCoord(Double($0), Double($1))
-                }
-                rings.append(closeRing(coords))
+                guard written == size else { return nil }
+                return closeRing(zip(xs, ys).map { toCoord(Double($0), Double($1)) })
             }
-            guard rings.isEmpty == false else { return nil }
-            return Polygon(rings)
+
+            if gt == kMLTGeometryMultiPolygon {
+                // Build a MultiPolygon by grouping rings per polygon.
+                let polygonCount = Int(mlt_feature_polygon_count(
+                    handle, layerIndex, featureIndex))
+                var polygons: [[[Coordinate3D]]] = []
+                var ringIdx = 0
+                for pi in 0 ..< polygonCount {
+                    let nRings = Int(mlt_feature_polygon_ring_count(
+                        handle, layerIndex, featureIndex, pi))
+                    var rings: [[Coordinate3D]] = []
+                    for _ in 0 ..< nRings {
+                        if ringIdx < ringCount, let coords = readRing(ringIdx) {
+                            rings.append(coords)
+                        }
+                        ringIdx += 1
+                    }
+                    if rings.isNotEmpty { polygons.append(rings) }
+                }
+                guard polygons.isNotEmpty else { return nil }
+                return MultiPolygon(polygons)
+            }
+            else {
+                // Polygon: all rings form a single polygon.
+                var rings: [[Coordinate3D]] = []
+                for ri in 0 ..< ringCount {
+                    if let coords = readRing(ri) { rings.append(coords) }
+                }
+                guard rings.isNotEmpty else { return nil }
+                return Polygon(rings)
+            }
         }
 
         return nil

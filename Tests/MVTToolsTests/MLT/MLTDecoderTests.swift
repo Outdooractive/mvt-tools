@@ -1,11 +1,13 @@
 import Foundation
 import GISTools
-import MLT
+@testable import MVTTools
 import Testing
 
 /// Path to MLT test fixtures in the submodule.
+/// File is at Tests/MVTToolsTests/MLT/MLTDecoderTests.swift.
 private var testFixturesDir: URL {
     URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
@@ -67,10 +69,10 @@ struct MLTDecoderTests {
         #expect(decoded.isEmpty == false)
 
         let boxes = Self.tileBoxes(x: x, y: y, z: z, projection: .epsg4326)
-        for (name, features) in decoded {
+        for (name, container) in decoded {
             #expect(name.isEmpty == false)
-            #expect(features.isEmpty == false)
-            Self.expectAllCoordsInBounds(features, boxes: boxes)
+            #expect(container.features.isEmpty == false)
+            Self.expectAllCoordsInBounds(container.features, boxes: boxes)
         }
     }
 
@@ -85,8 +87,8 @@ struct MLTDecoderTests {
             from: data, x: x, y: y, z: z, projection: .epsg4326)
         let boxes = Self.tileBoxes(x: x, y: y, z: z, projection: .epsg4326)
 
-        for (_, features) in decoded {
-            let feat = try #require(features.first)
+        for (_, container) in decoded {
+            let feat = try #require(container.features.first)
             #expect(feat.geometry.type != .invalid)
             #expect(feat.properties.isEmpty == false)
             Self.expectAllCoordsInBounds([feat], boxes: boxes)
@@ -105,8 +107,8 @@ struct MLTDecoderTests {
         let boxes = Self.tileBoxes(x: x, y: y, z: z, projection: .epsg4326)
 
         var totalFeatures = 0
-        for (_, features) in decoded {
-            for feat in features {
+        for (_, container) in decoded {
+            for feat in container.features {
                 totalFeatures += 1
                 #expect(feat.geometry.type != .invalid)
                 Self.expectAllCoordsInBounds([feat], boxes: boxes)

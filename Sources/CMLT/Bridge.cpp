@@ -301,6 +301,28 @@ size_t mlt_feature_ring_coordinates(MLTTileHandle tile, size_t layerIndex, size_
     return written;
 } CATCH_BRIDGE_RET(0)}
 
+size_t mlt_feature_polygon_count(MLTTileHandle tile, size_t layerIndex, size_t featureIndex) { try {
+    const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
+    if (layerIndex >= layers.size()) { return 0; }
+    const auto& features = layers[layerIndex].getFeatures();
+    if (featureIndex >= features.size()) { return 0; }
+    auto& geom = features[featureIndex].getGeometry();
+    if (geom.type != mlt::metadata::tileset::GeometryType::MULTIPOLYGON) { return 0; }
+    return static_cast<const mlt::geometry::MultiPolygon&>(geom).getPolygons().size();
+} CATCH_BRIDGE_RET(0)}
+
+size_t mlt_feature_polygon_ring_count(MLTTileHandle tile, size_t layerIndex, size_t featureIndex, size_t polygonIndex) { try {
+    const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
+    if (layerIndex >= layers.size()) { return 0; }
+    const auto& features = layers[layerIndex].getFeatures();
+    if (featureIndex >= features.size()) { return 0; }
+    auto& geom = features[featureIndex].getGeometry();
+    if (geom.type != mlt::metadata::tileset::GeometryType::MULTIPOLYGON) { return 0; }
+    const auto& polygons = static_cast<const mlt::geometry::MultiPolygon&>(geom).getPolygons();
+    if (polygonIndex >= polygons.size()) { return 0; }
+    return polygons[polygonIndex].size();
+} CATCH_BRIDGE_RET(0)}
+
 // MARK: - Properties
 
 size_t mlt_layer_property_key_count(MLTTileHandle tile, size_t layerIndex) { try {
@@ -495,24 +517,70 @@ static mlt::Encoder::PropertyValue typedPropertyFromString(int32_t type, const s
     }
 }
 
-static mlt::Encoder::Geometry geometryFromCoords(const float* xs, const float* ys, size_t count, int32_t geomType) {
+static mlt::Encoder::Geometry geometryFromCoords(
+    const float* xs, const float* ys, size_t count,
+    int32_t geomType,
+    const uint32_t* partSizes, size_t partCount,
+    const uint32_t* polygonRingCounts, size_t polygonCount)
+{
     using GT = mlt::metadata::tileset::GeometryType;
     mlt::Encoder::Geometry geom;
     geom.type = static_cast<GT>(geomType);
 
-    geom.coordinates.reserve(count);
-    for (size_t i = 0; i < count; i++) {
-        geom.coordinates.push_back({static_cast<int32_t>(xs[i]), static_cast<int32_t>(ys[i])});
+    if (geomType == kMLTGeometryMultiPolygon && polygonRingCounts) {
+        // MultiPolygon: build one part per polygon, with ring sizes.
+        geom.partRingSizes.reserve(polygonCount);
+        size_t ringIdx = 0;
+        size_t coordOffset = 0;
+        for (size_t poly = 0; poly < polygonCount; poly++) {
+            auto nRings = static_cast<size_t>(polygonRingCounts[poly]);
+            std::vector<std::uint32_t> ringSizes;
+            ringSizes.reserve(nRings);
+            std::vector<mlt::Encoder::Vertex> polyVerts;
+            for (size_t r = 0; r < nRings && ringIdx < partCount; r++, ringIdx++) {
+                auto ringSize = static_cast<size_t>(partSizes[ringIdx]);
+                ringSizes.push_back(static_cast<uint32_t>(ringSize));
+                for (size_t i = 0; i < ringSize && coordOffset < count; i++, coordOffset++) {
+                    polyVerts.push_back({static_cast<int32_t>(xs[coordOffset]), static_cast<int32_t>(ys[coordOffset])});
+                }
+            }
+            geom.partRingSizes.push_back(std::move(ringSizes));
+            geom.parts.push_back(std::move(polyVerts));
+        }
     }
-
-    // For polygon geometry, the encoder needs ring structure metadata.
-    if (geomType == kMLTGeometryPolygon) {
-        // Single exterior ring: all coordinates form one ring.
-        geom.ringSizes.push_back(static_cast<uint32_t>(count));
+    else if (geomType == kMLTGeometryPolygon && partSizes) {
+        // Polygon: each part is one ring; build ringSizes + flatten into coordinates.
+        geom.ringSizes.reserve(partCount);
+        geom.coordinates.reserve(count);
+        size_t offset = 0;
+        for (size_t p = 0; p < partCount; p++) {
+            auto ringSize = static_cast<size_t>(partSizes[p]);
+            geom.ringSizes.push_back(partSizes[p]);
+            for (size_t i = 0; i < ringSize && offset < count; i++, offset++) {
+                geom.coordinates.push_back({static_cast<int32_t>(xs[offset]), static_cast<int32_t>(ys[offset])});
+            }
+        }
     }
-    else if (geomType == kMLTGeometryMultiPolygon) {
-        // Flattened rings: treat as one polygon for now.
-        geom.ringSizes.push_back(static_cast<uint32_t>(count));
+    else if (geomType == kMLTGeometryMultiLineString && partSizes) {
+        // MultiLineString: one part per line.
+        geom.parts.reserve(partCount);
+        size_t offset = 0;
+        for (size_t p = 0; p < partCount; p++) {
+            auto partSize = static_cast<size_t>(partSizes[p]);
+            std::vector<mlt::Encoder::Vertex> part;
+            part.reserve(partSize);
+            for (size_t i = 0; i < partSize && offset < count; i++, offset++) {
+                part.push_back({static_cast<int32_t>(xs[offset]), static_cast<int32_t>(ys[offset])});
+            }
+            geom.parts.push_back(std::move(part));
+        }
+    }
+    else {
+        // Simple geometry: flat coordinate array.
+        geom.coordinates.reserve(count);
+        for (size_t i = 0; i < count; i++) {
+            geom.coordinates.push_back({static_cast<int32_t>(xs[i]), static_cast<int32_t>(ys[i])});
+        }
     }
 
     return geom;
@@ -523,12 +591,14 @@ void mlt_encoder_add_feature(
     uint64_t featureId, bool hasId,
     int32_t geomType,
     const float* xs, const float* ys, size_t coordCount,
+    const uint32_t* partSizes, size_t partCount,
+    const uint32_t* polygonRingCounts, size_t polygonCount,
     const MLTProperty* props, size_t propCount)
 { try {
     auto* state = static_cast<EncoderState*>(encoder);
     mlt::Encoder::Feature feat;
     if (hasId) { feat.id = featureId; }
-    feat.geometry = geometryFromCoords(xs, ys, coordCount, geomType);
+    feat.geometry = geometryFromCoords(xs, ys, coordCount, geomType, partSizes, partCount, polygonRingCounts, polygonCount);
     for (size_t i = 0; i < propCount; i++) {
         if (props[i].key && props[i].value) {
             feat.properties[props[i].key] = typedPropertyFromString(props[i].type, props[i].value);

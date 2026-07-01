@@ -3,7 +3,7 @@ import GISTools
 
 // MARK: - Forward projections (tile-extent → geographic)
 
-extension MLTDecoder {
+enum Projections {
 
     /// Passes tile-local coordinates through without projection (noSRID).
     static func passThroughFromTile(
@@ -92,7 +92,7 @@ extension MLTDecoder {
 
 // MARK: - Inverse projections (geographic → tile-extent)
 
-extension MLTEncoder {
+extension Projections {
 
     /// Passes coordinate values through as-is (noSRID).
     static func passThroughToTile() -> (Coordinate3D) -> (Int, Int) {

@@ -72,6 +72,11 @@ size_t mlt_feature_ring_coordinates(
     float* outY,
     size_t maxCount);
 
+/// For MultiPolygon: number of polygons in the multi-polygon.
+size_t mlt_feature_polygon_count(MLTTileHandle tile, size_t layerIndex, size_t featureIndex);
+/// For MultiPolygon: number of rings in the given polygon (0-indexed).
+size_t mlt_feature_polygon_ring_count(MLTTileHandle tile, size_t layerIndex, size_t featureIndex, size_t polygonIndex);
+
 // MARK: - Properties
 
 size_t mlt_layer_property_key_count(MLTTileHandle tile, size_t layerIndex);
@@ -112,11 +117,17 @@ void mlt_encoder_begin_layer(MLTEncoderHandle encoder, const char* name, uint32_
 /// Add a feature to the current layer.
 /// `xs`/`ys` are flat float arrays of coordinate data.
 /// `geomType` is one of the kMLTGeometry* constants.
+/// `partSizes` describes how the flat coordinate array is split into sub-parts
+/// (ring/line sizes).  Pass NULL / 0 for simple geometries.
+/// `polygonRingCounts` is only used for MultiPolygon: an array (one per polygon)
+/// telling how many rings each polygon has.  Pass NULL / 0 otherwise.
 void mlt_encoder_add_feature(
     MLTEncoderHandle encoder,
     uint64_t featureId, bool hasId,
     int32_t geomType,
     const float* xs, const float* ys, size_t coordCount,
+    const uint32_t* partSizes, size_t partCount,
+    const uint32_t* polygonRingCounts, size_t polygonCount,
     const MLTProperty* props, size_t propCount);
 
 /// Finish encoding and return the MLT binary data. Caller must free with `mlt_buffer_free`.
