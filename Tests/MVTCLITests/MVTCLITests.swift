@@ -9,29 +9,112 @@ struct CLIProcessError: LocalizedError {
     init(_ message: String) { self.errorDescription = message }
 }
 
-/// Path to the built `mvt` executable.
-private var mvtExec: URL {
-    let root = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .appendingPathComponent(".build")
+/// Check whether the file at `url` is executable and has the right binary
+/// format for the current platform (Mach-O on macOS, ELF on Linux).
+private func isNativeExecutable(at url: URL) -> Bool {
+    guard FileManager.default.isExecutableFile(atPath: url.path) else { return false }
+#if os(macOS)
+    guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+    defer { try? handle.close() }
+    guard let magic = try? handle.read(upToCount: 4) else { return false }
+    let machoMagics: Set<[UInt8]> = [
+        [0xFE, 0xED, 0xFA, 0xCE],
+        [0xCE, 0xFA, 0xED, 0xFE],
+        [0xFE, 0xED, 0xFA, 0xCF],
+        [0xCF, 0xFA, 0xED, 0xFE],
+        [0xCA, 0xFE, 0xBA, 0xBE],
+        [0xBE, 0xBA, 0xFE, 0xCA],
+    ]
+    return machoMagics.contains(Array(magic))
+#else
+    return true
+#endif
+}
 
-    // Resolve the debug symlink to the correct platform directory.
-    let debugLink = root.appendingPathComponent("debug").path
-    if let linkDest = try? FileManager.default.destinationOfSymbolicLink(atPath: debugLink) {
-        return root.appendingPathComponent(linkDest).appendingPathComponent("mvt")
+/// Locate the built `mvt` CLI executable.
+private var mvtExec: URL {
+    // 1. Xcode BUILT_PRODUCTS_DIR.
+    if let builtProducts = ProcessInfo.processInfo.environment["BUILT_PRODUCTS_DIR"] {
+        let candidate = URL(fileURLWithPath: builtProducts).appendingPathComponent("mvt")
+        if isNativeExecutable(at: candidate) { return candidate }
     }
 
-    // Fallback: try common platform directories.
-    for subdir in ["aarch64-unknown-linux-gnu", "arm64-apple-macosx", "x86_64-apple-macosx"] {
-        let candidate = root.appendingPathComponent(subdir).appendingPathComponent("debug").appendingPathComponent("mvt")
-        if FileManager.default.fileExists(atPath: candidate.path) {
-            return candidate
+    // 2. Xcode DerivedData on macOS.
+#if os(macOS)
+    if let library = try? FileManager.default.url(
+        for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    {
+        let derivedData = library.appendingPathComponent("Developer/Xcode/DerivedData")
+        if let enumerator = FileManager.default.enumerator(
+            at: derivedData, includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles, .skipsSubdirectoryDescendants])
+        {
+            for case let subdir as URL in enumerator {
+                var isDir: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: subdir.path, isDirectory: &isDir),
+                      isDir.boolValue,
+                      subdir.lastPathComponent.hasPrefix("mvt-tools-")
+                else { continue }
+                let candidate = subdir
+                    .appendingPathComponent("Build/Products/Debug")
+                    .appendingPathComponent("mvt")
+                if isNativeExecutable(at: candidate) { return candidate }
+            }
         }
     }
+#endif
 
-    return root.appendingPathComponent("debug").appendingPathComponent("mvt")
+    // 3. SPM build directory.
+    let packageRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+    let buildRoot = packageRoot.appendingPathComponent(".build")
+
+    // 3a. Follow the debug symlink.
+    let debugDir = buildRoot.appendingPathComponent("debug")
+    if let linkDest = try? FileManager.default.destinationOfSymbolicLink(atPath: debugDir.path) {
+        let resolved = buildRoot.appendingPathComponent(linkDest).appendingPathComponent("mvt")
+        if isNativeExecutable(at: resolved) { return resolved }
+    }
+
+    // 3b. Host-specific platform triples.
+    let hostTriples: [String]
+#if arch(arm64)
+    hostTriples = ["arm64-apple-macosx", "aarch64-apple-macosx"]
+#elseif arch(x86_64)
+    hostTriples = ["x86_64-apple-macosx"]
+#else
+    hostTriples = []
+#endif
+    for triple in hostTriples {
+        let candidate = buildRoot
+            .appendingPathComponent(triple)
+            .appendingPathComponent("debug")
+            .appendingPathComponent("mvt")
+        if isNativeExecutable(at: candidate) { return candidate }
+    }
+
+    // 3c. Scan all platform subdirectories, preferring macOS over Linux.
+    guard let enumerator = FileManager.default.enumerator(
+        at: buildRoot, includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles])
+    else { return debugDir.appendingPathComponent("mvt") }
+
+    var bestCandidate: URL?
+    for case let subdir as URL in enumerator {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: subdir.path, isDirectory: &isDir),
+              isDir.boolValue else { continue }
+        let candidate = subdir.appendingPathComponent("debug").appendingPathComponent("mvt")
+        guard isNativeExecutable(at: candidate) else { continue }
+        if subdir.lastPathComponent.contains("macosx") || subdir.lastPathComponent.contains("apple") {
+            return candidate
+        }
+        bestCandidate = candidate
+    }
+
+    return bestCandidate ?? debugDir.appendingPathComponent("mvt")
 }
 
 /// Path to the shared TestData directory used by MVTToolsTests.
@@ -44,7 +127,6 @@ private var testDataDir: URL {
 }
 
 /// Run the mvt CLI with the given arguments and return stdout.
-/// Uses a temporary file to avoid pipe buffer deadlocks on large output.
 private func runCLI(args: [String]) throws -> String {
     let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("mvt_stdout_\(UUID().uuidString).txt")
@@ -63,8 +145,7 @@ private func runCLI(args: [String]) throws -> String {
     process.waitUntilExit()
     try stdoutHandle.close()
 
-    let data = try Data(contentsOf: tempUrl)
-    return String(data: data, encoding: .utf8) ?? ""
+    return String(data: try Data(contentsOf: tempUrl), encoding: .utf8) ?? ""
 }
 
 // MARK: - Dump
@@ -76,7 +157,6 @@ struct DumpCommandTests {
     func dumpMvt() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", mvtPath])
-
         #expect(output.contains("FeatureCollection"))
     }
 
@@ -85,7 +165,6 @@ struct DumpCommandTests {
     func dumpGeoJson() throws {
         let geojsonPath = testDataDir.appendingPathComponent("14_8716_8015.geojson").path
         let output = try runCLI(args: ["dump", geojsonPath])
-
         #expect(output.contains("FeatureCollection"))
     }
 
@@ -94,7 +173,6 @@ struct DumpCommandTests {
     func dumpMvtWithLayerFilter() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "--layer", "road", mvtPath])
-
         #expect(output.contains("FeatureCollection"))
     }
 
@@ -109,7 +187,6 @@ struct InfoCommandTests {
     func infoOnMvt() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["info", mvtPath])
-
         #expect(output.contains("Name"))
         #expect(output.contains("road"))
     }
@@ -157,7 +234,6 @@ struct ImportCommandTests {
         defer { try? FileManager.default.removeItem(at: outputUrl) }
 
         let output = try runCLI(args: ["import", "-x", "5", "-y", "13", "-z", "4", "--output", outputUrl.path, "--force-overwrite", smallGeoJson.path])
-
         #expect(output.contains(".geojson"))
         #expect(FileManager.default.fileExists(atPath: outputUrl.path))
     }
@@ -173,7 +249,6 @@ struct MergeCommandTests {
     func mergeMvtFiles() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["merge", mvtPath, mvtPath])
-
         #expect(output.contains("\"type\":\"FeatureCollection\""))
     }
 
@@ -183,7 +258,6 @@ struct MergeCommandTests {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let geojsonPath = testDataDir.appendingPathComponent("14_8716_8015.geojson").path
         let output = try runCLI(args: ["merge", mvtPath, geojsonPath])
-
         #expect(output.contains("\"type\":\"FeatureCollection\""))
     }
 
@@ -198,7 +272,6 @@ struct QueryCommandTests {
     func queryByCoordinate() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", mvtPath, "3.870163,11.518585,100"])
-
         #expect(output.contains("FeatureCollection") || output.contains("Nothing found"))
     }
 
@@ -207,7 +280,6 @@ struct QueryCommandTests {
     func queryNoResults() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", mvtPath, "zzz_nonexistent_term_xyz"])
-
         #expect(output.contains("features"))
     }
 
