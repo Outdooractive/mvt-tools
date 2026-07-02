@@ -36,20 +36,16 @@ enum MLTEncoder {
             for: projection, x: x, y: y, z: z, extent: Int(extent))
 
         // Determine the clipping bounding box.
-        // z=0 tiles cover the whole world and are skipped (GISTools clipLine
-        // has edge-case behaviour with full-span bounding boxes).
         var clipBoundingBox: BoundingBox?
-        if z > 0  {
-            switch projection {
-            case .noSRID:
-                break
-            case .epsg3857:
-                clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-            case .epsg4326:
-                clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
-            case .epsg4978:
-                clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4978)
-            }
+        switch projection {
+        case .noSRID:
+            break
+        case .epsg3857:
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
+        case .epsg4326:
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
+        case .epsg4978:
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4978)
         }
 
         // Buffer size
@@ -89,22 +85,23 @@ enum MLTEncoder {
             clipBoundingBox = boundingBoxToExpand.expanded(byDistance: distance)
         }
 
-        for (layerName, container) in layers {
-            guard container.features.isNotEmpty else { continue }
+        for (layerName, layerContainer) in layers {
+            guard layerContainer.features.isNotEmpty else { continue }
 
             let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
                 if simplifyDistance > 0.0 {
-                    container.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
+                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
                 }
                 else {
-                    container.features.compactMap({ $0.clipped(to: clippedToBoundingBox) })
+                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox) })
                 }
             }
             else {
-                container.features
+                layerContainer.features
             }
 
             guard layerFeatures.isNotEmpty else { continue }
+
             mlt_encoder_begin_layer(encoder, layerName, extent)
 
             for feature in layerFeatures {
@@ -116,13 +113,13 @@ enum MLTEncoder {
                 // Map GISTools geometry type → MLT constant.
                 let geomType: Int32
                 switch feature.geometry.type {
-                case .point:             geomType = Int32(kMLTGeometryPoint)
-                case .multiPoint:        geomType = Int32(kMLTGeometryMultiPoint)
-                case .lineString:        geomType = Int32(kMLTGeometryLineString)
-                case .multiLineString:   geomType = Int32(kMLTGeometryMultiLineString)
-                case .polygon:           geomType = Int32(kMLTGeometryPolygon)
-                case .multiPolygon:      geomType = Int32(kMLTGeometryMultiPolygon)
-                default:                 continue
+                case .point: geomType = Int32(kMLTGeometryPoint)
+                case .multiPoint: geomType = Int32(kMLTGeometryMultiPoint)
+                case .lineString: geomType = Int32(kMLTGeometryLineString)
+                case .multiLineString: geomType = Int32(kMLTGeometryMultiLineString)
+                case .polygon: geomType = Int32(kMLTGeometryPolygon)
+                case .multiPolygon: geomType = Int32(kMLTGeometryMultiPolygon)
+                default: continue
                 }
 
                 // Project coordinates from geographic space to tile-extent space.

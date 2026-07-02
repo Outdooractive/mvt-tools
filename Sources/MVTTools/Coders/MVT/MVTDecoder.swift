@@ -42,7 +42,7 @@ enum MVTDecoder {
     ///   - logger: An optional ``Logger`` for diagnostic messages.
     /// - Returns: A dictionary mapping layer names to their ``VectorTile.LayerContainer``,
     ///   or `nil` if the data could not be decoded.
-    static func layers(
+    static func decode(
         from mvtData: Data,
         x: Int,
         y: Int,
@@ -53,11 +53,11 @@ enum MVTDecoder {
         logger: Logger?
     ) -> [String: VectorTile.LayerContainer]? {
         if mvtData.isGzipped {
-            (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Input data is gzipped")
+            (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): MVT input data is gzipped")
         }
 
         guard let tile = vectorTile(from: mvtData) else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to create a vector tile from data")
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to decode MVT tile data")
             return nil
         }
 

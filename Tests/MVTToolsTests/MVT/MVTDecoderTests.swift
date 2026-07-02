@@ -246,7 +246,7 @@ struct MVTDecoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         let allowlist: Set<String> = ["road", "building"]
 
-        let layers = try #require(MVTDecoder.layers(
+        let layers = try #require(MVTDecoder.decode(
             from: mvt,
             x: 8716,
             y: 8015,
@@ -264,7 +264,7 @@ struct MVTDecoderTests {
     @Test
     func emptyWhitelistReturnsNoLayers() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let layers = MVTDecoder.layers(
+        let layers = MVTDecoder.decode(
             from: mvt,
             x: 8716,
             y: 8015,

@@ -234,7 +234,7 @@ public struct VectorTile: Sendable {
             self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
-        guard let parsedLayers = MVTDecoder.layers(
+        guard let parsedLayers = MVTDecoder.decode(
             from: data,
             x: x,
             y: y,
@@ -457,7 +457,7 @@ extension VectorTile {
     /// - Parameter options: Export options for buffer, compression, and simplification. Defaults to standard options.
     /// - Returns: The raw MVT protobuf data, or `nil` if encoding fails.
     public func data(options: ExportOptions? = nil) -> Data? {
-        MVTEncoder.mvtDataFor(
+        MVTEncoder.encode(
             layers: layers,
             x: x,
             y: y,

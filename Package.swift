@@ -19,7 +19,7 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.3"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.4"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", from: "1.0.0"),
@@ -68,8 +68,6 @@ let package = Package(
             path: ".",  // package root — sources are listed explicitly
             sources: [
                 "Sources/CMLT/Bridge.cpp",
-                "Sources/CMLT/vendor_wrappers/streamvbyte.cpp",
-                "Sources/CMLT/vendor_wrappers/varintdecode.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/src/mlt/decoder.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/src/mlt/feature.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/src/mlt/geometry_vector.cpp",
@@ -86,7 +84,6 @@ let package = Package(
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/src/bitpackingunaligned.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/src/horizontalbitpacking.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/src/simdunalignedbitpacking.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/src/codecfactory.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/src/simdbitpacking.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fsst/libfsst.cpp",
                 "Dependencies/maplibre-tile-spec/cpp/vendor/fsst/fsst_avx512.cpp",
@@ -102,7 +99,6 @@ let package = Package(
                 .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut/include"),
                 .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut"),
                 .define("MLT_WITH_FASTPFOR", to: "1"),
-                .define("MLT_WITH_JSON", to: "1"),
                 .unsafeFlags(["-std=c++20"]),
             ],
         ),

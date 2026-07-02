@@ -31,7 +31,7 @@ enum MLTDecoder {
     /// - Returns: A dictionary keyed by layer name, each value a ``VectorTile.LayerContainer``.
     /// - Throws: ``MLTDecoderError/decodeFailed`` if the data is not valid MLT.
     static func decode(
-        from data: Data,
+        from mltData: Data,
         x: Int,
         y: Int,
         z: Int,
@@ -41,22 +41,21 @@ enum MLTDecoder {
         logger: Logger? = nil
     ) throws -> [String: VectorTile.LayerContainer] {
         // Auto-decompress gzipped input.
-        var mvtData = data
-        if mvtData.isGzipped {
-            logger?.info("MLTDecoder: Input data is gzipped, decompressing")
-            mvtData = (try? mvtData.gunzipped()) ?? mvtData
+        var mltData = mltData
+        if mltData.isGzipped {
+            (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): MLT input data is gzipped")
+            mltData = (try? mltData.gunzipped()) ?? mltData
         }
 
         // Create C++ decoder and decode the tile.
         let cxxDecoder = mlt_decoder_create(true)
         defer { mlt_decoder_destroy(cxxDecoder) }
 
-        let handle = try mvtData.withUnsafeBytes {
-            (buf: UnsafeRawBufferPointer) -> MLTTileHandle in
+        let handle = try mltData.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> MLTTileHandle in
             let ptr = buf.bindMemory(to: UInt8.self).baseAddress
             let h = mlt_tile_decode(cxxDecoder, ptr, buf.count)
             guard h != nil else {
-                logger?.warning("MLTDecoder: Failed to decode tile data")
+                logger?.warning("\(z)/\(x)/\(y): Failed to decode MLT tile data")
                 throw MLTDecoderError.decodeFailed
             }
             return h!
@@ -71,14 +70,15 @@ enum MLTDecoder {
         for li in 0 ..< layerCount {
             let layerName = String(cString: mlt_tile_layer_name(handle, li))
             guard layerAllowlist?.contains(layerName) ?? true else { continue }
+
             let featureCount = Int(mlt_tile_layer_feature_count(handle, li))
             let propertyKeys = layerPropertyKeys(handle: handle, layerIndex: li)
             let extent = Int(mlt_tile_layer_extent(handle, li))
 
-            let projectFn = Projections.forwardProjection(
+            let projectionFunction = Projections.forwardProjection(
                 for: projection, x: x, y: y, z: z, extent: extent)
-            let toCoord: (Double, Double) -> Coordinate3D = { fx, fy in
-                projectFn(Int(fx), Int(fy))
+            let toCoordinate: (Double, Double) -> Coordinate3D = { fx, fy in
+                projectionFunction(Int(fx), Int(fy))
             }
 
             var features: [Feature] = []
@@ -90,14 +90,14 @@ enum MLTDecoder {
                     layerIndex: li,
                     featureIndex: fi,
                     propertyKeys: propertyKeys,
-                    toCoord: toCoord,
+                    toCoordinatesCallback: toCoordinate,
                     calculateBoundingBox: calculateBoundingBox
                 ) {
                     features.append(feature)
                 }
             }
 
-            if !features.isEmpty {
+            if features.isNotEmpty {
                 var layerBoundingBox: BoundingBox?
                 let boundingBoxes = features.compactMap(\.boundingBox)
                 if boundingBoxes.isNotEmpty {
@@ -132,14 +132,14 @@ enum MLTDecoder {
         layerIndex: Int,
         featureIndex: Int,
         propertyKeys: [String],
-        toCoord: (Double, Double) -> Coordinate3D,
+        toCoordinatesCallback: (Double, Double) -> Coordinate3D,
         calculateBoundingBox: Bool
     ) -> Feature? {
         guard let geometry = decodeGeometry(
             handle: handle,
             layerIndex: layerIndex,
             featureIndex: featureIndex,
-            toCoord: toCoord
+            toCoordinatesCallback: toCoordinatesCallback
         ) else { return nil }
 
         // Read typed properties.
@@ -209,7 +209,7 @@ enum MLTDecoder {
         handle: MLTTileHandle,
         layerIndex: Int,
         featureIndex: Int,
-        toCoord: (Double, Double) -> Coordinate3D
+        toCoordinatesCallback: (Double, Double) -> Coordinate3D
     ) -> GeoJsonGeometry? {
         let gt = Int(mlt_feature_geometry_type(handle, layerIndex, featureIndex))
 
@@ -228,18 +228,18 @@ enum MLTDecoder {
                 handle, layerIndex, featureIndex, &xs, &ys, coordCount)
             guard written == coordCount else { return nil }
 
-            let coords3D: [Coordinate3D] = zip(xs, ys).map {
-                toCoord(Double($0), Double($1))
+            let coordinates3D: [Coordinate3D] = zip(xs, ys).map {
+                toCoordinatesCallback(Double($0), Double($1))
             }
 
             switch gt {
             case kMLTGeometryPoint:
-                guard let pt = coords3D.first else { return nil }
+                guard let pt = coordinates3D.first else { return nil }
                 return Point(pt)
             case kMLTGeometryMultiPoint:
-                return MultiPoint(coords3D)
+                return MultiPoint(coordinates3D)
             case kMLTGeometryLineString:
-                return LineString(coords3D)
+                return LineString(coordinates3D)
             default:
                 return nil
             }
@@ -261,7 +261,7 @@ enum MLTDecoder {
                         handle, layerIndex, featureIndex, ri, &xs, &ys, size)
                     guard written == size else { continue }
                     let coords = zip(xs, ys).map {
-                        toCoord(Double($0), Double($1))
+                        toCoordinatesCallback(Double($0), Double($1))
                     }
                     if let ls = LineString(coords) { lines.append(ls) }
                 }
@@ -278,7 +278,7 @@ enum MLTDecoder {
                 handle, layerIndex, featureIndex, &xs, &ys, coordCount)
             guard written == coordCount else { return nil }
             let coords = zip(xs, ys).map {
-                toCoord(Double($0), Double($1))
+                toCoordinatesCallback(Double($0), Double($1))
             }
             return LineString(coords)
         }
@@ -290,11 +290,11 @@ enum MLTDecoder {
             guard ringCount > 0 else { return nil }
 
             // MLT may omit the closing vertex — add it if missing.
-            func closeRing(_ coords: [Coordinate3D]) -> [Coordinate3D] {
-                guard coords.count > 1,
-                      coords.first != coords.last
-                else { return coords }
-                return coords + [coords[0]]
+            func closeRing(_ coordinates: [Coordinate3D]) -> [Coordinate3D] {
+                guard coordinates.count > 1,
+                      coordinates.first != coordinates.last
+                else { return coordinates }
+                return coordinates + [coordinates[0]]
             }
 
             /// Read ring at global index `ri`, return its coordinates or nil.
@@ -307,7 +307,9 @@ enum MLTDecoder {
                 let written = mlt_feature_ring_coordinates(
                     handle, layerIndex, featureIndex, ri, &xs, &ys, size)
                 guard written == size else { return nil }
-                return closeRing(zip(xs, ys).map { toCoord(Double($0), Double($1)) })
+                return closeRing(zip(xs, ys).map {
+                    toCoordinatesCallback(Double($0), Double($1))
+                })
             }
 
             if gt == kMLTGeometryMultiPolygon {
@@ -315,16 +317,16 @@ enum MLTDecoder {
                 let polygonCount = Int(mlt_feature_polygon_count(
                     handle, layerIndex, featureIndex))
                 var polygons: [[[Coordinate3D]]] = []
-                var ringIdx = 0
+                var ringIndex = 0
                 for pi in 0 ..< polygonCount {
                     let nRings = Int(mlt_feature_polygon_ring_count(
                         handle, layerIndex, featureIndex, pi))
                     var rings: [[Coordinate3D]] = []
                     for _ in 0 ..< nRings {
-                        if ringIdx < ringCount, let coords = readRing(ringIdx) {
-                            rings.append(coords)
+                        if ringIndex < ringCount, let coordinates = readRing(ringIndex) {
+                            rings.append(coordinates)
                         }
-                        ringIdx += 1
+                        ringIndex += 1
                     }
                     if rings.isNotEmpty { polygons.append(rings) }
                 }
@@ -335,7 +337,9 @@ enum MLTDecoder {
                 // Polygon: all rings form a single polygon.
                 var rings: [[Coordinate3D]] = []
                 for ri in 0 ..< ringCount {
-                    if let coords = readRing(ri) { rings.append(coords) }
+                    if let coords = readRing(ri) {
+                        rings.append(coords)
+                    }
                 }
                 guard rings.isNotEmpty else { return nil }
                 return Polygon(rings)

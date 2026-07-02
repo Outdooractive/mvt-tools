@@ -25,18 +25,18 @@ enum MVTEncoder {
     ///   - projection: The source projection of the input coordinates (default: ``Projection/epsg4326``).
     ///   - options: Export options controlling buffer size, simplification, and compression.
     /// - Returns: The serialized MVT protobuf bytes (optionally gzip-compressed), or `nil` on failure.
-    static func mvtDataFor(
+    static func encode(
         layers: [String: VectorTile.LayerContainer],
         x: Int,
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        options: VectorTile.ExportOptions
+        options: VectorTile.ExportOptions = .init()
     ) -> Data? {
         var tile = VectorTile_Tile()
 
         let extent = UInt32(VectorTile.ExportOptions.extent)
-        let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int)) = Projections.inverseProjection(
+        let projectionFunction = Projections.inverseProjection(
             for: projection, x: x, y: y, z: z, extent: Int(extent))
 
         // Determine the clipping bounding box.
@@ -90,6 +90,8 @@ enum MVTEncoder {
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
 
         for (layerName, layerContainer) in layers {
+            guard layerContainer.features.isNotEmpty else { continue }
+
             let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
                 if simplifyDistance > 0.0 {
                     layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
@@ -101,6 +103,8 @@ enum MVTEncoder {
             else {
                 layerContainer.features
             }
+
+            guard layerFeatures.isNotEmpty else { continue }
 
             var layer: VectorTile_Tile.Layer = encodeVersion2(
                 features: layerFeatures,
