@@ -89,7 +89,7 @@ extension CLI {
             }
 
             guard let tile = VectorTile(
-                contentsOf: url,
+                contentsOfMVT: url,
                 x: x,
                 y: y,
                 z: z,

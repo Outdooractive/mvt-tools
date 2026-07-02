@@ -131,7 +131,7 @@ extension CLI {
                let (x, y, z) = try? xyzOptions.parseXYZ(fromPaths: [path])
             {
                 tile = VectorTile(
-                    contentsOf: url,
+                    contentsOfMVT: url,
                     x: x,
                     y: y,
                     z: z,

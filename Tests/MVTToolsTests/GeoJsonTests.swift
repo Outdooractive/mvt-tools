@@ -12,7 +12,7 @@ struct GeoJsonTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         // Export all layers
         let allLayersJSONData = try #require(tile.toGeoJson(layerProperty: VectorTile.defaultLayerPropertyName))
@@ -37,8 +37,8 @@ struct GeoJsonTests {
         var tile = try #require(VectorTile(x: 8657, y: 5725, z: 14))
         tile.addGeoJson(geoJson: fc, layerName: "test")
 
-        let data = try #require(tile.data())
-        let decodedTile = try #require(VectorTile(data: data, x: 8657, y: 5725, z: 14))
+        let data = try #require(tile.mvtData())
+        let decodedTile = try #require(VectorTile(mvtData: data, x: 8657, y: 5725, z: 14))
         let decodedFc = try #require(decodedTile.features(for: "test").first)
         let decodedCoordinate = try #require(decodedFc.geometry.allCoordinates.first)
 

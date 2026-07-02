@@ -152,7 +152,7 @@ extension CLI {
                    let y,
                    let z,
                    let mvtTile = VectorTile(
-                    contentsOf: outputUrl,
+                    contentsOfMVT: outputUrl,
                     x: x,
                     y: y,
                     z: z,
@@ -254,7 +254,7 @@ extension CLI {
                    let y,
                    let z,
                    let other = VectorTile(
-                    contentsOf: otherUrl,
+                    contentsOfMVT: otherUrl,
                     x: x,
                     y: y,
                     z: z,
@@ -281,7 +281,7 @@ extension CLI {
                 if outputFormatToUse == .auto {
                     switch otherTile.origin {
                     case .geoJson: outputFormatToUse = .geojson
-                    case .mvt, .none: outputFormatToUse = .mvt
+                    case .mvt, .mlt, .none: outputFormatToUse = .mvt
                     }
                 }
 
@@ -349,7 +349,7 @@ extension CLI {
                     }
                 }
                 else {
-                    tile.write(
+                    tile.writeMVT(
                         to: outputUrl,
                         options: exportOptions)
                 }

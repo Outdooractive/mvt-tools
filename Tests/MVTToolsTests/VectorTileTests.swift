@@ -21,7 +21,7 @@ struct VectorTileTests {
         let layerNames = VectorTile.layerNames(from: mvt)?.sorted()
         #expect(layerNames == tileLayerNames)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
         #expect(tile.layerNames.sorted() == tileLayerNames)
 
         let _ = try #require(tile.toGeoJson(prettyPrinted: true))
@@ -49,7 +49,7 @@ struct VectorTileTests {
         ]
 
         tile.setFeatures([feature], for: "test")
-        let _ = try #require(tile.data())
+        let _ = try #require(tile.mvtData())
     }
 
     /// Tests that `tileInfo(from:)` returns layer metadata for a real MVT tile,
@@ -103,10 +103,10 @@ struct VectorTileTests {
 
         var tile = try #require(VectorTile(x: 10, y: 25, z: 6))
         tile.setFeatures([feature], for: "test")
-        let tileData = try #require(tile.data())
+        let tileData = try #require(tile.mvtData())
         #expect(tileData.isEmpty == false)
 
-        let tile2 = try #require(VectorTile(data: tileData, x: 10, y: 25, z: 6))
+        let tile2 = try #require(VectorTile(mvtData: tileData, x: 10, y: 25, z: 6))
         let feature2: Feature = try #require(tile2.features(for: "test").first)
 
         #expect(feature.id == feature2.id)
@@ -116,7 +116,7 @@ struct VectorTileTests {
     @Test
     func extractLayers() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let extracted = try #require(tile.extract(layerNames: ["road", "building"]))
         #expect(extracted.layerNames.count == 2)
@@ -227,7 +227,7 @@ struct VectorTileTests {
         #expect(tile.isEmpty == false)
         #expect(tile.origin == .geoJson)
 
-        let mvtData = try #require(tile.data())
+        let mvtData = try #require(tile.mvtData())
         #expect(mvtData.isEmpty == false)
     }
 
@@ -242,10 +242,10 @@ struct VectorTileTests {
         let feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         tile.appendFeatures([feature], to: "test")
 
-        let success = tile.write(to: tempUrl)
+        let success = tile.writeMVT(to: tempUrl)
         #expect(success)
 
-        let readTile = try #require(VectorTile(contentsOf: tempUrl, x: 0, y: 0, z: 0))
+        let readTile = try #require(VectorTile(contentsOfMVT: tempUrl, x: 0, y: 0, z: 0))
         #expect(readTile.features(for: "test").count == 1)
     }
 

@@ -220,8 +220,8 @@ struct MVTEncoderTests {
         #expect(features[0].geometry as! Point == point.geometry as! Point)
         #expect(features[0].id == .int(600))
 
-        let tileData = try #require(tile.data())
-        let decodedTile = try #require(VectorTile(data: tileData, x: 0, y: 0, z: 0))
+        let tileData = try #require(tile.mvtData())
+        let decodedTile = try #require(VectorTile(mvtData: tileData, x: 0, y: 0, z: 0))
 
         let decodedTileFeatures = decodedTile.features(for: "test")
         #expect(decodedTileFeatures.count == 1)
@@ -237,8 +237,8 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
-        let compressed = try #require(tile.data(options: .init(compression: .default)))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
+        let compressed = try #require(tile.mvtData(options: .init(compression: .default)))
 
         #expect(compressed.isGzipped)
         #expect(compressed.count < mvt.count, "Compressed tile should be smaller")
@@ -251,10 +251,10 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["building_label"]))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["building_label"]))
 
-        let bufferedTileData = try #require(tile.data(options: .init(bufferSize: .extent(0))))
-        let bufferedTile = try #require(VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14))
+        let bufferedTileData = try #require(tile.mvtData(options: .init(bufferSize: .extent(0))))
+        let bufferedTile = try #require(VectorTile(mvtData: bufferedTileData, x: 8716, y: 8015, z: 14))
 
         let features: [Point] = bufferedTile.features(for: "building_label").compactMap({ $0.geometry as? Point })
         let bounds = MapTile(x: 8716, y: 8015, z: 14).boundingBox(projection: .epsg4326)
@@ -270,10 +270,10 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["road"]))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["road"]))
 
-        let simplifiedTileData = try #require(tile.data(options: .init(bufferSize: .extent(4096), simplifyFeatures: .extent(1024))))
-        let simplifiedTile = try #require(VectorTile(data: simplifiedTileData, x: 8716, y: 8015, z: 14))
+        let simplifiedTileData = try #require(tile.mvtData(options: .init(bufferSize: .extent(4096), simplifyFeatures: .extent(1024))))
+        let simplifiedTile = try #require(VectorTile(mvtData: simplifiedTileData, x: 8716, y: 8015, z: 14))
         #expect(tile.features(for: "road").count == simplifiedTile.features(for: "road").count)
     }
 
@@ -281,7 +281,7 @@ struct MVTEncoderTests {
     @Test
     func emptyLayersProducesValidData() throws {
         let tile = try #require(VectorTile(x: 0, y: 0, z: 0))
-        let data = tile.data()
+        let data = tile.mvtData()
         #expect(data != nil)
     }
 
@@ -292,8 +292,8 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg3857)), id: .int(100))
         tile.appendFeatures([point], to: "test")
 
-        let data = try #require(tile.data())
-        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .epsg3857))
+        let data = try #require(tile.mvtData())
+        let decoded = try #require(VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .epsg3857))
         let decodedFeatures = decoded.features(for: "test")
         #expect(decodedFeatures.count == 1)
     }
@@ -305,8 +305,8 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 100.0, y: 200.0, projection: .noSRID)), id: .int(101))
         tile.appendFeatures([point], to: "test")
 
-        let data = try #require(tile.data())
-        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .noSRID))
+        let data = try #require(tile.mvtData())
+        let decoded = try #require(VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .noSRID))
         let decodedFeatures = decoded.features(for: "test")
         #expect(decodedFeatures.count == 1)
         #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.x - 100.0) < 1.0)
@@ -320,7 +320,7 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg4978)), id: .int(102))
         tile.appendFeatures([point], to: "test")
 
-        let data = tile.data()
+        let data = tile.mvtData()
         #expect(data != nil)
         #expect(data?.isEmpty == false)
     }
