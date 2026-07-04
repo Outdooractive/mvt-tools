@@ -18,6 +18,7 @@ MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together wit
 
 - **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
 - **GeoJSON import/export** — convert between MVT and GeoJSON formats.
+- **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
 - **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
 - **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
@@ -102,6 +103,29 @@ try mvtData?.write(to: URL(fileURLWithPath: "output.mvt"))
 
 // Or write directly
 tile.write(to: URL(fileURLWithPath: "output.mvt"), options: options)
+```
+
+### Read GPX
+
+```swift
+let gpxData = try Data(contentsOf: URL(fileURLWithPath: "track.gpx"))
+let tile = VectorTile(gpxData: gpxData)!
+
+// Waypoints, routes and tracks are split into separate layers.
+print(tile.layerNames.sorted())   // ["rte", "trk", "wpt"]
+
+// Export as MVT
+let mvtData = tile.data()
+```
+
+### Write GPX
+
+```swift
+let gpxData = tile.toGpxData()
+try gpxData?.write(to: URL(fileURLWithPath: "output.gpx"))
+
+// Or write directly
+tile.writeGPX(to: URL(fileURLWithPath: "output.gpx"))
 ```
 
 ### Write GeoJSON
@@ -593,7 +617,7 @@ brew install protobuf swift-protobuf swiftlint
 # TODOs and future improvements
 
 - Locking (when updating/deleting features, indexing)
-- Additional format support: GPX, Shapefile, GeoPackage (dependencies already included)
+- Additional format support: Shapefile, GeoPackage (dependencies already included)
 
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js

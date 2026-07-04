@@ -21,6 +21,8 @@ public struct VectorTile: Sendable {
         case mvt
         /// The tile was created from an MLT vector tile
         case mlt
+        /// The tile was created from a GPX file
+        case gpx
         /// The tile was created empty
         case none
     }
@@ -179,7 +181,7 @@ public struct VectorTile: Sendable {
             logger: logger)
     }
 
-    /// Removes all content from the tile.
+    /// Removes all content from the tile, clearing all layers.
     public mutating func clear() {
         layers = [:]
         layerNames = []

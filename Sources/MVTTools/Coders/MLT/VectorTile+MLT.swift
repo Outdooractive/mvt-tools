@@ -71,6 +71,15 @@ extension VectorTile {
     }
 
     /// Create a vector tile from `data`, which must be in MLT format, at some tile coordinate.
+    ///
+    /// - Parameters:
+    ///   - data: The raw MLT binary data.
+    ///   - tile: The map tile coordinate.
+    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - logger: An optional logger instance. Defaults to `nil`.
+    /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
     public init?(
         mltData data: Data,
         tile: MapTile,
@@ -91,6 +100,17 @@ extension VectorTile {
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MLT format, at `z`/`x`/`y`.
+    ///
+    /// - Parameters:
+    ///   - url: The file URL to read MLT data from.
+    ///   - x: The tile's x coordinate.
+    ///   - y: The tile's y coordinate.
+    ///   - z: The tile's zoom level.
+    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - logger: An optional logger instance. Defaults to `nil`.
+    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
     public init?(
         contentsOfMLT url: URL,
         x: Int,
@@ -117,6 +137,15 @@ extension VectorTile {
     }
 
     /// Create a vector tile by reading it from `url`, which must be in MLT format, at some tile coordinate.
+    ///
+    /// - Parameters:
+    ///   - url: The file URL to read MLT data from.
+    ///   - tile: The map tile coordinate.
+    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
+    ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - logger: An optional logger instance. Defaults to `nil`.
+    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
     public init?(
         contentsOfMLT url: URL,
         tile: MapTile,
@@ -139,6 +168,8 @@ extension VectorTile {
     // MARK: - Export
 
     /// Returns the tile's content as MLT data.
+    /// - Parameter options: Export options controlling buffer, simplification, and compression.
+    /// - Returns: The encoded MLT binary data, or `nil` if encoding fails.
     public func mltData(options: ExportOptions? = nil) -> Data? {
         MLTEncoder.encode(
             layers: layers,
@@ -150,6 +181,10 @@ extension VectorTile {
     }
 
     /// Writes the tile's content to `url` in MLT format.
+    ///
+    /// - Parameter url: The destination file URL.
+    /// - Parameter options: Export options controlling buffer, simplification, and compression.
+    /// - Returns: `true` if the write succeeds, `false` otherwise.
     @discardableResult
     public func writeMLT(to url: URL, options: ExportOptions? = nil) -> Bool {
         guard let data: Data = mltData(options: options) else { return false }
