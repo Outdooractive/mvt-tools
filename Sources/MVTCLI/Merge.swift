@@ -281,7 +281,7 @@ extension CLI {
                 if outputFormatToUse == .auto {
                     switch otherTile.origin {
                     case .geoJson, .gpx: outputFormatToUse = .geojson
-                    case .mvt, .mlt, .none: outputFormatToUse = .mvt
+                    case .mvt, .mlt, .shapefile, .none: outputFormatToUse = .mvt
                     }
                 }
 
