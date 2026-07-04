@@ -20,6 +20,7 @@ Key source areas:
 - **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
 - **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`
 - **`Coders/GPX/VectorTile+GPX.swift`** — VectorTile GPX import/export init, `toGpxData()`, `writeGPX()`
+- **`Coders/Shapefile/VectorTile+Shapefile.swift`** — VectorTile Shapefile import/export init, `writeShapefile()`, `writeShapefiles()`
 - **`Coders/MVT/VectorTile+MVT.swift`** — VectorTile MVT import/export init, `mvtData()`, `writeMVT()`
 - **`Coders/MLT/VectorTile+MLT.swift`** — VectorTile MLT import/export init, `mltData()`, `writeMLT()`
 - **`GeoJson.swift`** — VectorTile extension: `addGeoJson()`, `setGeoJson()`
@@ -39,7 +40,8 @@ Projections: EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), noSR
 Dependencies:
 - **GISTools** — geometry types, projections, R-Tree
 - **GISToolsGPX** — GPX import/export
-- **GISToolsGeoPackage / GISToolsShapefile** — additional format support (available but not wired into CLI yet)
+- **GISToolsShapefile** — Shapefile import/export
+- **GISToolsGeoPackage** — additional format support (available but not wired into CLI yet)
 - **GzipSwift** — gzip compression/decompression for MVT and GeoJSON
 - **SwiftProtobuf** — protobuf serialization of `VectorTile_Tile`
 - **swift-argument-parser** — CLI command/option parsing
@@ -206,4 +208,4 @@ When a function **call** is split across multiple lines, place each argument on 
 - Use written-out decimal numbers (e.g., `0.0000000001`) instead of scientific notation (`1e-10`)
 - Always test both MVT and GeoJSON code paths when adding/changing I/O logic
 - CLI changes should be reflected in the `MVTCLI` target; library changes in `MVTTools`
-- New formats should be added as `Coders/<Format>/VectorTile+<Format>.swift` extensions
+- New formats (GeoPackage) should be added as `Coders/<Format>/VectorTile+<Format>.swift` extensions

@@ -19,6 +19,7 @@ MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together wit
 - **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
 - **GeoJSON import/export** — convert between MVT and GeoJSON formats.
 - **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
+- **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
 - **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
 - **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
@@ -126,6 +127,26 @@ try gpxData?.write(to: URL(fileURLWithPath: "output.gpx"))
 
 // Or write directly
 tile.writeGPX(to: URL(fileURLWithPath: "output.gpx"))
+```
+
+### Read Shapefile
+
+```swift
+let tile = VectorTile(shapefile: URL(fileURLWithPath: "roads.shp"))!
+
+// Layer name defaults to the filename.
+print(tile.layerNames)   // ["roads"]
+```
+
+### Write Shapefile
+
+```swift
+// Single file export (all layers merged, throws on mixed geometry)
+try tile.writeShapefile(to: URL(fileURLWithPath: "output.shp"))
+
+// Per-layer export to a directory
+try tile.writeShapefiles(to: URL(fileURLWithPath: "/tmp/layers"))
+// Creates /tmp/layers/roads.shp, /tmp/layers/buildings.shp, …
 ```
 
 ### Write GeoJSON
@@ -617,7 +638,7 @@ brew install protobuf swift-protobuf swiftlint
 # TODOs and future improvements
 
 - Locking (when updating/deleting features, indexing)
-- Additional format support: Shapefile, GeoPackage (dependencies already included)
+- Additional format support: GeoPackage (dependency already included)
 
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js
