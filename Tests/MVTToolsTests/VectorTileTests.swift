@@ -219,18 +219,6 @@ struct VectorTileTests {
         #expect(tile.layersWithContent.count == 1)
     }
 
-    /// Tests that a GeoJSON file can be loaded directly into a tile and produces valid MVT data.
-    @Test
-    func loadGeoJson() throws {
-        let geoJsonData = try TestData.dataFromFile(name: "14_8716_8015.geojson")
-        let tile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: nil))
-        #expect(tile.isEmpty == false)
-        #expect(tile.origin == .geoJson)
-
-        let mvtData = try #require(tile.mvtData())
-        #expect(mvtData.isEmpty == false)
-    }
-
     /// Tests writing tile data to a file and reading it back.
     @Test
     func writeMvtToFile() throws {
@@ -247,24 +235,6 @@ struct VectorTileTests {
 
         let readTile = try #require(VectorTile(contentsOfMVT: tempUrl, x: 0, y: 0, z: 0))
         #expect(readTile.features(for: "test").count == 1)
-    }
-
-    /// Tests writing GeoJSON to a file and reading it back.
-    @Test
-    func writeGeoJsonToFile() throws {
-        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("test_write_geojson_\(UUID().uuidString).geojson")
-        defer { try? FileManager.default.removeItem(at: tempUrl) }
-
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
-        let feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
-        tile.appendFeatures([feature], to: "test")
-
-        let success = tile.writeGeoJson(to: tempUrl)
-        #expect(success)
-
-        let readTile = try #require(VectorTile(contentsOfGeoJson: tempUrl, layerProperty: nil))
-        #expect(readTile.isEmpty == false)
     }
 
     /// Tests that `layerNames(from:)` returns nil for invalid data.

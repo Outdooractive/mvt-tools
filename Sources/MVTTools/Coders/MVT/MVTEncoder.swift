@@ -178,22 +178,41 @@ enum MVTEncoder {
                 }()
 
                 // Encode arrays and dictionaries as JSON encoded strings
-                var hashablePropertyValue: AnyHashable
-                if let array = propertyValue as? [Sendable] {
-                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { continue }
-                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
-                }
-                else if let dictionary = propertyValue as? [String: Sendable] {
-                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { continue }
-                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
-                }
-                else if propertyValue is AnyHashable {
-                    hashablePropertyValue = propertyValue as! AnyHashable
-                }
-                else {
-                    // TODO: Check this
-                    continue
-                }
+                let hashablePropertyValue: AnyHashable? = {
+                    if let array = propertyValue as? [Sendable] {
+                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { return nil }
+                        return String(data: data, encoding: .utf8) ?? ""
+                    }
+                    else if let dictionary = propertyValue as? [String: Sendable] {
+                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { return nil }
+                        return String(data: data, encoding: .utf8) ?? ""
+                    }
+                    else if let number = propertyValue as? NSNumber {
+                        // NSNumber/NSDecimalNumber can have unreliable hash/equality as AnyHashable on Linux.
+                        // Bridge to native Swift types for safe dictionary key usage.
+                        let cType = number.objCType.pointee
+                        switch cType {
+                        case 66 /* 'B' (bool) */, 99 /* 'c' (char → BOOL) */:
+                            return number.boolValue as Bool
+                        case 100 /* 'd' (double) */, 102 /* 'f' (float) */:
+                            return number.doubleValue as Double
+                        case 113 /* 'q' (long long) */, 105 /* 'i' (int) */, 108 /* 'l' (long) */:
+                            return number.int64Value as Int64
+                        case 81 /* 'Q' (unsigned long long) */:
+                            return number.uint64Value as UInt64
+                        default:
+                            return number.doubleValue as Double
+                        }
+                    }
+                    else if let value = propertyValue as? AnyHashable {
+                        return value
+                    }
+                    else {
+                        return nil
+                    }
+                }()
+
+                guard let hashablePropertyValue else { continue }
 
                 let valueIndex: UInt32 = valuePositions[hashablePropertyValue] ?? {
                     var encodedPropertyValue = VectorTile_Tile.Value()
