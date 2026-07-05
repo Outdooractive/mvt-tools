@@ -25,6 +25,8 @@ public struct VectorTile: Sendable {
         case gpx
         /// The tile was created from a Shapefile
         case shapefile
+        /// The tile was created from a GeoPackage
+        case geopackage
         /// The tile was created empty
         case none
     }

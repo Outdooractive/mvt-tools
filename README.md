@@ -20,6 +20,7 @@ MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together wit
 - **GeoJSON import/export** — convert between MVT and GeoJSON formats.
 - **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
 - **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
+- **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export with complete roundtrip fidelity via `"gpkg_layer"` metadata.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
 - **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
 - **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
@@ -147,6 +148,30 @@ try tile.writeShapefile(to: URL(fileURLWithPath: "output.shp"))
 // Per-layer export to a directory
 try tile.writeShapefiles(to: URL(fileURLWithPath: "/tmp/layers"))
 // Creates /tmp/layers/roads.shp, /tmp/layers/buildings.shp, …
+```
+
+### Read GeoPackage
+
+```swift
+// Load all feature tables (each becomes a layer)
+let tile = try await VectorTile(geopackage: URL(fileURLWithPath: "data.gpkg"))
+
+// Load a single table
+let tile = try await VectorTile(
+    geopackage: URL(fileURLWithPath: "data.gpkg"),
+    table: "roads")
+```
+
+### Write GeoPackage
+
+```swift
+// Single table (all layers merged)
+try await tile.writeGeoPackage(
+    to: URL(fileURLWithPath: "output.gpkg"),
+    table: "combined")
+
+// One table per layer
+try await tile.writeGeoPackage(to: URL(fileURLWithPath: "output.gpkg"))
 ```
 
 ### Write GeoJSON
@@ -638,7 +663,7 @@ brew install protobuf swift-protobuf swiftlint
 # TODOs and future improvements
 
 - Locking (when updating/deleting features, indexing)
-- Additional format support: GeoPackage (dependency already included)
+&lt;!-- All planned format support has been implemented. --&gt;
 
 - https://github.com/mapbox/vtcomposite
 - https://github.com/mapbox/geosimplify-js
