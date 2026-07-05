@@ -12,14 +12,23 @@ Two products:
 Key source areas:
 - **`VectorTile.swift`** — Central model: holds `[String: LayerContainer]` (layer name → features),
   tile coordinates (z/x/y), projection, bounding box. All operations extend this type.
-- **`Coders/MVTDecoder.swift`** — MVT protobuf → `[Feature]` per layer (zigzag decoding, projection)
-- **`Coders/MVTEncoder.swift`** — `[Feature]` per layer → MVT protobuf (zigzag encoding, clipping, simplification)
-- **`GeoJson.swift`** — VectorTile extension: `toGeoJson()`, `writeGeoJson()`, `addGeoJson()`, `setGeoJson()`
+- **`Coders/MVT/MVTDecoder.swift`** — MVT protobuf → `[Feature]` per layer (zigzag decoding, projection)
+- **`Coders/MVT/MVTEncoder.swift`** — `[Feature]` per layer → MVT protobuf (zigzag encoding, clipping, simplification)
+- **`Coders/MLT/MLTDecoder.swift`** — MLT decoder (C++ bridge, zigzag decoding, projection)
+- **`Coders/MLT/MLTEncoder.swift`** — MLT encoder (C++ bridge, zigzag encoding, clipping, simplification)
+- **`Coders/Projections.swift`** — Shared forward/inverse projection helpers (tile-extent ↔ geographic)
+- **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
+- **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`
+- **`Coders/GPX/VectorTile+GPX.swift`** — VectorTile GPX import/export init, `toGpxData()`, `writeGPX()`
+- **`Coders/Shapefile/VectorTile+Shapefile.swift`** — VectorTile Shapefile import/export init, `writeShapefile()`, `writeShapefiles()`
+- **`Coders/GeoPackage/VectorTile+GeoPackage.swift`** — VectorTile GeoPackage import/export init, `writeGeoPackage()`
+- **`Coders/MVT/VectorTile+MVT.swift`** — VectorTile MVT import/export init, `mvtData()`, `writeMVT()`
+- **`Coders/MLT/VectorTile+MLT.swift`** — VectorTile MLT import/export init, `mltData()`, `writeMLT()`
+- **`GeoJson.swift`** — VectorTile extension: `addGeoJson()`, `setGeoJson()`
 - **`Query.swift`** — Spatial queries (R-Tree indexed or linear scan), text search, `queryMany`
 - **`QueryParser.swift`** — Reverse Polish Notation query DSL parser/evaluator
 - **`Merge.swift`** — `VectorTile.merge(_:)` — combine features from multiple tiles
 - **`Info.swift`** — `tileInfo()` — per-layer feature counts, property histograms
-- **`ExportOptions.swift`** — Buffer, compression, simplification options
 - **`Extensions/`** — Shared helpers on Array, Dictionary, String, Int, Double, Ring
 - **`MVTCLI/`** — CLI subcommands: `Dump`, `Info`, `Query`, `Merge`, `Import`, `Export` using `swift-argument-parser`
 
@@ -31,7 +40,9 @@ Projections: EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), noSR
 
 Dependencies:
 - **GISTools** — geometry types, projections, R-Tree
-- **GISToolsGPX / GISToolsGeoPackage / GISToolsShapefile** — additional format support (available but not wired into CLI yet)
+- **GISToolsGPX** — GPX import/export
+- **GISToolsShapefile** — Shapefile import/export
+- **GISToolsGeoPackage** — GeoPackage import/export
 - **GzipSwift** — gzip compression/decompression for MVT and GeoJSON
 - **SwiftProtobuf** — protobuf serialization of `VectorTile_Tile`
 - **swift-argument-parser** — CLI command/option parsing
@@ -54,6 +65,17 @@ swift test            # run all tests (Swift Testing)
 - AVOID force unwraps and force `try` unless it is unrecoverable
 - Assume strict Swift concurrency rules are being applied
 - Use `#require(...)` (not `try #require(...)`) for Optional-returning expressions in tests
+
+## C/C++ instructions (CMLT bridge)
+
+- All `if`, `else`, `for`, `while` blocks MUST use braces `{}`, even for single-statement bodies
+  - Correct: `if (x) { return; }`
+  - Wrong: `if (x) return;`
+- Use 4-space indentation (same as Swift)
+- Use `// MARK: -` comments to organize sections (same pattern as Swift)
+- C++ exceptions must be caught at the C bridge boundary via `TRY_BRIDGE`/`CATCH_BRIDGE_RET`/`CATCH_BRIDGE_VOID` macros
+- Prefer C-style `/* ... */` for multi-line comments, `//` for single-line
+- Function names use `snake_case` (MLT C API convention)
 
 ## Code style conventions
 
@@ -187,4 +209,4 @@ When a function **call** is split across multiple lines, place each argument on 
 - Use written-out decimal numbers (e.g., `0.0000000001`) instead of scientific notation (`1e-10`)
 - Always test both MVT and GeoJSON code paths when adding/changing I/O logic
 - CLI changes should be reflected in the `MVTCLI` target; library changes in `MVTTools`
-- New formats (GPX, Shapefile, GeoPackage) should be added via the `TileFormat` + `TileReader`/`TileWriter` pattern (see `Coders/Format.swift`)
+- New formats should be added as `Coders/<Format>/VectorTile+<Format>.swift` extensions

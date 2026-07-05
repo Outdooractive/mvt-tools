@@ -59,6 +59,12 @@ extension VectorTile {
         /// Simplify features before encoding them (default: **no**).
         public var simplifyFeatures: SimplifyFeaturesOptions = .no
 
+        /// Creates export options with the given buffer, compression, and simplification settings.
+        ///
+        /// - Parameters:
+        ///   - bufferSize: The buffer size around the tile (default: `.no`).
+        ///   - compression: The compression setting (default: `.no`).
+        ///   - simplifyFeatures: The simplification setting (default: `.no`).
         public init(
             bufferSize: BufferSizeOptions = .no,
             compression: CompressionOptions = .no,

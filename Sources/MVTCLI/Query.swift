@@ -124,18 +124,18 @@ extension CLI {
             var tile = VectorTile(
                 contentsOfGeoJson: url,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
-                layerWhitelist: disableInputLayerProperty ? nil : layerAllowlist,
+                layerAllowlist: disableInputLayerProperty ? nil : layerAllowlist,
                 logger: options.verbose ? CLI.logger : nil)
 
             if tile == nil,
                let (x, y, z) = try? xyzOptions.parseXYZ(fromPaths: [path])
             {
                 tile = VectorTile(
-                    contentsOf: url,
+                    contentsOfMVT: url,
                     x: x,
                     y: y,
                     z: z,
-                    layerWhitelist: layerAllowlist,
+                    layerAllowlist: layerAllowlist,
                     logger: options.verbose ? CLI.logger : nil)
             }
 

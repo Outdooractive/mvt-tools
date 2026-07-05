@@ -118,7 +118,7 @@ extension CLI {
                (try? outputUrl.checkResourceIsReachable()) ?? false
             {
                 tile = VectorTile(
-                    contentsOf: outputUrl,
+                    contentsOfMVT: outputUrl,
                     x: x,
                     y: y,
                     z: z,
@@ -237,7 +237,7 @@ extension CLI {
                 print("  - Simplification: \(exportOptions.simplifyFeatures)")
             }
 
-            tile.write(
+            tile.writeMVT(
                 to: outputUrl,
                 options: exportOptions)
 

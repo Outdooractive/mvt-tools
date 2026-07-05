@@ -89,11 +89,11 @@ extension CLI {
             }
 
             guard let tile = VectorTile(
-                contentsOf: url,
+                contentsOfMVT: url,
                 x: x,
                 y: y,
                 z: z,
-                layerWhitelist: layerAllowlist,
+                layerAllowlist: layerAllowlist,
                 logger: options.verbose ? CLI.logger : nil)
             else { throw CLIError("Failed to parse the resource at '\(path)'") }
 

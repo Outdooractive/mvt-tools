@@ -25,31 +25,30 @@ enum MVTEncoder {
     ///   - projection: The source projection of the input coordinates (default: ``Projection/epsg4326``).
     ///   - options: Export options controlling buffer size, simplification, and compression.
     /// - Returns: The serialized MVT protobuf bytes (optionally gzip-compressed), or `nil` on failure.
-    static func mvtDataFor(
+    static func encode(
         layers: [String: VectorTile.LayerContainer],
         x: Int,
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
-        options: VectorTile.ExportOptions
+        options: VectorTile.ExportOptions = .init()
     ) -> Data? {
         var tile = VectorTile_Tile()
 
         let extent = UInt32(VectorTile.ExportOptions.extent)
-        let projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
-        var clipBoundingBox: BoundingBox?
+        let projectionFunction = Projections.inverseProjection(
+            for: projection, x: x, y: y, z: z, extent: Int(extent))
 
+        // Determine the clipping bounding box.
+        var clipBoundingBox: BoundingBox?
         switch projection {
         case .noSRID:
-            projectionFunction = passThroughToTile()
+            break
         case .epsg3857:
-            projectionFunction = projectFromEpsg3857(x: x, y: y, z: z, extent: Int(extent))
             clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
         case .epsg4326:
-            projectionFunction = projectFromEpsg4326(x: x, y: y, z: z, extent: Int(extent))
             clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
         case .epsg4978:
-            projectionFunction = projectFromEpsg4978(x: x, y: y, z: z, extent: Int(extent))
             clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4978)
         }
 
@@ -91,6 +90,8 @@ enum MVTEncoder {
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
 
         for (layerName, layerContainer) in layers {
+            guard layerContainer.features.isNotEmpty else { continue }
+
             let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
                 if simplifyDistance > 0.0 {
                     layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
@@ -102,6 +103,8 @@ enum MVTEncoder {
             else {
                 layerContainer.features
             }
+
+            guard layerFeatures.isNotEmpty else { continue }
 
             var layer: VectorTile_Tile.Layer = encodeVersion2(
                 features: layerFeatures,
@@ -175,22 +178,41 @@ enum MVTEncoder {
                 }()
 
                 // Encode arrays and dictionaries as JSON encoded strings
-                var hashablePropertyValue: AnyHashable
-                if let array = propertyValue as? [Sendable] {
-                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { continue }
-                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
-                }
-                else if let dictionary = propertyValue as? [String: Sendable] {
-                    guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { continue }
-                    hashablePropertyValue = String(data: data, encoding: .utf8) ?? ""
-                }
-                else if propertyValue is AnyHashable {
-                    hashablePropertyValue = propertyValue as! AnyHashable
-                }
-                else {
-                    // TODO: Check this
-                    continue
-                }
+                let hashablePropertyValue: AnyHashable? = {
+                    if let array = propertyValue as? [Sendable] {
+                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { return nil }
+                        return String(data: data, encoding: .utf8) ?? ""
+                    }
+                    else if let dictionary = propertyValue as? [String: Sendable] {
+                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { return nil }
+                        return String(data: data, encoding: .utf8) ?? ""
+                    }
+                    else if let number = propertyValue as? NSNumber {
+                        // NSNumber/NSDecimalNumber can have unreliable hash/equality as AnyHashable on Linux.
+                        // Bridge to native Swift types for safe dictionary key usage.
+                        let cType = number.objCType.pointee
+                        switch cType {
+                        case 66 /* 'B' (bool) */, 99 /* 'c' (char → BOOL) */:
+                            return number.boolValue as Bool
+                        case 100 /* 'd' (double) */, 102 /* 'f' (float) */:
+                            return number.doubleValue as Double
+                        case 113 /* 'q' (long long) */, 105 /* 'i' (int) */, 108 /* 'l' (long) */:
+                            return number.int64Value as Int64
+                        case 81 /* 'Q' (unsigned long long) */:
+                            return number.uint64Value as UInt64
+                        default:
+                            return number.doubleValue as Double
+                        }
+                    }
+                    else if let value = propertyValue as? AnyHashable {
+                        return value
+                    }
+                    else {
+                        return nil
+                    }
+                }()
+
+                guard let hashablePropertyValue else { continue }
 
                 let valueIndex: UInt32 = valuePositions[hashablePropertyValue] ?? {
                     var encodedPropertyValue = VectorTile_Tile.Value()
@@ -437,100 +459,5 @@ enum MVTEncoder {
 
     // MARK: - Projections
 
-    /// Returns a projection function that passes coordinate values through as-is.
-    ///
-    /// Used when the source projection is ``Projection/noSRID``.
-    ///
-    /// - Returns: A closure that converts a ``Coordinate3D`` to tile-local (x, y) integers
-    ///   by truncating the coordinate values.
-    static func passThroughToTile() -> ((Coordinate3D) -> (x: Int, y: Int)) {
-        { (coordinate) -> (Int, Int) in
-            (x: Int(coordinate.x), y: Int(coordinate.y))
-        }
-    }
-
-    /// Returns a projection function that converts EPSG:3857 (Web Mercator) coordinates
-    /// to tile-local integer values.
-    ///
-    /// - Parameters:
-    ///   - x: The tile column index.
-    ///   - y: The tile row index.
-    ///   - z: The tile zoom level.
-    ///   - extent: The tile extent in pixels.
-    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:3857 to tile-local (x, y) integers.
-    static func projectFromEpsg3857(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
-        let extent = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
-        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
-        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
-
-        return { (coordinate) -> (Int, Int) in
-            let projectedX = Int(((coordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY = Int(((topLeft.y - coordinate.y) / ySpan) * extent)
-            return (projectedX, projectedY)
-        }
-    }
-
-    /// Returns a projection function that converts EPSG:4978 (ECEF) coordinates
-    /// to tile-local integer values.
-    ///
-    /// The conversion first re-projects from EPSG:4978 to EPSG:4326, then to tile space.
-    ///
-    /// - Parameters:
-    ///   - x: The tile column index.
-    ///   - y: The tile row index.
-    ///   - z: The tile zoom level.
-    ///   - extent: The tile extent in pixels.
-    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:4978 to tile-local (x, y) integers.
-    static func projectFromEpsg4978(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
-        let projectedFrom4326 = projectFromEpsg4326(x: x, y: y, z: z, extent: extent)
-        return { (coordinate) -> (Int, Int) in
-            projectedFrom4326(coordinate.projected(to: .epsg4326))
-        }
-    }
-
-    /// Returns a projection function that converts EPSG:4326 (WGS84) coordinates
-    /// to tile-local integer values.
-    ///
-    /// The conversion first re-projects from EPSG:4326 to EPSG:3857, then maps into tile space.
-    ///
-    /// - Parameters:
-    ///   - x: The tile column index.
-    ///   - y: The tile row index.
-    ///   - z: The tile zoom level.
-    ///   - extent: The tile extent in pixels.
-    /// - Returns: A closure that maps a ``Coordinate3D`` in EPSG:4326 to tile-local (x, y) integers.
-    static func projectFromEpsg4326(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> ((Coordinate3D) -> (x: Int, y: Int)) {
-        let extent = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
-        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
-        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
-
-        return { (coordinate) -> (Int, Int) in
-            let projectedCoordinate = coordinate.projected(to: .epsg3857)
-            let projectedX = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
-            return (projectedX, projectedY)
-        }
-    }
 
 }

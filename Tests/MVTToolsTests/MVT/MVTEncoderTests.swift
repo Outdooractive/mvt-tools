@@ -18,7 +18,7 @@ struct MVTEncoderTests {
         let pointGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: [[point]],
             ofType: .point,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let pointResult: [UInt32] = [9, 50, 34]
         #expect(pointGeometryIntegers == pointResult)
 
@@ -30,7 +30,7 @@ struct MVTEncoderTests {
         let multiPointGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: multiPoint,
             ofType: .point,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let multiPointResult: [UInt32] = [17, 10, 14, 3, 9]
         #expect(multiPointGeometryIntegers == multiPointResult)
 
@@ -43,7 +43,7 @@ struct MVTEncoderTests {
         let lineStringGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: lineString,
             ofType: .linestring,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let lineStringResult: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0]
         #expect(lineStringGeometryIntegers == lineStringResult)
 
@@ -59,7 +59,7 @@ struct MVTEncoderTests {
         let multiLineStringGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: multiLineString,
             ofType: .linestring,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let multiLineStringResult: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8]
         #expect(multiLineStringGeometryIntegers == multiLineStringResult)
 
@@ -73,7 +73,7 @@ struct MVTEncoderTests {
         let polygonGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: polygon,
             ofType: .polygon,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let polygonResult: [UInt32] = [9, 6, 12, 18, 10, 12, 24, 44, 15]
         #expect(polygonGeometryIntegers == polygonResult)
 
@@ -100,7 +100,7 @@ struct MVTEncoderTests {
         let multiPolygonGeometryIntegers = MVTEncoder.geometryIntegers(
             fromMultiCoordinates: multiPolygon,
             ofType: .polygon,
-            projectionFunction: MVTEncoder.passThroughToTile())
+            projectionFunction: Projections.passThroughToTile())
         let multiPolygonResult: [UInt32] = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
         #expect(multiPolygonGeometryIntegers == multiPolygonResult)
     }
@@ -113,7 +113,7 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(latitude: 17.0, longitude: 25.0)), id: .int(500))
         let pointFeature = try #require(MVTEncoder.vectorTileFeature(
             from: point,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let pointGeometry: [UInt32] = [9, 50, 34]
         #expect(pointFeature.geometry == pointGeometry)
         #expect(pointFeature.type == VectorTile_Tile.GeomType.point)
@@ -126,7 +126,7 @@ struct MVTEncoderTests {
         ])!, id: .int(501))
         let multiPointFeature = try #require(MVTEncoder.vectorTileFeature(
             from: multiPoint,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let multiPointGeometry: [UInt32] = [17, 10, 14, 3, 9]
         #expect(multiPointFeature.geometry == multiPointGeometry)
         #expect(multiPointFeature.type == VectorTile_Tile.GeomType.point)
@@ -140,7 +140,7 @@ struct MVTEncoderTests {
         ])!, id: .int(502))
         let lineStringFeature = try #require(MVTEncoder.vectorTileFeature(
             from: lineString,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let lineStringGeometry: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0]
         #expect(lineStringFeature.geometry == lineStringGeometry)
         #expect(lineStringFeature.type == VectorTile_Tile.GeomType.linestring)
@@ -157,7 +157,7 @@ struct MVTEncoderTests {
         ]])!, id: .int(503))
         let multiLineStringFeature = try #require(MVTEncoder.vectorTileFeature(
             from: multiLineString,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let multiLineStringGeometry: [UInt32] = [9, 4, 4, 18, 0, 16, 16, 0, 9, 17, 17, 10, 4, 8]
         #expect(multiLineStringFeature.geometry == multiLineStringGeometry)
         #expect(multiLineStringFeature.type == VectorTile_Tile.GeomType.linestring)
@@ -172,7 +172,7 @@ struct MVTEncoderTests {
         ]])!, id: .int(504))
         let polygonFeature = try #require(MVTEncoder.vectorTileFeature(
             from: polygon,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let polygonGeometry: [UInt32] = [9, 6, 12, 18, 10, 12, 24, 44, 15]
         #expect(polygonFeature.geometry == polygonGeometry)
         #expect(polygonFeature.type == VectorTile_Tile.GeomType.polygon)
@@ -200,7 +200,7 @@ struct MVTEncoderTests {
         ]]])!, id: .int(505))
         let multiPolygonFeature = try #require(MVTEncoder.vectorTileFeature(
             from: multiPolygon,
-            projectionFunction: MVTEncoder.passThroughToTile()))
+            projectionFunction: Projections.passThroughToTile()))
         let multiPolygonGeometry: [UInt32] = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
         #expect(multiPolygonFeature.geometry == multiPolygonGeometry)
         #expect(multiPolygonFeature.type == VectorTile_Tile.GeomType.polygon)
@@ -220,8 +220,8 @@ struct MVTEncoderTests {
         #expect(features[0].geometry as! Point == point.geometry as! Point)
         #expect(features[0].id == .int(600))
 
-        let tileData = try #require(tile.data())
-        let decodedTile = try #require(VectorTile(data: tileData, x: 0, y: 0, z: 0))
+        let tileData = try #require(tile.mvtData())
+        let decodedTile = try #require(VectorTile(mvtData: tileData, x: 0, y: 0, z: 0))
 
         let decodedTileFeatures = decodedTile.features(for: "test")
         #expect(decodedTileFeatures.count == 1)
@@ -237,8 +237,8 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
-        let compressed = try #require(tile.data(options: .init(compression: .default)))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
+        let compressed = try #require(tile.mvtData(options: .init(compression: .default)))
 
         #expect(compressed.isGzipped)
         #expect(compressed.count < mvt.count, "Compressed tile should be smaller")
@@ -251,10 +251,10 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["building_label"]))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["building_label"]))
 
-        let bufferedTileData = try #require(tile.data(options: .init(bufferSize: .extent(0))))
-        let bufferedTile = try #require(VectorTile(data: bufferedTileData, x: 8716, y: 8015, z: 14))
+        let bufferedTileData = try #require(tile.mvtData(options: .init(bufferSize: .extent(0))))
+        let bufferedTile = try #require(VectorTile(mvtData: bufferedTileData, x: 8716, y: 8015, z: 14))
 
         let features: [Point] = bufferedTile.features(for: "building_label").compactMap({ $0.geometry as? Point })
         let bounds = MapTile(x: 8716, y: 8015, z: 14).boundingBox(projection: .epsg4326)
@@ -270,10 +270,10 @@ struct MVTEncoderTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, layerWhitelist: ["road"]))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14, layerAllowlist: ["road"]))
 
-        let simplifiedTileData = try #require(tile.data(options: .init(bufferSize: .extent(4096), simplifyFeatures: .extent(1024))))
-        let simplifiedTile = try #require(VectorTile(data: simplifiedTileData, x: 8716, y: 8015, z: 14))
+        let simplifiedTileData = try #require(tile.mvtData(options: .init(bufferSize: .extent(4096), simplifyFeatures: .extent(1024))))
+        let simplifiedTile = try #require(VectorTile(mvtData: simplifiedTileData, x: 8716, y: 8015, z: 14))
         #expect(tile.features(for: "road").count == simplifiedTile.features(for: "road").count)
     }
 
@@ -281,7 +281,7 @@ struct MVTEncoderTests {
     @Test
     func emptyLayersProducesValidData() throws {
         let tile = try #require(VectorTile(x: 0, y: 0, z: 0))
-        let data = tile.data()
+        let data = tile.mvtData()
         #expect(data != nil)
     }
 
@@ -292,8 +292,8 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg3857)), id: .int(100))
         tile.appendFeatures([point], to: "test")
 
-        let data = try #require(tile.data())
-        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .epsg3857))
+        let data = try #require(tile.mvtData())
+        let decoded = try #require(VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .epsg3857))
         let decodedFeatures = decoded.features(for: "test")
         #expect(decodedFeatures.count == 1)
     }
@@ -305,8 +305,8 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 100.0, y: 200.0, projection: .noSRID)), id: .int(101))
         tile.appendFeatures([point], to: "test")
 
-        let data = try #require(tile.data())
-        let decoded = try #require(VectorTile(data: data, x: 0, y: 0, z: 0, projection: .noSRID))
+        let data = try #require(tile.mvtData())
+        let decoded = try #require(VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .noSRID))
         let decodedFeatures = decoded.features(for: "test")
         #expect(decodedFeatures.count == 1)
         #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.x - 100.0) < 1.0)
@@ -320,7 +320,7 @@ struct MVTEncoderTests {
         let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg4978)), id: .int(102))
         tile.appendFeatures([point], to: "test")
 
-        let data = tile.data()
+        let data = tile.mvtData()
         #expect(data != nil)
         #expect(data?.isEmpty == false)
     }

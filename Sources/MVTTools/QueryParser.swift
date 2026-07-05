@@ -128,10 +128,8 @@ public struct QueryParser {
 
     /// Creates a parser by tokenizing the given query string.
     ///
-    /// Returns `nil` if the string cannot be parsed into a valid expression
-    /// pipeline.
-    ///
     /// - Parameter string: A query string in the RPN-based DSL.
+    /// - Returns: A parser, or `nil` if the string cannot be parsed.
     public init?(string: String) {
         self.reader = Reader(characters: Array(string.utf8))
 

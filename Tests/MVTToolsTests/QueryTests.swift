@@ -24,7 +24,7 @@ struct QueryTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
         #expect(tile.isIndexed == false)
 
         let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
@@ -38,7 +38,7 @@ struct QueryTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14, indexed: .hilbert))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14, indexed: .hilbert))
         #expect(tile.isIndexed)
 
         let resultWithIndex = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
@@ -49,7 +49,7 @@ struct QueryTests {
     @Test
     func textSearch() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let results = tile.query(term: "lake")
         // Results may be empty if no feature properties contain "lake",
@@ -64,7 +64,7 @@ struct QueryTests {
     @Test
     func textSearchNoMatch() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let results = tile.query(term: "zzzxxxyyy_nonexistent")
         #expect(results.isEmpty)
@@ -74,7 +74,7 @@ struct QueryTests {
     @Test
     func queryInSpecificLayer() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let results = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0, layerName: "road")
         #expect(results.isNotEmpty)
@@ -85,7 +85,7 @@ struct QueryTests {
     @Test
     func queryMany() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let coordinates = [
             Coordinate3D(latitude: 3.870163, longitude: 11.518585),
@@ -100,7 +100,7 @@ struct QueryTests {
     @Test
     func queryWithFeatureFilter() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
-        let tile = try #require(VectorTile(data: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
 
         let allResults = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
         let filteredResults = tile.query(

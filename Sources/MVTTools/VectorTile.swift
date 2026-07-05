@@ -17,8 +17,16 @@ public struct VectorTile: Sendable {
     public enum Origin: String, Sendable {
         /// The tile was created from a GeoJSON file
         case geoJson
-        /// The tile was created from a vector tile
+        /// The tile was created from an MVT vector tile
         case mvt
+        /// The tile was created from an MLT vector tile
+        case mlt
+        /// The tile was created from a GPX file
+        case gpx
+        /// The tile was created from a Shapefile
+        case shapefile
+        /// The tile was created from a GeoPackage
+        case geopackage
         /// The tile was created empty
         case none
     }
@@ -45,7 +53,7 @@ public struct VectorTile: Sendable {
     }
 
     /// The layer names in the tile
-    public private(set) var layerNames: [String]
+    public internal(set) var layerNames: [String] = []
 
     /// Returns a Boolean value indicating whether the tile contains a specific layer.
     ///
@@ -69,7 +77,7 @@ public struct VectorTile: Sendable {
     }
 
     /// The tile's bounding box
-    public var boundingBox: BoundingBox
+    public let boundingBox: BoundingBox
 
     /// The tile's origin
     public let origin: Origin
@@ -177,318 +185,7 @@ public struct VectorTile: Sendable {
             logger: logger)
     }
 
-    /// Create a vector tile from `data`, which must be in MVT format, at `z`/`x`/`y`.
-    ///
-    /// - Parameters:
-    ///   - data: The raw MVT protobuf data.
-    ///   - x: The tile's x coordinate.
-    ///   - y: The tile's y coordinate.
-    ///   - z: The tile's zoom level.
-    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
-    public init?(
-        data: Data,
-        x: Int,
-        y: Int,
-        z: Int,
-        projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        guard x >= 0, y >= 0, z >= 0 else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
-        }
-
-        let maximumTileCoordinate = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
-        }
-
-        self.x = x
-        self.y = y
-        self.z = z
-        self.projection = projection
-        self.logger = logger
-
-        // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
-            Set(layerWhitelist)
-        }
-        else {
-            nil
-        }
-
-        switch projection {
-        case .noSRID:
-            self.boundingBox = BoundingBox(
-                southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
-                northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
-
-        case .epsg3857, .epsg4326, .epsg4978:
-            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
-        }
-
-        guard let parsedLayers = MVTDecoder.layers(
-            from: data,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            layerWhitelist: layerWhitelistSet,
-            logger: logger)
-        else { return nil }
-
-        self.layers = parsedLayers
-        self.layerNames = Array(layers.keys)
-        self.origin = .mvt
-
-        if let sortOption {
-            createIndex(sortOption: sortOption)
-        }
-    }
-
-    /// Create a vector tile from `data`, which must be in MVT format, at some tile coordinate.
-    ///
-    /// - Parameters:
-    ///   - data: The raw MVT protobuf data.
-    ///   - tile: The map tile coordinate.
-    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
-    public init?(
-        data: Data,
-        tile: MapTile,
-        projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        self.init(
-            data: data,
-            x: tile.x,
-            y: tile.y,
-            z: tile.z,
-            projection: projection,
-            indexed: sortOption,
-            layerWhitelist: layerWhitelist,
-            logger: logger)
-    }
-
-    /// Create a vector tile by reading it from `url`, which must be in MVT format, at `z`/`x`/`y`.
-    ///
-    /// - Parameters:
-    ///   - url: The file URL to read MVT data from.
-    ///   - x: The tile's x coordinate.
-    ///   - y: The tile's y coordinate.
-    ///   - z: The tile's zoom level.
-    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
-    public init?(
-        contentsOf url: URL,
-        x: Int,
-        y: Int,
-        z: Int,
-        projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        guard let data = try? Data(contentsOf: url) else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
-            return nil
-        }
-
-        self.init(
-            data: data,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            indexed: sortOption,
-            layerWhitelist: layerWhitelist,
-            logger: logger)
-    }
-
-    /// Create a vector tile by reading it from `url`, which must be in MVT format, at some tile coordinate.
-    ///
-    /// - Parameters:
-    ///   - url: The file URL to read MVT data from.
-    ///   - tile: The map tile coordinate.
-    ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
-    public init?(
-        contentsOf url: URL,
-        tile: MapTile,
-        projection: Projection = .epsg4326,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        self.init(
-            contentsOf: url,
-            x: tile.x,
-            y: tile.y,
-            z: tile.z,
-            projection: projection,
-            indexed: sortOption,
-            layerWhitelist: layerWhitelist,
-            logger: logger)
-    }
-
-    /// Create a vector tile from `data`, which must be some GeoJSON object.
-    ///
-    /// The tile's coordinates are automatically derived from the GeoJSON bounding box.
-    ///
-    /// - Parameters:
-    ///   - data: A `Data` object containing a GeoJSON FeatureCollection.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerProperty: An optional property name used to assign features to layers.
-    ///       Defaults to `VectorTile.defaultLayerPropertyName`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the GeoJSON data cannot be parsed or the tile coordinates are invalid.
-    public init?(
-        geoJsonData data: Data,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerProperty: String? = VectorTile.defaultLayerPropertyName,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        guard let featureCollection = FeatureCollection(jsonData: data),
-              let fcBoundingBox = featureCollection.calculateBoundingBox()
-        else { return nil }
-
-        // Find the minimal tile for the GeoJSON
-        let tile = MapTile(boundingBox: fcBoundingBox)
-        self.x = tile.x
-        self.y = tile.y
-        self.z = tile.z
-
-        guard x >= 0, y >= 0, z >= 0 else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
-        }
-
-        let maximumTileCoordinate = 1 << z
-        if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
-        }
-
-        self.projection = .epsg4326
-        self.boundingBox = tile.boundingBox(projection: projection)
-        self.logger = logger
-
-        // Note: A plain array might actually be faster for few entries -> check this
-        let layerWhitelistSet: Set<String>? = if let layerWhitelist {
-            Set(layerWhitelist)
-        }
-        else {
-            nil
-        }
-
-        self.layers = [:]
-        self.layerNames = []
-        self.origin = .geoJson
-
-        setGeoJson(
-            geoJson: featureCollection,
-            layerProperty: layerProperty,
-            layerAllowList: layerWhitelistSet)
-
-        if let sortOption {
-            createIndex(sortOption: sortOption)
-        }
-    }
-
-    /// Create a vector tile by reading it from `url`, which must be some GeoJSON object.
-    ///
-    /// - Parameters:
-    ///   - url: The file URL to read GeoJSON data from.
-    ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
-    ///   - layerProperty: An optional property name used to assign features to layers.
-    ///       Defaults to `VectorTile.defaultLayerPropertyName`.
-    ///   - layerWhitelist: An optional set of layer names to load. If `nil`, all layers are loaded.
-    ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read or the GeoJSON data cannot be parsed.
-    public init?(
-        contentsOfGeoJson url: URL,
-        indexed sortOption: RTreeSortOption? = nil,
-        layerProperty: String? = VectorTile.defaultLayerPropertyName,
-        layerWhitelist: [String]? = nil,
-        logger: Logger? = nil
-    ) {
-        guard let data = try? Data(contentsOf: url) else {
-            (logger ?? VectorTile.logger)?.warning("Failed to import GeoJSON from \(url)")
-            return nil
-        }
-
-        self.init(
-            geoJsonData: data,
-            indexed: sortOption,
-            layerProperty: layerProperty,
-            layerWhitelist: layerWhitelist,
-            logger: logger)
-    }
-
-}
-
-// MARK: - Functions on the tile
-
-extension VectorTile {
-
-    /// Returns the tile's content as MVT data.
-    ///
-    /// - Parameter options: Export options for buffer, compression, and simplification. Defaults to standard options.
-    /// - Returns: The raw MVT protobuf data, or `nil` if encoding fails.
-    public func data(options: ExportOptions? = nil) -> Data? {
-        MVTEncoder.mvtDataFor(
-            layers: layers,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            options: options ?? ExportOptions())
-    }
-
-    /// Writes the tile's content to `url` in MVT format.
-    ///
-    /// - Parameters:
-    ///   - url: The destination file URL.
-    ///   - options: Export options for buffer, compression, and simplification. Defaults to standard options.
-    /// - Returns: `true` if the write succeeds, otherwise `false`.
-    @discardableResult
-    public func write(
-        to url: URL,
-        options: ExportOptions? = nil
-    ) -> Bool {
-        guard let data: Data = data(options: options) else { return false }
-
-        do {
-            try data.write(to: url)
-        }
-        catch {
-            return false
-        }
-
-        return true
-    }
-
-    /// Removes all content from the tile.
+    /// Removes all content from the tile, clearing all layers.
     public mutating func clear() {
         layers = [:]
         layerNames = []
@@ -510,6 +207,8 @@ extension VectorTile {
     }
 
 }
+
+// MARK: - Accessors
 
 extension VectorTile {
 
@@ -661,6 +360,8 @@ extension VectorTile {
     }
 
 }
+
+// MARK: - CustomStringConvertible
 
 extension VectorTile: CustomStringConvertible {
 
