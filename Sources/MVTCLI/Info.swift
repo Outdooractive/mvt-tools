@@ -4,14 +4,15 @@ import MVTTools
 
 extension CLI {
 
-    /// A command that prints information about a vector tile or GeoJSON file.
+    /// A command that prints information about any supported input file.
     ///
-    /// Displays configurable tables of per-layer feature counts, property
+    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input
+    /// with configurable tables of per-layer feature counts, property
     /// histograms, and property value distributions.
     struct Info: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Print information about the input file (MVT or GeoJSON)",
+            abstract: "Print information about the input file (MLT, MVT, GeoJSON, GPX, Shapefile, or GeoPackage)",
             discussion: """
             Available tables:
             - features: Feature counts (points, linestrings, polygons) for each layer
@@ -35,19 +36,38 @@ extension CLI {
         var property: [String] = []
 
         @OptionGroup
+        var xyzOptions: XYZOptions
+
+        @OptionGroup
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL).",
-            completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
         var path: String
 
         mutating func run() async throws {
             let url = try options.parseUrl(fromPath: path)
+            let format = try TileFormat.resolve(
+                url: url,
+                xyzOptions: &xyzOptions,
+                verbose: options.verbose)
 
-            guard var layers = VectorTile.tileInfo(at: url)
-                    ?? VectorTile(contentsOfGeoJson: url, layerProperty: nil)?.tileInfo()
-            else { throw CLIError("Error retreiving the tile info for '\(path)'") }
+            // Fast path: tileInfo works directly on MVT data
+            var layers: [VectorTile.LayerInfo]?
+            if case .mvt = format,
+               let info = VectorTile.tileInfo(at: url)
+            {
+                layers = info
+            }
+            else if let tile = try await format.loadTile(
+                from: url,
+                logger: options.verbose ? CLI.logger : nil)
+            {
+                layers = tile.tileInfo()
+            }
+
+            guard var layers else { throw CLIError("Error retrieving the tile info for '\(path)'") }
 
             if options.verbose {
                 print("Info for tile '\(url.lastPathComponent)'")

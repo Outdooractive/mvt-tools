@@ -12,7 +12,7 @@
 
 # MVTTools
 
-MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles and GeoJSON files.
+MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles, GeoJSON, GPX, Shapefile, and GeoPackage files.
 
 ## Features
 
@@ -31,7 +31,7 @@ MapLibre/Mapbox vector tiles (MVT) reader/writer library for Swift, together wit
 
 ## Requirements
 
-This package requires Swift 6.0 or higher (at least Xcode 15), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 14), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
+This package requires Swift 6.3 or higher (at least Xcode 15), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 15), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
 
 ## Installation with Swift Package Manager
 
@@ -429,7 +429,7 @@ You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 - or locally to `/usr/local/bin` with `./install_mvt.sh`
 
-`mvt` works with vector tiles or GeoJSON files from local disk or served from a web server.
+`mvt` works with MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage files from local disk or served from a web server.
 
 GeoJSONs can contain a layer name in their Feature properties (default name is `vt_layer`), and any resulting GeoJSON will automatically include this property.
 This can be controlled with the options `--property-name` (or `-P`), `--disable-input-layer-property` (or `-Di`) and `--disable-output-layer-property` (or `-Do`).
@@ -437,11 +437,11 @@ Some commands allow limiting the result to certain layers with `--layer` (or `-l
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles (MVT) and GeoJSON files.
+OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, Shapefile, and GeoPackage files.
 
-A x/y/z tile coordinate is needed for encoding/decoding vector tiles (MVT).
+A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
 This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
-Tile coordinates are not necessary for GeoJSON input files.
+Tile coordinates are not necessary for GeoJSON, GPX, Shapefile, and GeoPackage files.
 
 Examples:
 - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -454,19 +454,19 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console
-  info                    Print information about the input file (MVT or GeoJSON)
-  query                   Query the features in the input file (MVT or GeoJSON)
-  merge                   Merge any number of vector tiles or GeoJSONs
-  import                  Import some GeoJSONs into a vector tile
-  export                  Export a vector tile as GeoJSON to a file
+  dump (default)          Print the input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console
+  info                    Print information about the input file
+  query                   Query the features in the input file
+  merge                   Merge any number of input files into a single file of any supported format
+  import                  Alias for 'merge'
+  export                  Alias for 'merge'
 
   See 'mvt help <subcommand>' for detailed help.
 ```
 ---
 ### mvt dump
 
-Print a vector tile or GeoJSON file as pretty-printed GeoJSON.
+Print any supported input file as pretty-printed GeoJSON.
 
 ```bash
 mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -500,7 +500,7 @@ mvt dump Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 ---
 ### mvt info
 
-Print some informations about vector tiles/GeoJSONs:
+Print some informations about the input file:
 - The number of features, points, linestrings, polygons per layer
 - The properties for each layer
 - Counts of specific properties
@@ -617,7 +617,7 @@ mvt query -p 14_8716_8015.vector.mvt ".bridge exists and .tunnel not"
 ---
 ### mvt merge
 
-Merge two or more vector tiles or GeoJSON files in any combination.
+Merge any number of input files in any combination. Output format is auto-detected from the output file extension.
 
 ```bash
 # Merge vector tiles:
@@ -627,15 +627,18 @@ mvt merge --output merged.mvt path/to/first.mvt path/to/second.mvt
 mvt merge --output merged.geojson path/to/first.geojson path/to/second.geojson
 
 # Merge GeoJSON files into a vector tile:
-mvt merge --output merged.mvt --output-format mvt path/to/first.geojson path/to/second.geojson
+mvt merge --output merged.mvt path/to/first.geojson path/to/second.geojson
 
 # Merge vector tiles into a GeoJSON file:
-mvt merge --output merged.geojson --output-format geojson path/to/first.mvt path/to/second.mvt
+mvt merge --output merged.geojson path/to/first.mvt path/to/second.mvt
+
+# All supported formats can be mixed:
+mvt merge --output merged.gpkg data.geojson tracks.gpx roads.shp tile.mvt
 ```
 ---
 ### mvt export
 
-Write a vector tile as GeoJSON to a file.
+Alias for `merge` — write any supported input file as GeoJSON.
 
 ```bash
 mvt export --output dumped.geojson --pretty-print Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -643,10 +646,12 @@ mvt export --output dumped.geojson --pretty-print Tests/MVTToolsTests/TestData/1
 ---
 ### mvt import
 
-Create a vector tile from a GeoJSON file.
+Alias for `merge` — import data from any supported format into a tile.
 
 ```bash
-mvt import --output new.mvt -x 8716 -y 8015 -z 14 Tests/MVTToolsTests/TestData/14_8716_8015.geojson
+mvt import --output new.mvt -x 8716 -y 8015 -z 14 data.geojson
+mvt import --output new.mvt tracks.gpx roads.shp
+mvt import --output combined.gpkg data.geojson tracks.gpx
 ```
 ---
 
