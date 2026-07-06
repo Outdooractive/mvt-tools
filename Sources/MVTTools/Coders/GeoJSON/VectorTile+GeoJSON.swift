@@ -123,66 +123,12 @@ extension VectorTile {
         layerProperty: String? = nil,
         options: VectorTile.ExportOptions? = nil
     ) -> Data? {
-        var simplifyDistance: CLLocationDistance = 0.0
-        var clipBoundingBox: BoundingBox?
-
-        if let options {
-            var bufferSize = 0
-            switch options.bufferSize {
-            case .no:
-                bufferSize = 0
-            case let .extent(extent):
-                bufferSize = extent
-            case let .pixel(pixel):
-                bufferSize = Int((Double(pixel) / Double(VectorTile.ExportOptions.tileSize)) * Double(VectorTile.ExportOptions.extent))
-            }
-
-            switch options.simplifyFeatures {
-            case .no:
-                simplifyDistance = 0.0
-            case let .extent(extent):
-                let tileBoundsInMeters = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-                simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude) / Double(VectorTile.ExportOptions.extent) * Double(extent)
-            case let .meters(meters):
-                simplifyDistance = meters
-            }
-
-            if bufferSize != 0 {
-                clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
-
-                if let boundingBoxToExpand = clipBoundingBox {
-                    let sqrt2 = 2.0.squareRoot()
-                    let diagonal = Double(VectorTile.ExportOptions.extent) * sqrt2
-                    let bufferDiagonal = Double(bufferSize) * sqrt2
-                    let factor = bufferDiagonal / diagonal
-
-                    let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
-                    let distance = diagonalLength * factor
-
-                    clipBoundingBox = boundingBoxToExpand.expanded(byDistance: distance)
-                }
-            }
-        }
-
         var allFeatures: [Feature] = []
 
         for (layerName, layerContainer) in layers {
             if layerNames.isNotEmpty, !layerNames.contains(layerName) { continue }
 
-            let layerFeatures: [Feature] = if let clipBoundingBox {
-                if simplifyDistance > 0.0 {
-                    layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox)?.simplified(tolerance: simplifyDistance) })
-                }
-                else {
-                    layerContainer.features.compactMap({ $0.clipped(to: clipBoundingBox) })
-                }
-            }
-            else if simplifyDistance > 0.0 {
-                layerContainer.features.compactMap({ $0.simplified(tolerance: simplifyDistance) })
-            }
-            else {
-                layerContainer.features
-            }
+            let layerFeatures = processFeatures(layerContainer.features, options: options)
 
             for feature in layerFeatures {
                 var feature = feature

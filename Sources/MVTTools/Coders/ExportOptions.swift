@@ -77,4 +77,74 @@ extension VectorTile {
 
     }
 
+    /// Process features according to the given export options (clipping,
+    /// simplification, or both).
+    ///
+    /// When `options` is `nil` or no processing is needed, the original
+    /// features are returned unchanged.
+    ///
+    /// - Parameters:
+    ///   - features: The features to process.
+    ///   - options: Export options controlling clipping and simplification.
+    /// - Returns: The processed features, or the original array if no
+    ///   processing was requested.
+    func processFeatures(
+        _ features: [Feature],
+        options: VectorTile.ExportOptions? = nil
+    ) -> [Feature] {
+        guard let options else { return features }
+
+        var bufferSize = 0
+        switch options.bufferSize {
+        case .no:
+            bufferSize = 0
+        case let .extent(extent):
+            bufferSize = extent
+        case let .pixel(pixel):
+            bufferSize = Int((Double(pixel) / Double(VectorTile.ExportOptions.tileSize)) * Double(VectorTile.ExportOptions.extent))
+        }
+
+        var simplifyDistance: CLLocationDistance = 0.0
+        switch options.simplifyFeatures {
+        case .no:
+            simplifyDistance = 0.0
+        case let .extent(extent):
+            let tileBoundsInMeters = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
+            simplifyDistance = (tileBoundsInMeters.southEast.longitude - tileBoundsInMeters.southWest.longitude)
+                / Double(VectorTile.ExportOptions.extent) * Double(extent)
+        case let .meters(meters):
+            simplifyDistance = meters
+        }
+
+        var clipBoundingBox: BoundingBox?
+        if bufferSize != 0 {
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
+            if let box = clipBoundingBox {
+                let sqrt2 = 2.0.squareRoot()
+                let diagonal = Double(VectorTile.ExportOptions.extent) * sqrt2
+                let bufferDiagonal = Double(bufferSize) * sqrt2
+                let factor = bufferDiagonal / diagonal
+                let diagonalLength = box.southWest.distance(from: box.northEast)
+                clipBoundingBox = box.expanded(byDistance: diagonalLength * factor)
+            }
+        }
+
+        guard clipBoundingBox != nil || simplifyDistance > 0.0 else { return features }
+
+        return features.compactMap { feature in
+            let clipped: Feature
+            if let clipBoundingBox {
+                guard let c = feature.clipped(to: clipBoundingBox) else { return nil }
+                clipped = c
+            }
+            else {
+                clipped = feature
+            }
+            if simplifyDistance > 0.0 {
+                return clipped.simplified(tolerance: simplifyDistance)
+            }
+            return clipped
+        }
+    }
+
 }

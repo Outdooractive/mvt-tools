@@ -273,8 +273,10 @@ extension CLI.MergeOptions {
         }
         else {
             switch resolvedOutputFormat {
-            case .geoJson: exportOptions.bufferSize = .extent(0)
-            default:       exportOptions.bufferSize = .extent(512)
+            case .geoJson, .gpx, .shapefile, .geopackage:
+                exportOptions.bufferSize = .extent(0)
+            default:
+                exportOptions.bufferSize = .extent(512)
             }
         }
 
@@ -311,10 +313,13 @@ extension CLI.MergeOptions {
         }
 
         if let outputUrl {
-            try await Self.writeTile(tile, format: resolvedOutputFormat, to: outputUrl,
-                                     options: exportOptions,
-                                     prettyPrint: mergeOptions.prettyPrint,
-                                     propertyName: mergeOptions.disableOutputLayerProperty ? nil : mergeOptions.propertyName)
+            try await Self.writeTile(
+                tile,
+                format: resolvedOutputFormat,
+                to: outputUrl,
+                options: exportOptions,
+                prettyPrint: mergeOptions.prettyPrint,
+                propertyName: mergeOptions.disableOutputLayerProperty ? nil : mergeOptions.propertyName)
         }
         else if let resultGeoJson = tile.toGeoJson(
             prettyPrinted: mergeOptions.prettyPrint,
@@ -355,15 +360,15 @@ extension CLI.MergeOptions {
             tile.writeMLT(to: url, options: options)
 
         case .gpx:
-            guard tile.writeGPX(to: url) else {
+            guard tile.writeGPX(to: url, options: options) else {
                 throw CLIError("Failed to write GPX")
             }
 
         case .shapefile:
-            try tile.writeShapefile(to: url)
+            try tile.writeShapefile(to: url, options: options)
 
         case .geopackage:
-            try await tile.writeGeoPackage(to: url)
+            try await tile.writeGeoPackage(to: url, options: options)
         }
     }
     

@@ -110,9 +110,13 @@ extension VectorTile {
     /// Export the tile's content as GPX data.
     ///
     /// - Parameter creator: The value for the `creator` attribute in the GPX output (default `"MVTTools"`).
+    /// - Parameter options: Export options controlling simplification.
     /// - Returns: The GPX data, or `nil` if serialization fails.
-    public func toGpxData(creator: String = "MVTTools") -> Data? {
-        let allFeatures = layers.values.flatMap(\.features)
+    public func toGpxData(
+        creator: String = "MVTTools",
+        options: VectorTile.ExportOptions? = nil
+    ) -> Data? {
+        let allFeatures = processFeatures(layers.values.flatMap(\.features), options: options)
         let fc = FeatureCollection(allFeatures)
         return try? fc.gpxData(creator: creator)
     }
@@ -121,10 +125,15 @@ extension VectorTile {
     ///
     /// - Parameter url: The destination file URL.
     /// - Parameter creator: The value for the `creator` attribute in the GPX output.
+    /// - Parameter options: Export options controlling simplification.
     /// - Returns: `true` if the write succeeds, `false` otherwise.
     @discardableResult
-    public func writeGPX(to url: URL, creator: String = "MVTTools") -> Bool {
-        guard let data: Data = toGpxData(creator: creator) else { return false }
+    public func writeGPX(
+        to url: URL,
+        creator: String = "MVTTools",
+        options: VectorTile.ExportOptions? = nil
+    ) -> Bool {
+        guard let data: Data = toGpxData(creator: creator, options: options) else { return false }
         do {
             try data.write(to: url)
             return true

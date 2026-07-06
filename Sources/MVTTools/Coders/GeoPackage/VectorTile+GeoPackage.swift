@@ -92,11 +92,13 @@ extension VectorTile {
     ///     with a `"gpkg_layer"` property to preserve layer information.
     ///     When `nil`, one table per layer is created.
     ///   - createSpatialIndex: Whether to create a spatial (rtree) index.
+    ///   - options: Export options controlling simplification.
     /// - Throws: ``GeoPackageError`` or file I/O errors.
     public func writeGeoPackage(
         to url: URL,
         table: String? = nil,
-        createSpatialIndex: Bool = false
+        createSpatialIndex: Bool = false,
+        options: VectorTile.ExportOptions? = nil
     ) async throws {
         let conn = try GeoPackageConnection(url: url, skipValidation: true)
         try await conn.createMetadata()
@@ -104,7 +106,7 @@ extension VectorTile {
         if let table {
             var allFeatures: [Feature] = []
             for layerName in layerNames {
-                let features = self.features(for: layerName)
+                let features = processFeatures(self.features(for: layerName), options: options)
                 allFeatures.append(contentsOf: features.map { feature in
                     var f = feature
                     f.properties["gpkg_layer"] = layerName
@@ -117,7 +119,7 @@ extension VectorTile {
         }
         else {
             for layerName in layerNames {
-                let features = self.features(for: layerName)
+                let features = processFeatures(self.features(for: layerName), options: options)
                 guard features.isNotEmpty else { continue }
                 let tagged = features.map { feature -> Feature in
                     var f = feature
