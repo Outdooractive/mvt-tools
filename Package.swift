@@ -19,7 +19,7 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.5"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.0.6"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.1"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.4"),
         .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", from: "1.0.2"),
