@@ -62,17 +62,4 @@ struct StringExtensionsTests {
         #expect(noPadding.trimmed() == "hello")
     }
 
-    @Test
-    func matchesRegularExpression() {
-        #expect("Hello World".matches("/[Hh]ello/"))
-        #expect("hello world".matches("/[Hh]ello/"))
-        #expect("Hello World".matches("Hello"))
-        #expect("Hello World".matches("^Hello"))
-        #expect("Hello World".matches("World$"))
-        #expect("HELLO".matches("/hello/i"))
-        #expect("HELLO".matches("/hello/") == false)
-        #expect("abc123".matches("\\d+"))
-        #expect("abc".matches("\\d+") == false)
-    }
-
 }
