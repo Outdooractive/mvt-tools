@@ -3,11 +3,16 @@
 # mvt-tools — MVT (Vector Tile) CLI & Library
 
 A Swift package for reading, writing, converting, and inspecting
-[Mapbox Vector Tiles (MVT)](https://github.com/mapbox/vector-tile-spec/tree/master/2.1) and GeoJSON files.
+[Mapbox Vector Tiles (MVT)](https://github.com/mapbox/vector-tile-spec/tree/master/2.1),
+[MapLibre Tiles (MLT)](https://github.com/maplibre/maplibre-tile-spec),
+[GeoJSON](https://geojson.org/),
+[GPX](https://www.topografix.com/gpx.asp),
+[Shapefile](https://www.esri.com/content/dam/esrisites/sitecore-archive/Files/Pdfs/library/whitepapers/pdfs/shapefile.pdf),
+and [GeoPackage](https://www.geopackage.org/) files.
 
 Two products:
 - **`mvt`** — CLI executable (`MVTCLI` target): dump, info, query, merge, import, export
-- **`MVTTools`** — library target: `VectorTile` model, MVT encode/decode, GeoJSON I/O, spatial queries
+- **`MVTTools`** — library target: `VectorTile` model, MVT/MLT encode/decode, GeoJSON/GPX/Shapefile/GeoPackage I/O, spatial queries
 
 Key source areas:
 - **`VectorTile.swift`** — Central model: holds `[String: LayerContainer]` (layer name → features),

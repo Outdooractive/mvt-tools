@@ -6,7 +6,7 @@ import MVTTools
 /// The main entry point for the `mvt` command line tool.
 ///
 /// Provides subcommands for inspecting, converting, and working with
-/// Mapbox Vector Tiles (MVT) and GeoJSON files.
+/// MVT/MLT vector tiles, GeoJSON, GPX, Shapefile, and GeoPackage files.
 @main
 struct CLI: AsyncParsableCommand {
 
@@ -15,11 +15,11 @@ struct CLI: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         commandName: "mvt",
-        abstract: "A utility for inspecting and working with vector tiles (MVT) and GeoJSON files.",
+        abstract: "A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, Shapefile, and GeoPackage files.",
         discussion: """
-        A x/y/z tile coordinate is needed for encoding/decoding vector tiles (MVT).
+        A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
         This tile coordinate can be extracted from the path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
-        Tile coordinates are not necessary for GeoJSON files.
+        Tile coordinates are not necessary for GeoJSON, GPX, Shapefile, and GeoPackage files (a tile coordinate will be calculated from the bounding box).
 
         Examples:
         - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt

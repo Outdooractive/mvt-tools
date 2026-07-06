@@ -4,15 +4,16 @@ import MVTTools
 
 extension CLI {
 
-    /// A command that prints the contents of a vector tile or GeoJSON file
+    /// A command that prints the contents of any supported input file
     /// as pretty-printed GeoJSON to the console.
     ///
-    /// Supports layer filtering, output simplification, and control over
-    /// the GeoJSON layer property name.
+    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input,
+    /// with layer filtering, output simplification, and control over the
+    /// GeoJSON layer property name.
     struct Dump: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Print the input file (MVT or GeoJSON) as pretty-printed GeoJSON to the console")
+            abstract: "Print the input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console")
 
         @Option(
             name: .shortAndLong,
@@ -26,7 +27,11 @@ extension CLI {
 
         @Option(
             name: [.customShort("P"), .long],
-            help: "Feature property to use for the layer name in input and output GeoJSONs. Needed for filtering by layer.")
+            help: """
+            Feature property to use for the layer name in input and output GeoJSONs. \
+            Needed for filtering by layer. For GPX input, defaults to "gpx_type" \
+            (splits waypoints/routes/tracks).
+            """)
         var propertyName: String = VectorTile.defaultLayerPropertyName
 
         @Flag(
@@ -51,86 +56,66 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL).",
-            completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
+            help: "The input file (MLT, MVT, GeoJSON, GPX, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
         var path: String
 
         mutating func run() async throws {
             let url = try options.parseUrl(fromPath: path)
+            let format = try TileFormat.resolve(
+                url: url,
+                xyzOptions: &xyzOptions,
+                verbose: options.verbose)
             let layerAllowlist = layer.asSet.subtracting(dropLayer).asArray.nonempty
             let layerDenylist = dropLayer.asSet.subtracting(layer).asArray.nonempty
 
-            var tile = VectorTile(
-                contentsOfGeoJson: url,
-                layerProperty: disableInputLayerProperty ? nil : propertyName,
-                layerAllowlist: disableInputLayerProperty ? nil : layerAllowlist,
-                logger: options.verbose ? CLI.logger : nil)
+            // layer allowlist only makes sense for formats that have named layers
+            let effectiveAllowlist: [String]? = format.supportsInputLayerProperty && disableInputLayerProperty
+                ? nil
+                : layerAllowlist
 
-            if tile == nil,
-               let (x, y, z) = try? xyzOptions.parseXYZ(fromPaths: [path])
-            {
-                tile = VectorTile(
-                    contentsOfMVT: url,
-                    x: x,
-                    y: y,
-                    z: z,
-                    layerAllowlist: layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
-            }
+            let tile = try await format.loadTile(
+                from: url,
+                layerAllowlist: effectiveAllowlist,
+                layerProperty: disableInputLayerProperty ? nil : propertyName,
+                logger: options.verbose ? CLI.logger : nil)
 
             guard let tile else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
-            if tile.origin == .geoJson,
-               disableInputLayerProperty
-            {
-                if let layerAllowlist,
-                   layerAllowlist.isNotEmpty
-                {
-                    if options.verbose {
-                        print("Warning: GeoJSON without layers, no filtering possible")
-                    }
-                    return
-                }
-            }
-
-            var exportOptions = VectorTile.ExportOptions()
-            if let simplifyMeters, simplifyMeters > 0 {
-                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
-            }
-
             if options.verbose {
-                print("Dumping \(tile.origin) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                print("Dumping \(format) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
 
-                print("Layer property name: \(propertyName)")
-                if disableInputLayerProperty {
-                    print("  - disable input layer property")
+                if format.supportsInputLayerProperty {
+                    print("Layer property name: \(propertyName)")
+                    if disableInputLayerProperty {
+                        print("  - disable input layer property")
+                    }
                 }
                 if disableOutputLayerProperty {
                     print("  - disable output layer property")
                 }
 
-                if disableInputLayerProperty,
-                   !disableOutputLayerProperty
-                {
-                    print("  - Warning: Default output layer names will be used with -Di")
+                if let layerAllowlist {
+                    print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
+                }
+                if let layerDenylist {
+                    print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
                 }
 
-                if tile.origin == .mvt
-                    || !disableInputLayerProperty
-                {
-                    if let layerAllowlist {
-                        print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
-                    }
-                    if let layerDenylist {
-                        print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
-                    }
+                var exportOptions = VectorTile.ExportOptions()
+                if let simplifyMeters, simplifyMeters > 0 {
+                    exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
                 }
-
                 print("Output options:")
                 print("  - Pretty print: true")
                 print("  - Simplification: \(exportOptions.simplifyFeatures)")
 
                 print("GeoJSON:")
+            }
+
+            var exportOptions = VectorTile.ExportOptions()
+            if let simplifyMeters, simplifyMeters > 0 {
+                exportOptions.simplifyFeatures = .meters(Double(simplifyMeters))
             }
 
             var layerNames: [String] = []

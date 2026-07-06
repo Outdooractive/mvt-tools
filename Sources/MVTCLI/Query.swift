@@ -9,14 +9,29 @@ import MVTTools
 
 extension CLI {
 
-    /// A command that queries features in a vector tile or GeoJSON file.
+    /// A command that queries features in any supported input file.
     ///
-    /// Supports spatial queries (by coordinate and tolerance) and text-based
+    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input
+    /// with spatial queries (by coordinate and tolerance) and text-based
     /// queries (by search term), with output to a file or the console.
     struct Query: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Query the features in the input file (MVT or GeoJSON)")
+            abstract: "Query the features in the input file (MLT, MVT, GeoJSON, GPX, Shapefile, or GeoPackage)",
+            discussion: """
+            SEARCH TERM SYNTAX:
+              Spatial:   near(latitude,longitude,tolerance(m))
+                         within(minLon,minLat,maxLon,maxLat)
+                         intersects(minLon,minLat,maxLon,maxLat)
+              Text:      .key == value (==, !=, >, >=, <, <=)
+                         .key =~ regex | .key =* contains | .key =^ starts_with | .key =$ ends_with
+              Set:       .class in [a, b, ...]
+              Logic:     expr AND expr | expr OR expr | NOT expr | expr EXISTS
+              Examples:  .highway == primary and .name =~ '^Main'
+                         .class in ["primary", "secondary"] and .name =* "Main"
+                         .population > 1000 and within(11.5,3.8,11.6,3.9)
+                         .highway == primary and intersects(11.5,3.8,11.6,3.9)
+            """)
 
         @Option(
             name: [.short, .customLong("output")],
@@ -76,8 +91,8 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The vector tile or GeoJSON (file or URL).",
-            completion: .file(extensions: ["pbf", "mvt", "geojson", "json"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
         var path: String
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
@@ -118,61 +133,48 @@ extension CLI {
             }
 
             let url = try options.parseUrl(fromPath: path)
+            let format = try TileFormat.resolve(
+                url: url,
+                xyzOptions: &xyzOptions,
+                verbose: options.verbose)
             let layerAllowlist = layer.asSet.subtracting(dropLayer).asArray.nonempty
             let layerDenylist = dropLayer.asSet.subtracting(layer).asArray.nonempty
 
-            var tile = VectorTile(
-                contentsOfGeoJson: url,
+            let effectiveAllowlist: [String]? = format.supportsInputLayerProperty && disableInputLayerProperty
+                ? nil
+                : layerAllowlist
+
+            guard var tile = try await format.loadTile(
+                from: url,
+                layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
-                layerAllowlist: disableInputLayerProperty ? nil : layerAllowlist,
                 logger: options.verbose ? CLI.logger : nil)
+            else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
-            if tile == nil,
-               let (x, y, z) = try? xyzOptions.parseXYZ(fromPaths: [path])
-            {
-                tile = VectorTile(
-                    contentsOfMVT: url,
-                    x: x,
-                    y: y,
-                    z: z,
-                    layerAllowlist: layerAllowlist,
-                    logger: options.verbose ? CLI.logger : nil)
-            }
-
-            if tile != nil, let layerDenylist {
+            if let layerDenylist {
                 for droppedLayer in layerDenylist {
-                    tile?.removeLayer(droppedLayer)
+                    tile.removeLayer(droppedLayer)
                 }
             }
 
-            guard let tile else { throw CLIError("Failed to parse the resource at '\(path)'") }
-
             if options.verbose {
-                print("Searching in tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
+                print("Searching in \(format) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
 
-                print("Layer property name: \(propertyName)")
-                if disableInputLayerProperty {
-                    print("  - disable input layer property")
+                if format.supportsInputLayerProperty {
+                    print("Layer property name: \(propertyName)")
+                    if disableInputLayerProperty {
+                        print("  - disable input layer property")
+                    }
                 }
                 if disableOutputLayerProperty {
                     print("  - disable output layer property")
                 }
 
-                if disableInputLayerProperty,
-                   !disableOutputLayerProperty
-                {
-                    print("  - Warning: Default output layer names will be used with -Di")
+                if let layerAllowlist {
+                    print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
                 }
-
-                if tile.origin == .mvt
-                    || !disableInputLayerProperty
-                {
-                    if let layerAllowlist {
-                        print("Allowed layers: '\(layerAllowlist.sorted().joined(separator: ","))'")
-                    }
-                    if let layerDenylist {
-                        print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
-                    }
+                if let layerDenylist {
+                    print("Dropped layers: '\(layerDenylist.sorted().joined(separator: ","))'")
                 }
             }
 
