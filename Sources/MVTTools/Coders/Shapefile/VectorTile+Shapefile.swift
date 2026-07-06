@@ -73,11 +73,13 @@ extension VectorTile {
     ///   - url: The output base URL (extension `.shp`, `.dbf`, `.prj` are added).
     ///   - layerName: When non-nil, only this layer is exported. When `nil`, all layers are merged.
     ///   - encoding: The string encoding for the DBF file (default `.utf8`).
+    ///   - options: Export options controlling simplification.
     /// - Throws: ``ShapefileError/mixedGeometry`` if the exported features have mixed geometry types.
     public func writeShapefile(
         to url: URL,
         layerName: String? = nil,
-        encoding: String.Encoding = .utf8
+        encoding: String.Encoding = .utf8,
+        options: VectorTile.ExportOptions? = nil
     ) throws {
         let features: [Feature]
         if let layerName {
@@ -89,12 +91,13 @@ extension VectorTile {
 
         guard features.isNotEmpty else { return }
 
-        let geometryTypes = Set(features.map(\.geometry.type))
+        let processed = processFeatures(features, options: options)
+        let geometryTypes = Set(processed.map(\.geometry.type))
         guard geometryTypes.count == 1 else {
             throw ShapefileError.mixedGeometry(types: geometryTypes)
         }
 
-        let fc = FeatureCollection(features)
+        let fc = FeatureCollection(processed)
         try ShapefileCoder.write(fc, to: url, encoding: encoding)
     }
 
@@ -103,10 +106,12 @@ extension VectorTile {
     /// - Parameters:
     ///   - directory: The output directory. One `.shp`/`.dbf`/`.prj` set per layer.
     ///   - encoding: The string encoding for DBF files (default `.utf8`).
+    ///   - options: Export options controlling simplification.
     /// - Throws: ``ShapefileError`` or file I/O errors.
     public func writeShapefiles(
         to directory: URL,
-        encoding: String.Encoding = .utf8
+        encoding: String.Encoding = .utf8,
+        options: VectorTile.ExportOptions? = nil
     ) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
@@ -114,7 +119,8 @@ extension VectorTile {
             let features = self.features(for: layerName)
             guard features.isNotEmpty else { continue }
 
-            let fc = FeatureCollection(features)
+            let processed = processFeatures(features, options: options)
+            let fc = FeatureCollection(processed)
             let fileUrl = directory.appendingPathComponent(layerName)
             try ShapefileCoder.write(fc, to: fileUrl, encoding: encoding)
         }
