@@ -108,6 +108,40 @@ func runCLI(args: [String]) throws -> String {
     return String(data: try Data(contentsOf: tempUrl), encoding: .utf8) ?? ""
 }
 
+/// Runs the `mvt` CLI with the given arguments, capturing both stdout and
+/// stderr, and returns the combined output plus the exit code.
+///
+/// Unlike `runCLI`, this helper preserves stderr (useful for verifying
+/// `--verbose` output and soft-failure messages) and reports the process
+/// exit code so callers can assert on non-zero exits.
+///
+/// - Parameter args: The command-line arguments to pass to `mvt`.
+/// - Returns: A tuple of `(stdout, stderr, exitCode)`.
+func runCLIWithStderr(args: [String]) throws -> (stdout: String, stderr: String, exitCode: Int32) {
+    let stdoutUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mvt_stdout_\(UUID().uuidString).txt")
+    let stderrUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mvt_stderr_\(UUID().uuidString).txt")
+    FileManager.default.createFile(atPath: stdoutUrl.path, contents: nil)
+    FileManager.default.createFile(atPath: stderrUrl.path, contents: nil)
+    defer {
+        try? FileManager.default.removeItem(at: stdoutUrl)
+        try? FileManager.default.removeItem(at: stderrUrl)
+    }
+    let stdoutHandle = try FileHandle(forWritingTo: stdoutUrl)
+    let stderrHandle = try FileHandle(forWritingTo: stderrUrl)
+    let process = Process()
+    process.executableURL = mvtExec
+    process.arguments = args
+    process.standardOutput = stdoutHandle
+    process.standardError = stderrHandle
+    try process.run()
+    process.waitUntilExit()
+    try stdoutHandle.close()
+    try stderrHandle.close()
+    let stdout = String(data: try Data(contentsOf: stdoutUrl), encoding: .utf8) ?? ""
+    let stderr = String(data: try Data(contentsOf: stderrUrl), encoding: .utf8) ?? ""
+    return (stdout, stderr, process.terminationStatus)
+}
+
 // MARK: - Test data generators
 
 func generateSmallGeoJson() throws -> URL {
