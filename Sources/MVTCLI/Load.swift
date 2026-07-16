@@ -152,8 +152,6 @@ extension CLI {
                 for tile in tiles {
                     group.addTask {
                         await semaphore.wait()
-                        defer { Task { await semaphore.signal() } }
-
                         await Self.downloadTile(
                             tile,
                             zoom: resolvedZoom,
@@ -164,6 +162,7 @@ extension CLI {
                             overwriteExisting: overwriteExisting,
                             verbose: verbose,
                             counter: counter)
+                        await semaphore.signal()
                     }
                 }
             }
