@@ -33,6 +33,7 @@ struct CLI: AsyncParsableCommand {
             Merge.self,
             Import.self,
             Export.self,
+            Load.self,
         ],
         defaultSubcommand: Dump.self)
 
