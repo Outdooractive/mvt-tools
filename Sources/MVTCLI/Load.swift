@@ -397,8 +397,10 @@ extension CLI {
         ///
         /// Two forms are recognised:
         ///   1. A standalone numeric path segment (e.g. `.../14/{x}/{y}.pbf`).
-        ///   2. A segment that starts with a numeric prefix followed by
-        ///      placeholders or other characters (e.g. `14_{x}_{y}.pbf`).
+        ///   2. A segment that contains `{x}`/`{y}` placeholders and starts
+        ///      with a numeric prefix (e.g. `14_{x}_{y}.pbf`). This form is
+        ///      only applied to segments with placeholders to avoid matching
+        ///      random numeric prefixes in directory names (e.g. `/var/folders/8j/...`).
         ///
         /// Placeholder segments like `{x}`, `{y}`, `{z}` are skipped. The
         /// first matching segment with a value in `0 ... 30` is used.
@@ -424,16 +426,25 @@ extension CLI {
                 for component in pathComponents {
                     // Strip a trailing extension like "14.pbf"
                     let candidate = component.split(separator: ".").first.map(String.init) ?? component
+                    let lowercased = candidate.lowercased()
 
-                    // Form 1: pure integer
+                    // Form 1: pure integer (e.g. "14")
                     if let z = Int(candidate), z >= 0, z <= 30 {
                         return z
                     }
 
-                    // Form 2: leading numeric prefix like "14_{x}_{y}"
-                    let leadingDigits = String(candidate.prefix { $0.isWholeNumber })
-                    if let z = Int(leadingDigits), !leadingDigits.isEmpty, z >= 0, z <= 30 {
-                        return z
+                    // Form 2: leading numeric prefix like "14_{x}_{y}" —
+                    // only when the segment contains tile placeholders, to
+                    // avoid matching numeric prefixes in directory names
+                    // (e.g. "/var/folders/8j/...").
+                    let hasPlaceholder = lowercased.contains("{x}")
+                        || lowercased.contains("{y}")
+                        || lowercased.contains("{z}")
+                    if hasPlaceholder {
+                        let leadingDigits = String(candidate.prefix { $0.isWholeNumber })
+                        if let z = Int(leadingDigits), !leadingDigits.isEmpty, z >= 0, z <= 30 {
+                            return z
+                        }
                     }
                 }
             }

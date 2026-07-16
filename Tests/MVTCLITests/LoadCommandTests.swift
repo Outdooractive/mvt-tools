@@ -283,4 +283,43 @@ struct LoadCommandTests {
         #expect(stderr.contains("Loaded 6 tiles"))
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func loadZoomInferenceIgnoresNumericDirPrefix() throws {
+        // Simulates a macOS CI temp directory path like
+        // /var/folders/8j/.../T/ that has a leading digit in a directory
+        // name. The zoom must be inferred from the filename's `2_` prefix,
+        // not from the `8j` directory.
+        let sourceDir = try makeTileSource()
+        // Create a nested directory with a numeric prefix to mimic CI paths
+        let trickyDir = sourceDir
+            .deletingLastPathComponent()
+            .appendingPathComponent("8j")
+            .appendingPathComponent("T")
+        try FileManager.default.createDirectory(at: trickyDir, withIntermediateDirectories: true)
+        // Copy tile files into the tricky directory
+        for x in 0 ..< 4 {
+            for y in 0 ..< 4 {
+                let src = sourceDir.appendingPathComponent("2_\(x)_\(y).pbf")
+                let dst = trickyDir.appendingPathComponent("2_\(x)_\(y).pbf")
+                try? FileManager.default.copyItem(at: src, to: dst)
+            }
+        }
+
+        let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
+        defer {
+            try? FileManager.default.removeItem(at: outputDir)
+            try? FileManager.default.removeItem(at: trickyDir)
+        }
+
+        let template = "file://\(trickyDir.path)/2_{x}_{y}.pbf"
+        let (stdout, _, exitCode) = try runCLIWithStderr(args: [
+            "load", "--bbox=\(Self.bbox)", "--output-dir", outputDir.path, template,
+        ])
+
+        #expect(exitCode == 0)
+        // Must infer z=2 from the filename, not z=8 from the "8j" directory
+        #expect(stdout.contains("Loaded 6 tiles"))
+    }
+
 }
