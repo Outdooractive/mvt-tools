@@ -99,7 +99,7 @@ let package = Package(
                 .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut/include"),
                 .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut"),
                 .define("MLT_WITH_FASTPFOR", to: "1"),
-                .unsafeFlags(["-std=c++20"]),
+                .unsafeFlags(["-std=c++20", "-msse4.2"]),
             ],
         ),
     ]
