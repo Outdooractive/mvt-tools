@@ -34,6 +34,7 @@ struct CLI: AsyncParsableCommand {
             Import.self,
             Export.self,
             Load.self,
+            Rezoom.self,
         ],
         defaultSubcommand: Dump.self)
 
