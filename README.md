@@ -37,7 +37,7 @@ This package requires Swift 6.3 or higher (at least Xcode 15), and compiles on i
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "2.0.0"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "2.1.0"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -668,32 +668,6 @@ brew install protobuf swift-protobuf swiftlint
 # TODOs and future improvements
 
 - Locking (when updating/deleting features, indexing)
-&lt;!-- All planned format support has been implemented. --&gt;
-
-- https://github.com/mapbox/vtcomposite
-- https://github.com/mapbox/geosimplify-js
-
-# Links
-
-- Libraries
-    - https://github.com/Outdooractive/gis-tools
-    - https://github.com/Outdooractive/mvt-postgis
-    - https://github.com/apple/swift-protobuf
-
-- Vector tiles
-    - https://github.com/mapbox/vector-tile-spec/tree/master/2.1
-    - https://github.com/mapbox/vector-tile-spec/blob/master/2.1/vector_tile.proto
-    - https://docs.mapbox.com/vector-tiles/specification/#format
-
-- Sample data for testing:
-    - https://github.com/mapbox/mvt-fixtures
-    - https://github.com/mapbox/mapnik-vector-tile/tree/master/bench
-    - https://github.com/mapbox/mapnik-vector-tile/tree/master/examples
-    - https://github.com/mapbox/mapnik-vector-tile/tree/master/test
-
-- Other code for inspiration:
-    - https://github.com/mapnik/node-mapnik/blob/master/src/mapnik_vector_tile.cpp
-    - https://github.com/mapbox/vt2geojson
 
 # License
 
