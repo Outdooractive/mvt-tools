@@ -205,7 +205,6 @@ struct LoadCommandTests {
 
     @Test(.timeLimit(.minutes(1)))
     func loadSoftFailureVerbose() throws {
-        let sourceDir = try makeTileSource()
         let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: outputDir) }
