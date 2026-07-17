@@ -44,27 +44,13 @@ jobs:
           swift build -c release --arch arm64 --arch x86_64 --product mvt
       - name: Compress the archive
         run: tar -czf mvt.tar.gz -C .build/apple/Products/Release mvt
-      - name: Upload the release attachment
-        uses: actions/github-script@v7
+      - name: Create or update the release and upload the asset
+        uses: softprops/action-gh-release@v2
         with:
-          script: |
-            const fs = require('fs');
-            const tag = context.payload.inputs.tag_name;
-            console.log("tag = ", tag);
-            // Get release for this tag
-            const release = await github.rest.repos.getReleaseByTag({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag
-            });
-            // Upload the release asset
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id,
-              name: "mvt.tar.gz",
-              data: await fs.readFileSync("mvt.tar.gz")
-            })
+          tag_name: ${{ inputs.tag_name }}
+          name: ${{ inputs.tag_name }}
+          files: mvt.tar.gz
+          fail_on_unmatched_files: true
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: mvt-tools
