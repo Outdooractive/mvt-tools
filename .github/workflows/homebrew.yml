@@ -12,9 +12,10 @@ jobs:
     name: Bump Homebrew formula
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag_name }}
+          submodules: recursive
       - name: Update the CLI version
         run: echo "public let cliVersion = \"${CLI_VERSION}\"" > Sources/MVTCLI/Version.swift
         env:
