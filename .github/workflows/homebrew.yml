@@ -21,7 +21,27 @@ jobs:
         env:
           CLI_VERSION: ${{ inputs.tag_name }}
       - name: Build the executable for release
-        run: swift build -c release --arch arm64 --arch x86_64 --product mvt
+        run: |
+          # macos-latest is arm64, but we cross-compile for x86_64 too.
+          # The CSQLite system-library bridge resolves via pkg-config to
+          # Homebrew's arm64-only sqlite3. The macOS system SQLite at
+          # /usr/lib/libsqlite3.dylib is universal (arm64+x86_64), so we
+          # shadow Homebrew's pkg-config file with one pointing at the SDK.
+          SDK="$(xcrun --show-sdk-path)"
+          PC_DIR="$(mktemp -d)"
+          {
+            printf 'prefix=%s/usr\n' "$SDK"
+            printf 'exec_prefix=${prefix}\n'
+            printf 'libdir=/usr/lib\n'
+            printf 'includedir=${prefix}/include\n'
+            printf 'Name: SQLite\n'
+            printf 'Description: SQLite database engine (system, universal)\n'
+            printf 'Version: 3.0.0\n'
+            printf 'Libs: -L${libdir} -lsqlite3\n'
+            printf 'Cflags: -I${includedir}\n'
+          } > "$PC_DIR/sqlite3.pc"
+          export PKG_CONFIG_PATH="$PC_DIR:${PKG_CONFIG_PATH:-}"
+          swift build -c release --arch arm64 --arch x86_64 --product mvt
       - name: Compress the archive
         run: tar -czf mvt.tar.gz -C .build/apple/Products/Release mvt
       - name: Upload the release attachment
