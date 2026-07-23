@@ -129,8 +129,24 @@ enum MLTEncoder {
                 var polygonRingCounts: [UInt32] = []
                 var projectedCoords: [(Int, Int)] = []
 
+                // MultiLineString parts are open lines — store every vertex as-is.
+                let collectLine: ([Coordinate3D]) -> Void = { line in
+                    let projected = line.map(projectionFunction)
+                    partSizes.append(UInt32(projected.count))
+                    projectedCoords.append(contentsOf: projected)
+                }
+
+                // Polygon rings are closed in GeoJSON (first == last), but the MLT
+                // binary format omits the closing vertex — it is reconstructed by
+                // the decoder. Storing it would inflate every ring size by 1 and
+                // shift all subsequent cumulative ring offsets, corrupting polygon
+                // geometry for consumers like maplibre-gl-js.
                 let collectRing: ([Coordinate3D]) -> Void = { ring in
-                    let projected = ring.map(projectionFunction)
+                    var coords = ring
+                    if coords.count > 1, coords.first == coords.last {
+                        coords.removeLast()
+                    }
+                    let projected = coords.map(projectionFunction)
                     partSizes.append(UInt32(projected.count))
                     projectedCoords.append(contentsOf: projected)
                 }
@@ -138,7 +154,7 @@ enum MLTEncoder {
                 switch feature.geometry.type {
                 case .multiLineString:
                     let mls = feature.geometry as! MultiLineString
-                    for line in mls.coordinates { collectRing(line) }
+                    for line in mls.coordinates { collectLine(line) }
 
                 case .polygon:
                     let poly = feature.geometry as! Polygon
