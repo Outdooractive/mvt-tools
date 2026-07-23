@@ -767,7 +767,7 @@ uint8_t* mlt_encoder_finish(
         state->currentFeatures.clear();
         state->currentLayerName.clear();
     }
-    auto result = state->encoder.encode(state->layers);
+    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = false; }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
     std::memcpy(buffer, result.data(), result.size());
     *outLength = result.size();
