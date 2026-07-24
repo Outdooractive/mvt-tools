@@ -44,9 +44,13 @@ struct TileDataContentConsistencyTests {
     ///
     /// Each ring is stripped of its closing vertex, rounded, sorted by
     /// coordinate, and collected into a set of ring signatures.
-    private func normalizedRings(of geometry: GeoJsonGeometry, precision: Double = 0.0000001) -> Set<RingSignature> {
+    private func normalizedRings(
+        of geometry: GeoJsonGeometry,
+        precision: Double = 0.0000001
+    ) -> Set<RingSignature> {
         let scale = 1.0 / precision
         var rings: [[Coordinate3D]] = []
+
         switch geometry {
         case let point as Point:
             rings = [[point.coordinate]]
@@ -139,8 +143,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func mvtAndMltHaveSameLayers() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let mltData = try TestData.dataFromFile(name: "14_8657_5725.mlt")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
@@ -157,8 +161,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func rawCountsMatchBetweenMvtAndMlt() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let mltData = try TestData.dataFromFile(name: "14_8657_5725.mlt")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
@@ -172,8 +176,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func flattenedCountsMatchBetweenMvtAndGeoJson() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let geoJsonData = try TestData.dataFromFile(name: "14_8657_5725.geojson")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
@@ -191,8 +195,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func mvtAndMltHaveSamePropertiesPerLayer() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let mltData = try TestData.dataFromFile(name: "14_8657_5725.mlt")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
@@ -215,8 +219,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func mvtAndMltHaveSameGeometriesPerLayer() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let mltData = try TestData.dataFromFile(name: "14_8657_5725.mlt")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
@@ -247,8 +251,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func mvtAndGeoJsonHaveSamePropertiesPerLayer() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let geoJsonData = try TestData.dataFromFile(name: "14_8657_5725.geojson")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
@@ -270,8 +274,8 @@ struct TileDataContentConsistencyTests {
 
     @Test
     func mvtAndGeoJsonHaveSameGeometriesPerLayer() throws {
-        let mvtData = try TestData.dataFromFile(name: "14_8657_5725.pbf")
-        let geoJsonData = try TestData.dataFromFile(name: "14_8657_5725.geojson")
+        let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
+        let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
         let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
         let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
