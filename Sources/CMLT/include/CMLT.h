@@ -154,11 +154,13 @@ typedef void* MLTEncoderHandle;
 /// Property value type tag.
 enum {
     kMLTPropString = 0,
-    kMLTPropInt = 1,
+    kMLTPropInt = 1,       // 32-bit signed integer (use kMLTPropInt64 for larger values)
     kMLTPropDouble = 2,
     kMLTPropBool = 3,
-    kMLTPropUInt = 4,
+    kMLTPropUInt = 4,      // 32-bit unsigned integer (use kMLTPropUInt64 for larger values)
     kMLTPropFloat = 5,
+    kMLTPropInt64 = 6,     // 64-bit signed integer
+    kMLTPropUInt64 = 7,    // 64-bit unsigned integer
 };
 
 /// A typed property key-value pair.

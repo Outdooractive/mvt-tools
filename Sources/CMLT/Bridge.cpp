@@ -624,11 +624,24 @@ static mlt::Encoder::PropertyValue typedPropertyFromString(
         case kMLTPropString:
             return value;
         case kMLTPropInt: {
-            auto v = static_cast<int64_t>(std::strtoll(value.c_str(), &end, 10));
+            // 32-bit signed integer — decode as int32_t so the MLT encoder
+            // creates an INT_32 column.  INT_32 values decode to JavaScript
+            // Numbers; INT_64 values decode to BigInts, which break gl-js
+            // expression comparisons (e.g. [">", "symbolrank", 10000]).
+            auto v = static_cast<std::int32_t>(std::strtoll(value.c_str(), &end, 10));
+            return v;
+        }
+        case kMLTPropInt64: {
+            auto v = static_cast<std::int64_t>(std::strtoll(value.c_str(), &end, 10));
             return v;
         }
         case kMLTPropUInt: {
-            auto v = static_cast<uint64_t>(std::strtoull(value.c_str(), &end, 10));
+            // 32-bit unsigned integer — see kMLTPropInt for rationale.
+            auto v = static_cast<std::uint32_t>(std::strtoull(value.c_str(), &end, 10));
+            return v;
+        }
+        case kMLTPropUInt64: {
+            auto v = static_cast<std::uint64_t>(std::strtoull(value.c_str(), &end, 10));
             return v;
         }
         case kMLTPropDouble:
@@ -767,7 +780,7 @@ uint8_t* mlt_encoder_finish(
         state->currentFeatures.clear();
         state->currentLayerName.clear();
     }
-    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = false; }));
+    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = true; }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
     std::memcpy(buffer, result.data(), result.size());
     *outLength = result.size();

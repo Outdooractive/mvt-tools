@@ -175,6 +175,11 @@ enum MLTEncoder {
                 var ys = projectedCoords.map { Float($0.1) }
 
                 // Build typed property list.
+                // Integer values that fit in Int32/UInt32 are encoded as such so
+                // that the MLT encoder creates INT_32 / UINT_32 columns.  INT_64
+                // and UINT_64 columns decode to JavaScript BigInts in the MLT
+                // JS/WASM decoder, which breaks maplibre-gl-js expression
+                // comparisons (BigInt vs Number throws a TypeError).
                 var mltProps: [MLTProperty] = []
                 for (key, value) in feature.properties {
                     let (type, strValue): (Int32, String)
@@ -183,15 +188,30 @@ enum MLTEncoder {
                         strValue = value as! String
                     }
                     else if let i = value as? Int {
-                        type = Int32(kMLTPropInt)
+                        if i >= Int(Int32.min), i <= Int(Int32.max) {
+                            type = Int32(kMLTPropInt)
+                        }
+                        else {
+                            type = Int32(kMLTPropInt64)
+                        }
                         strValue = String(i)
                     }
                     else if let i = value as? Int64 {
-                        type = Int32(kMLTPropInt)
+                        if i >= Int64(Int32.min), i <= Int64(Int32.max) {
+                            type = Int32(kMLTPropInt)
+                        }
+                        else {
+                            type = Int32(kMLTPropInt64)
+                        }
                         strValue = String(i)
                     }
                     else if let u = value as? UInt {
-                        type = Int32(kMLTPropUInt)
+                        if u <= UInt(UInt32.max) {
+                            type = Int32(kMLTPropUInt)
+                        }
+                        else {
+                            type = Int32(kMLTPropUInt64)
+                        }
                         strValue = String(u)
                     }
                     else if let d = value as? Double {

@@ -45,8 +45,8 @@ extension VectorTile {
         /// The grid width and height of one tile. Always 4096.
         public static let extent = 4096
 
-        /// The tile size in pixels. Always 256.
-        public static let tileSize = 256
+        /// The tile size in pixels. Always 512.
+        public static let tileSize = 512
 
         /// The buffer around the tile, either in pixels (see ``tileSize``) or in the same dimension as ``extent`` (default: **no**).
         public var bufferSize: BufferSizeOptions = .no

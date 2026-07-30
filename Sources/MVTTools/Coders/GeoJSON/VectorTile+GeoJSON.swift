@@ -113,14 +113,15 @@ extension VectorTile {
     ///   An empty array means all layers.
     /// - Parameter additionalFeatureProperties: A dictionary of extra properties to merge into every exported feature.
     /// - Parameter prettyPrinted: When `true`, the resulting JSON is human-readable with line breaks and indentation.
-    /// - Parameter layerProperty: If set, each feature receives an additional property with this key whose value is the source layer name.
+    /// - Parameter layerProperty: An optional property name used to assign features to layers.
+    ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     /// - Parameter options: Export options controlling clipping, simplification, and compression.
     /// - Returns: The GeoJSON data, or `nil` if serialization fails.
     public func toGeoJson(
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
-        layerProperty: String? = nil,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName,
         options: VectorTile.ExportOptions? = nil
     ) -> Data? {
         var allFeatures: [Feature] = []
@@ -174,7 +175,8 @@ extension VectorTile {
     ///   An empty array means all layers.
     /// - Parameter additionalFeatureProperties: A dictionary of extra properties to merge into every exported feature.
     /// - Parameter prettyPrinted: When `true`, the resulting JSON is human-readable with line breaks and indentation.
-    /// - Parameter layerProperty: If set, each feature receives an additional property with this key whose value is the source layer name.
+    /// - Parameter layerProperty: An optional property name used to assign features to layers.
+    ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     /// - Parameter options: Export options controlling clipping, simplification, and compression.
     /// - Returns: `true` when the file was written successfully, `false` otherwise.
     @discardableResult
@@ -183,7 +185,7 @@ extension VectorTile {
         layerNames: [String] = [],
         additionalFeatureProperties: [String: Sendable]? = nil,
         prettyPrinted: Bool = false,
-        layerProperty: String? = nil,
+        layerProperty: String? = VectorTile.defaultLayerPropertyName,
         options: VectorTile.ExportOptions? = nil
     ) -> Bool {
         guard let data: Data = toGeoJson(
