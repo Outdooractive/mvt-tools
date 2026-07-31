@@ -14,6 +14,50 @@
 
 MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles, GeoJSON, GPX, Shapefile, and GeoPackage files.
 
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation with Swift Package Manager](#installation-with-swift-package-manager)
+- [Usage](#usage)
+  - [Read MVT](#read-mvt)
+  - [Read GeoJSON](#read-geojson)
+  - [Write MVT](#write-mvt)
+  - [Read GPX](#read-gpx)
+  - [Write GPX](#write-gpx)
+  - [Read Shapefile](#read-shapefile)
+  - [Write Shapefile](#write-shapefile)
+  - [Read GeoPackage](#read-geopackage)
+  - [Write GeoPackage](#write-geopackage)
+  - [Write GeoJSON](#write-geojson)
+  - [Layer management](#layer-management)
+  - [Merge tiles](#merge-tiles)
+  - [Tile info](#tile-info)
+  - [Export options](#export-options)
+  - [Playground](#playground)
+- [Query language](#query-language)
+  - [Value access](#value-access)
+  - [Comparisons](#comparisons)
+  - [String values](#string-values)
+  - [Set membership](#set-membership)
+  - [Boolean conditions](#boolean-conditions)
+  - [Spatial predicates](#spatial-predicates)
+  - [Complete examples](#complete-examples)
+  - [Using the query API programmatically](#using-the-query-api-programmatically)
+- [Command line tool](#command-line-tool)
+  - [mvt dump](#mvt-dump)
+  - [mvt info](#mvt-info)
+  - [mvt query](#mvt-query)
+  - [mvt merge](#mvt-merge)
+  - [mvt export](#mvt-export)
+  - [mvt import](#mvt-import)
+  - [mvt load](#mvt-load)
+  - [mvt rezoom](#mvt-rezoom)
+- [Contributing](#contributing)
+- [TODOs and future improvements](#todos-and-future-improvements)
+- [License](#license)
+- [Authors](#authors)
+
 ## Features
 
 - **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
@@ -27,7 +71,7 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
 - **Property queries** — powerful RPN-based query DSL with comparisons, string operators, regex, set membership, boolean logic, and existence checks.
 - **Layer management** — extract, merge, remove, or filter layers and features.
 - **Tile metadata** — per-layer feature counts, geometry-type breakdowns, property histograms.
-- **Command-line tool** — `mvt` with subcommands: `dump`, `info`, `query`, `merge`, `import`, `export`.
+- **Command-line tool** — `mvt` with subcommands: `dump`, `info`, `query`, `merge`, `import`, `export`, `load`, `rezoom`.
 
 ## Requirements
 
@@ -460,6 +504,8 @@ SUBCOMMANDS:
   merge                   Merge any number of input files into a single file of any supported format
   import                  Alias for 'merge'
   export                  Alias for 'merge'
+  load                    Download all tiles within a bounding box from a tile URL template
+  rezoom                  Overzoom or underzoom source tiles into a single output tile at a target zoom level
 
   See 'mvt help <subcommand>' for detailed help.
 ```
@@ -654,6 +700,51 @@ mvt import --output new.mvt tracks.gpx roads.shp
 mvt import --output combined.gpkg data.geojson tracks.gpx
 ```
 ---
+### mvt load
+
+Download all tiles covering a bounding box from a tile URL template into a local directory. The URL template must contain `{x}` and `{y}` placeholders (case-insensitive). The zoom level is inferred from a numeric path segment in the URL, or can be supplied with `--zoom`.
+
+Tiles can be laid out in a flat directory (`z_x_y.ext`, the default) or a tree hierarchy (`z/x/y.ext` via `--layout tree`).
+
+```bash
+# Simple download with flat layout
+mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles \
+    https://example.com/tiles/14/{x}/{y}.pbf
+
+# Tree layout with explicit zoom level and concurrency control
+mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles --layout tree \
+    --zoom 12 --concurrency 4 https://example.com/tiles/{z}/{x}/{y}.pbf
+
+# Overwrite existing tiles
+mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles --overwrite-existing \
+    https://example.com/tiles/14/{x}/{y}.pbf
+```
+---
+### mvt rezoom
+
+Overzoom or underzoom one or more source tiles into a single output tile at a target zoom level. Each source tile must be an ancestor or descendant of the target tile. Source tiles that are not related to the target are silently skipped, unless `--strict` is used.
+
+Target tile coordinates can be specified with `--target-x`, `--target-y`, `--target-z`, or inferred from the `--output` file path.
+
+```bash
+# Infer target from output path
+mvt rezoom --output ./tiles/3_2_2.mvt source_2_1_1.mvt
+
+# Explicit target coordinates
+mvt rezoom --target-z 3 --target-x 2 --target-y 2 \
+    --output out.mvt source.mvt another_source.mvt
+
+# Abort if any source tile is unrelated to the target
+mvt rezoom --output out.mvt --strict source.mvt
+
+# Filter layers
+mvt rezoom --output out.mvt --layer roads --layer buildings source.mvt
+
+# Strip specific layers
+mvt rezoom --output out.mvt --drop-layer temporary source.mvt
+```
+---
+
 
 # Contributing
 
