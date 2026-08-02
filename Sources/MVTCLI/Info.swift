@@ -12,7 +12,7 @@ extension CLI {
     struct Info: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Print information about the input file (MLT, MVT, GeoJSON, GPX, Shapefile, or GeoPackage)",
+            abstract: "Print information about the input file (MLT, MVT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage)",
             discussion: """
             Available tables:
             - features: Feature counts (points, linestrings, polygons) for each layer
@@ -42,8 +42,8 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
         var path: String
 
         mutating func run() async throws {

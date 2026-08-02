@@ -1,5 +1,6 @@
 import Foundation
 import GISTools
+import GISToolsFIT
 import GISToolsShapefile
 import MVTTools
 import Testing
@@ -164,6 +165,35 @@ func generateSmallGpx() throws -> URL {
     </gpx>
     """
     try gpx.data(using: .utf8)!.write(to: url)
+    return url
+}
+
+func generateSmallFit() throws -> URL {
+    let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).fit")
+    let coords: [Coordinate3D] = [
+        Coordinate3D(latitude: 10.0, longitude: 20.0, altitude: 100.0),
+        Coordinate3D(latitude: 10.001, longitude: 20.001, altitude: 110.0),
+        Coordinate3D(latitude: 10.002, longitude: 20.002, altitude: 120.0),
+    ]
+    let multiLine = MultiLineString(unchecked: [LineString(unchecked: coords)])
+    var feature = Feature(multiLine)
+    feature.properties["fit_type"] = "record"
+    feature.properties["heart_rate"] = 120
+    feature.properties["sport"] = "Cycling"
+    feature.properties["total_distance"] = Double(100.0)
+    feature.properties["total_calories"] = Int(5)
+    feature.properties["total_elapsed_time"] = Double(60.0)
+    feature.properties["start_time"] = UInt32(1_000_000)
+    feature.properties["fit_heart_rates"] = [120, 125, 130]
+    feature.properties["fit_cadences"] = [80, 85, 90]
+    feature.properties["fit_powers"] = [200, 250, 280]
+    feature.properties["fit_speeds"] = [5.0, 5.5, 6.0]
+    feature.properties["fit_temperatures"] = [22.0, 23.0, 24.0]
+    var fc = FeatureCollection([feature])
+    fc.foreignMembers["fit_device"] = ["manufacturer": 1, "product": 0, "type": 4]
+    fc.foreignMembers["fit_activity"] = ["type": 0, "num_sessions": 1]
+    let data = try fc.fitData()
+    try data.write(to: url)
     return url
 }
 

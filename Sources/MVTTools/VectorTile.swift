@@ -21,6 +21,8 @@ public struct VectorTile: Sendable {
         case mvt
         /// The tile was created from an MLT vector tile
         case mlt
+        /// The tile was created from a FIT file
+        case fit
         /// The tile was created from a GPX file
         case gpx
         /// The tile was created from a Shapefile

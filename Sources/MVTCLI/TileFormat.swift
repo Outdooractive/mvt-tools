@@ -9,6 +9,7 @@ enum TileFormat: Equatable {
     case mvt(x: Int, y: Int, z: Int)
     case mlt(x: Int, y: Int, z: Int)
     case geoJson(layerProperty: String?)
+    case fit
     case gpx
     case shapefile
     case geopackage
@@ -21,6 +22,8 @@ enum TileFormat: Equatable {
             self = .geoJson(layerProperty: nil)
         case "gpx":
             self = .gpx
+        case "fit":
+            self = .fit
         case "shp":
             self = .shapefile
         case "gpkg":
@@ -36,6 +39,7 @@ enum TileFormat: Equatable {
         case .mvt: return ["mvt", "pbf"]
         case .mlt: return ["mlt"]
         case .geoJson: return ["geojson", "json"]
+        case .fit: return ["fit"]
         case .gpx: return ["gpx"]
         case .shapefile: return ["shp"]
         case .geopackage: return ["gpkg"]
@@ -45,7 +49,7 @@ enum TileFormat: Equatable {
     /// Whether this format supports named layers on input.
     var supportsInputLayers: Bool {
         switch self {
-        case .mvt, .mlt, .geoJson, .gpx, .geopackage: true
+        case .mvt, .mlt, .geoJson, .fit, .gpx, .geopackage: true
         case .shapefile: false
         }
     }
@@ -99,6 +103,13 @@ extension TileFormat {
             return VectorTile(
                 contentsOfGeoJson: url,
                 layerProperty: layerProperty ?? defaultLayerProperty,
+                layerAllowlist: layerAllowlist,
+                logger: logger)
+
+        case .fit:
+            return VectorTile(
+                contentsOfFIT: url,
+                layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
@@ -160,7 +171,7 @@ extension TileFormat {
         default:
             throw CLIError(
                 "Unrecognized file extension '.\(url.pathExtension)'. "
-                + "Supported: mvt, pbf, mlt, geojson, json, gpx, shp, gpkg")
+                + "Supported: mvt, pbf, mlt, geojson, json, fit, gpx, shp, gpkg")
         }
     }
 
@@ -175,6 +186,7 @@ extension TileFormat: CustomStringConvertible {
         case .mvt: return "mvt"
         case .mlt: return "mlt"
         case .geoJson: return "geojson"
+        case .fit: return "fit"
         case .gpx: return "gpx"
         case .shapefile: return "shapefile"
         case .geopackage: return "geopackage"
@@ -193,6 +205,7 @@ extension TileFormat: ExpressibleByArgument {
         case "mvt": self = .mvt(x: 0, y: 0, z: 0)
         case "mlt": self = .mlt(x: 0, y: 0, z: 0)
         case "geojson", "json": self = .geoJson(layerProperty: nil)
+        case "fit": self = .fit
         case "gpx": self = .gpx
         case "shp", "shapefile": self = .shapefile
         case "gpkg", "geopackage": self = .geopackage

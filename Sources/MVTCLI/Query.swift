@@ -17,7 +17,7 @@ extension CLI {
     struct Query: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Query the features in the input file (MLT, MVT, GeoJSON, GPX, Shapefile, or GeoPackage)",
+            abstract: "Query the features in the input file (MLT, MVT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage)",
             discussion: """
             SEARCH TERM SYNTAX:
               Spatial:   near(latitude,longitude,tolerance(m))
@@ -91,8 +91,8 @@ extension CLI {
         var options: Options
 
         @Argument(
-            help: "The input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
         var path: String
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")

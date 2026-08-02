@@ -41,6 +41,11 @@ extension CLI {
         case .mlt:
             tile.writeMLT(to: url, options: options)
 
+        case .fit:
+            guard tile.writeFIT(to: url, options: options) else {
+                throw CLIError("Failed to write FIT")
+            }
+
         case .gpx:
             guard tile.writeGPX(to: url, options: options) else {
                 throw CLIError("Failed to write GPX")
