@@ -29,6 +29,13 @@ struct DumpCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func dumpFit() throws {
+        let path = try generateSmallFit().path
+        let output = try runCLI(args: ["dump", path])
+        #expect(output.contains("FeatureCollection"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func dumpShapefile() throws {
         let path = try generateSmallShapefile().path
         let output = try runCLI(args: ["dump", path])

@@ -7,12 +7,13 @@ A Swift package for reading, writing, converting, and inspecting
 [MapLibre Tiles (MLT)](https://github.com/maplibre/maplibre-tile-spec),
 [GeoJSON](https://geojson.org/),
 [GPX](https://www.topografix.com/gpx.asp),
+[FIT](https://developer.garmin.com/fit/overview/),
 [Shapefile](https://www.esri.com/content/dam/esrisites/sitecore-archive/Files/Pdfs/library/whitepapers/pdfs/shapefile.pdf),
 and [GeoPackage](https://www.geopackage.org/) files.
 
 Two products:
 - **`mvt`** — CLI executable (`MVTCLI` target): dump, info, query, merge, import, export
-- **`MVTTools`** — library target: `VectorTile` model, MVT/MLT encode/decode, GeoJSON/GPX/Shapefile/GeoPackage I/O, spatial queries
+- **`MVTTools`** — library target: `VectorTile` model, MVT/MLT encode/decode, GeoJSON/GPX/FIT/Shapefile/GeoPackage I/O, spatial queries
 
 Key source areas:
 - **`VectorTile.swift`** — Central model: holds `[String: LayerContainer]` (layer name → features),
@@ -25,6 +26,7 @@ Key source areas:
 - **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
 - **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`
 - **`Coders/GPX/VectorTile+GPX.swift`** — VectorTile GPX import/export init, `toGpxData()`, `writeGPX()`
+- **`Coders/FIT/VectorTile+FIT.swift`** — VectorTile FIT import/export init, `toFitData()`, `writeFIT()`
 - **`Coders/Shapefile/VectorTile+Shapefile.swift`** — VectorTile Shapefile import/export init, `writeShapefile()`, `writeShapefiles()`
 - **`Coders/GeoPackage/VectorTile+GeoPackage.swift`** — VectorTile GeoPackage import/export init, `writeGeoPackage()`
 - **`Coders/MVT/VectorTile+MVT.swift`** — VectorTile MVT import/export init, `mvtData()`, `writeMVT()`
@@ -46,6 +48,7 @@ Projections: EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), noSR
 Dependencies:
 - **GISTools** — geometry types, projections, R-Tree
 - **GISToolsGPX** — GPX import/export
+- **GISToolsFIT** — FIT import/export
 - **GISToolsShapefile** — Shapefile import/export
 - **GISToolsGeoPackage** — GeoPackage import/export
 - **GzipSwift** — gzip compression/decompression for MVT and GeoJSON
