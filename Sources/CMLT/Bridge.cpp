@@ -780,7 +780,15 @@ uint8_t* mlt_encoder_finish(
         state->currentFeatures.clear();
         state->currentLayerName.clear();
     }
-    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = true; }));
+    // FSST string compression must stay disabled here. The C++ MLT encoder
+    // trains its own FSST dictionary, which is binary-incompatible with the
+    // Rust/WASM FSST decoder used by maplibre-gl-js. With FSST enabled,
+    // string properties (e.g. "name_en", "type") are corrupted on the JS side
+    // in a content-dependent way, silently dropping features whose style
+    // filters compare those strings. Do NOT re-enable this setting without
+    // first verifying round-trip decoding against the maplibre-gl-js WASM
+    // decoder across a representative set of tiles.
+    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = false; }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
     std::memcpy(buffer, result.data(), result.size());
     *outLength = result.size();
