@@ -146,8 +146,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let mltTile = try VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14)
 
         #expect(mvtTile.layerNames.sorted() == mltTile.layerNames.sorted())
 
@@ -164,8 +164,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let mltTile = try VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14)
 
         let mvtTotal = mvtTile.layers.values.reduce(0) { $0 + $1.features.count }
         let mltTotal = mltTile.layers.values.reduce(0) { $0 + $1.features.count }
@@ -179,8 +179,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
         let mvtRaw = mvtTile.layers.values.reduce(0) { $0 + $1.features.count }
         let mvtFlat = mvtTile.layerNames.reduce(0) { $0 + flattenedFeatures(mvtTile.features(for: $1)).count }
@@ -198,8 +198,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let mltTile = try VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14)
 
         for layerName in mvtTile.layerNames {
             let mvtFeatures = mvtTile.features(for: layerName)
@@ -222,8 +222,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let mltData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.mlt")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let mltTile = try #require(VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let mltTile = try VectorTile(mltData: mltData, x: 8657, y: 5725, z: 14)
 
         for layerName in mvtTile.layerNames {
             let mvtFeatures = mvtTile.features(for: layerName)
@@ -254,8 +254,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
         for layerName in mvtTile.layerNames {
             let mvtFeatures = flattenedFeatures(mvtTile.features(for: layerName))
@@ -277,8 +277,8 @@ struct TileDataContentConsistencyTests {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
-        let mvtTile = try #require(VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14))
-        let geoJsonTile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer"))
+        let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
+        let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
         for layerName in mvtTile.layerNames {
             let mvtFeatures = flattenedFeatures(mvtTile.features(for: layerName))

@@ -144,12 +144,11 @@ extension CLI {
                 ? nil
                 : layerAllowlist
 
-            guard var tile = try await format.loadTile(
+            var tile = try await format.loadTile(
                 from: url,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
                 logger: options.verbose ? CLI.logger : nil)
-            else { throw CLIError("Failed to parse the resource at '\(path)'") }
 
             if let layerDenylist {
                 for droppedLayer in layerDenylist {

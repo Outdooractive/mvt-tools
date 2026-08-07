@@ -198,12 +198,11 @@ extension CLI {
                     ? nil
                     : layerAllowlist
 
-                guard var sourceTile = try await inputFormat.loadTile(
+                var sourceTile = try await inputFormat.loadTile(
                     from: sourceUrl,
                     layerAllowlist: effectiveAllowlist,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
                     logger: options.verbose ? CLI.logger : nil)
-                else { throw CLIError("Failed to parse the tile at '\(path)'") }
 
                 if let layerDenylist {
                     for droppedLayer in layerDenylist {
@@ -228,7 +227,7 @@ extension CLI {
             }
 
             // 4. Rezoom
-            let result = VectorTile.rezoom(
+            let result = try VectorTile.rezoom(
                 loadedSources,
                 toTargetX: targetXYZ.x,
                 targetY: targetXYZ.y,

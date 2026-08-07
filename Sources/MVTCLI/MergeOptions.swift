@@ -148,17 +148,14 @@ extension CLI.MergeOptions {
            (try? outputUrl.checkResourceIsReachable()) ?? false
         {
             let existingFormat = TileFormat(url: outputUrl) ?? resolvedOutputFormat
-            if let loadedTile = try await existingFormat.loadTile(
+            tile = try? await existingFormat.loadTile(
                 from: outputUrl,
                 logger: cliOptions.verbose ? CLI.logger : nil)
-            {
-                tile = loadedTile
-            }
         }
 
         // Create an empty tile if nothing was loaded yet
         if tile == nil {
-            tile = VectorTile(
+            tile = try VectorTile(
                 x: x ?? 0,
                 y: y ?? 0,
                 z: z ?? 0,
@@ -222,12 +219,11 @@ extension CLI.MergeOptions {
             ? nil
             : layerAllowlist
 
-            guard var otherTile = try await inputFormat.loadTile(
+            var otherTile = try await inputFormat.loadTile(
                 from: otherUrl,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: mergeOptions.disableInputLayerProperty ? nil : mergeOptions.propertyName,
                 logger: cliOptions.verbose ? CLI.logger : nil)
-            else { throw CLIError("Failed to parse the tile at '\(path)'") }
 
             if let layerDenylist {
                 for droppedLayer in layerDenylist {

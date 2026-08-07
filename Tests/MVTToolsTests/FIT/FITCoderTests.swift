@@ -60,9 +60,9 @@ struct VectorTileFITTests {
     @Test
     func fitDataInit() throws {
         let data = Self.makeSampleFitData()
-        let tile = try #require(VectorTile(
+        let tile = try VectorTile(
             fitData: data,
-            indexed: nil))
+            indexed: nil)
         #expect(tile.origin == .fit)
         #expect(tile.layers.isEmpty == false)
     }
@@ -70,7 +70,7 @@ struct VectorTileFITTests {
     @Test
     func fitContentsOfAndWrite() throws {
         let data = Self.makeSampleFitData()
-        let tile = try #require(VectorTile(fitData: data))
+        let tile = try VectorTile(fitData: data)
 
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("fit_\(UUID().uuidString).fit")
@@ -79,7 +79,7 @@ struct VectorTileFITTests {
         #expect(tile.writeFIT(to: tempUrl))
         #expect(FileManager.default.fileExists(atPath: tempUrl.path))
 
-        let readTile = try #require(VectorTile(contentsOfFIT: tempUrl))
+        let readTile = try VectorTile(contentsOfFIT: tempUrl)
         #expect(readTile.origin == .fit)
         #expect(readTile.layers.isEmpty == false)
     }
@@ -87,12 +87,12 @@ struct VectorTileFITTests {
     @Test
     func fitToFitDataRoundtrip() throws {
         let data = Self.makeSampleFitData()
-        let tile = try #require(VectorTile(fitData: data))
+        let tile = try VectorTile(fitData: data)
 
         let exported = try #require(tile.toFitData())
         #expect(exported.isEmpty == false)
 
-        let reimported = try #require(VectorTile(fitData: exported))
+        let reimported = try VectorTile(fitData: exported)
         #expect(reimported.origin == .fit)
         let reCount = reimported.layers.values.reduce(0) { $0 + $1.features.count }
         #expect(reCount > 0)
@@ -103,24 +103,24 @@ struct VectorTileFITTests {
     @Test
     func fitToGeoJsonRoundtrip() throws {
         let data = Self.makeSampleFitData()
-        let tile = try #require(VectorTile(fitData: data))
+        let tile = try VectorTile(fitData: data)
 
         let geojson = try #require(tile.toGeoJson())
         #expect(geojson.isEmpty == false)
 
-        let reimported = try #require(VectorTile(geoJsonData: geojson, indexed: nil))
+        let reimported = try VectorTile(geoJsonData: geojson, indexed: nil)
         #expect(reimported.layers.isEmpty == false)
     }
 
     @Test
     func fitToGpxRoundtrip() throws {
         let data = Self.makeSampleFitData()
-        let tile = try #require(VectorTile(fitData: data))
+        let tile = try VectorTile(fitData: data)
 
         let gpx = try #require(tile.toGpxData())
         #expect(gpx.isEmpty == false)
 
-        let reimported = try #require(VectorTile(gpxData: gpx, indexed: nil))
+        let reimported = try VectorTile(gpxData: gpx, indexed: nil)
         #expect(reimported.layers.isEmpty == false)
     }
 

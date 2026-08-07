@@ -119,24 +119,26 @@ public struct VectorTile: Sendable {
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid or out of bounds.
-    public init?(
+    /// - Throws: ``VectorTileError/invalidCoordinate`` or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         x: Int,
         y: Int,
         z: Int,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         logger: Logger? = nil
-    ) {
+    ) throws {
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
+            throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
 
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
+            throw VectorTileError.coordinateOutOfBounds(
+                x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
         self.x = x
@@ -171,14 +173,15 @@ public struct VectorTile: Sendable {
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid or out of bounds.
-    public init?(
+    /// - Throws: ``VectorTileError/invalidCoordinate`` or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         logger: Logger? = nil
-    ) {
-        self.init(
+    ) throws {
+        try self.init(
             x: tile.x,
             y: tile.y,
             z: tile.z,
@@ -196,9 +199,11 @@ public struct VectorTile: Sendable {
     /// Creates a new tile by extracting the named layers from this tile.
     ///
     /// - Parameter layerNames: The layer names to extract into the new tile.
-    /// - Returns: A new `VectorTile` containing only the specified layers, or `nil` if creation fails.
-    public func extract(layerNames: [String]) -> VectorTile? {
-        guard var newTile = VectorTile(x: x, y: y, z: z, projection: projection) else { return nil }
+    /// - Returns: A new `VectorTile` containing only the specified layers.
+    /// - Throws: ``VectorTileError/invalidCoordinate`` or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public func extract(layerNames: [String]) throws -> VectorTile {
+        var newTile = try VectorTile(x: x, y: y, z: z, projection: projection)
 
         for name in layerNames {
             newTile.layers[name] = layers[name]

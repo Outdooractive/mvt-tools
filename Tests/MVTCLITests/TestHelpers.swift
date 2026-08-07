@@ -211,7 +211,7 @@ func generateSmallShapefile() throws -> URL {
 
 func generateSmallGeoPackage() async throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).gpkg")
-    var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
+    var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
     tile.setFeatures([
         Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1), properties: ["name": "A"]),
     ], for: "layer_a")
@@ -224,7 +224,7 @@ func generateSmallGeoPackage() async throws -> URL {
 
 func generateSmallMlt(coord: Int = 0) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).mlt")
-    var tile = VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)!
+    var tile = try VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)
     tile.setFeatures([
         Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1), properties: ["name": "A"]),
     ], for: "test")
@@ -235,7 +235,7 @@ func generateSmallMlt(coord: Int = 0) throws -> URL {
 
 func generateSmallMvt(coord: Int = 0) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).mvt")
-    var tile = VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)!
+    var tile = try VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)
     tile.setFeatures([
         Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1), properties: ["name": "A"]),
     ], for: "test")

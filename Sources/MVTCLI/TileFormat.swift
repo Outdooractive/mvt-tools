@@ -76,52 +76,53 @@ extension TileFormat {
     ///   - layerProperty: Property name used for layer routing (GeoJSON/GPX).
     ///   - geopackageTable: When set, only this table is loaded from a GeoPackage.
     ///   - logger: Optional logger instance.
-    /// - Returns: A loaded tile, or `nil` if parsing failed.
+    /// - Returns: A loaded tile.
+    /// - Throws: ``VectorTileError`` or ``GeoPackageError``.
     func loadTile(
         from url: URL,
         layerAllowlist: [String]? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         geopackageTable: String? = nil,
         logger: Logger? = nil
-    ) async throws -> VectorTile? {
+    ) async throws -> VectorTile {
         switch self {
         case .mvt(let x, let y, let z):
-            return VectorTile(
+            return try VectorTile(
                 contentsOfMVT: url,
                 x: x, y: y, z: z,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
         case .mlt(let x, let y, let z):
-            return VectorTile(
+            return try VectorTile(
                 contentsOfMLT: url,
                 x: x, y: y, z: z,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
         case .geoJson(let defaultLayerProperty):
-            return VectorTile(
+            return try VectorTile(
                 contentsOfGeoJson: url,
                 layerProperty: layerProperty ?? defaultLayerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
         case .fit:
-            return VectorTile(
+            return try VectorTile(
                 contentsOfFIT: url,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
         case .gpx:
-            return VectorTile(
+            return try VectorTile(
                 contentsOfGPX: url,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
         case .shapefile:
-            return VectorTile(
+            return try VectorTile(
                 shapefile: url,
                 logger: logger)
 

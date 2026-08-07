@@ -44,8 +44,8 @@ extension VectorTile {
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
     /// - Returns: An array of layer name strings, or `nil` if the file could not be read or decoded.
-    public static func layerNames(at url: URL) -> [String]? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    public static func layerNames(at url: URL) throws -> [String]? {
+        let data = try Data(contentsOf: url)
         return layerNames(from: data)
     }
 
@@ -162,8 +162,8 @@ extension VectorTile {
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
     /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the file could not be read or decoded.
-    public static func tileInfo(at url: URL) -> [LayerInfo]? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    public static func tileInfo(at url: URL) throws -> [LayerInfo]? {
+        let data = try Data(contentsOf: url)
         return tileInfo(from: data)
     }
 

@@ -9,7 +9,7 @@ struct AddSetGeoJsonTests {
     /// based on the property value, and respects the layer allow list.
     @Test
     func addGeoJsonWithLayerProperty() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         var feature1 = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         feature1.setProperty("roads", for: "vt_layer")
@@ -28,7 +28,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `setGeoJson` replaces features in a layer but does not remove other layers.
     @Test
     func setGeoJsonReplacesContent() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         var feature1 = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         feature1.setProperty("layer_a", for: "vt_layer")
@@ -46,7 +46,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `addGeoJson` with a layer allow list only imports the specified layers.
     @Test
     func addGeoJsonWithLayerAllowList() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         var feature1 = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         feature1.setProperty("allowed_layer", for: "vt_layer")
@@ -63,7 +63,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `addGeoJson` without layer property puts all features into a default layer.
     @Test
     func addGeoJsonWithoutLayerProperty() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         let feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         let fc = FeatureCollection([feature])
@@ -76,7 +76,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `setGeoJson` without layer property replaces all features in the default layer.
     @Test
     func setGeoJsonWithoutLayerProperty() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         let feature1 = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         tile.addGeoJson(geoJson: FeatureCollection([feature1]), layerName: "test")
@@ -91,7 +91,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `addGeoJson` with explicit layer name targets the given layer.
     @Test
     func addGeoJsonWithExplicitLayerName() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         let feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         tile.addGeoJson(geoJson: FeatureCollection([feature]), layerName: "custom_layer")
@@ -103,7 +103,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `addGeoJson` strips the routing property from features.
     @Test
     func addGeoJsonStripsRoutingProperty() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         var feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         feature.setProperty("roads", for: "vt_layer")
@@ -116,7 +116,7 @@ struct AddSetGeoJsonTests {
     /// Tests that `setGeoJson` strips the routing property from features.
     @Test
     func setGeoJsonStripsRoutingProperty() throws {
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
 
         var feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         feature.setProperty("roads", for: "vt_layer")
