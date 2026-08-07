@@ -43,9 +43,18 @@ extension VectorTile {
     /// Load a tile from the given file URL and return the names of every layer it contains.
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
-    /// - Returns: An array of layer name strings, or `nil` if the file could not be read or decoded.
+    /// - Returns: An array of layer name strings, or `nil` if the data could not be decoded.
+    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
     public static func layerNames(at url: URL) throws -> [String]? {
-        let data = try Data(contentsOf: url)
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        }
+        catch {
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
         return layerNames(from: data)
     }
 
@@ -161,9 +170,18 @@ extension VectorTile {
     /// Load a tile from the given file URL and gather summary information about each of its layers.
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the file could not be read or decoded.
+    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
+    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
     public static func tileInfo(at url: URL) throws -> [LayerInfo]? {
-        let data = try Data(contentsOf: url)
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        }
+        catch {
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
         return tileInfo(from: data)
     }
 
