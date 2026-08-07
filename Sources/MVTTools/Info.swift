@@ -60,8 +60,8 @@ extension VectorTile {
 
     /// Gather summary information about the features in each layer of this tile.
     ///
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the tile has no layers.
-    public func tileInfo() -> [LayerInfo]? {
+    /// - Returns: An array of ``LayerInfo`` values, one per layer.
+    public func tileInfo() -> [LayerInfo] {
         var result: [LayerInfo] = []
 
         for (layerName, layerContainer) in layers {
