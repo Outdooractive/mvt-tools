@@ -17,19 +17,29 @@ extension VectorTile {
     ///   - layerName: The target layer name. When `nil`, the shapefile's filename is used.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - logger: An optional logger instance.
-    /// - Returns: `nil` when the file cannot be read or the tile coordinates are invalid.
-    public init?(
+    /// - Throws: ``VectorTileError/parseFailed``,
+    ///   ``VectorTileError/invalidCoordinate``, or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         shapefile url: URL,
         layerName: String? = nil,
         indexed sortOption: RTreeSortOption? = nil,
         logger: Logger? = nil
-    ) {
+    ) throws {
         guard let featureCollection = FeatureCollection(
             shapefile: url,
             calculateBoundingBox: true)
-        else { return nil }
+        else {
+            throw VectorTileError.parseFailed(
+                format: "Shapefile",
+                reason: "unable to read or parse shapefile at \(url.path)")
+        }
 
-        guard let fcBoundingBox = featureCollection.calculateBoundingBox() else { return nil }
+        guard let fcBoundingBox = featureCollection.calculateBoundingBox() else {
+            throw VectorTileError.parseFailed(
+                format: "Shapefile",
+                reason: "unable to calculate bounding box (empty collection)")
+        }
 
         let tile = MapTile(boundingBox: fcBoundingBox)
         self.x = tile.x
@@ -38,13 +48,14 @@ extension VectorTile {
 
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
+            throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
 
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
+            throw VectorTileError.coordinateOutOfBounds(
+                x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
         self.projection = featureCollection.projection

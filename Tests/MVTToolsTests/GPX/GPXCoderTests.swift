@@ -26,9 +26,9 @@ struct VectorTileGPXTests {
     @Test
     func gpxDataInit() throws {
         let data = try #require(Self.gpxWaypoints.data(using: .utf8))
-        let tile = try #require(VectorTile(
+        let tile = try VectorTile(
             gpxData: data,
-            indexed: nil))
+            indexed: nil)
         #expect(tile.origin == .gpx)
         #expect(tile.layers.keys.contains("wpt"),
                 "GPX features should be in a 'wpt' layer")
@@ -38,7 +38,7 @@ struct VectorTileGPXTests {
     @Test
     func gpxContentsOfAndWrite() throws {
         let data = try #require(Self.gpxWaypoints.data(using: .utf8))
-        let tile = try #require(VectorTile(gpxData: data))
+        let tile = try VectorTile(gpxData: data)
 
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("gpx_\(UUID().uuidString).gpx")
@@ -47,7 +47,7 @@ struct VectorTileGPXTests {
         #expect(tile.writeGPX(to: tempUrl))
         #expect(FileManager.default.fileExists(atPath: tempUrl.path))
 
-        let readTile = try #require(VectorTile(contentsOfGPX: tempUrl))
+        let readTile = try VectorTile(contentsOfGPX: tempUrl)
         #expect(readTile.origin == .gpx)
         #expect(readTile.layers.isEmpty == false)
     }
@@ -55,12 +55,12 @@ struct VectorTileGPXTests {
     @Test
     func gpxToGpxDataRoundtrip() throws {
         let data = try #require(Self.gpxWaypoints.data(using: .utf8))
-        let tile = try #require(VectorTile(gpxData: data))
+        let tile = try VectorTile(gpxData: data)
 
         let exported = try #require(tile.toGpxData())
         #expect(exported.isEmpty == false)
 
-        let reimported = try #require(VectorTile(gpxData: exported))
+        let reimported = try VectorTile(gpxData: exported)
         #expect(reimported.origin == .gpx)
         let reCount = reimported.layers.values.reduce(0) { $0 + $1.features.count }
         #expect(reCount == 2)

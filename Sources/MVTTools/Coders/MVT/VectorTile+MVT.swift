@@ -17,8 +17,10 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
-    public init?(
+    /// - Throws: ``VectorTileError/invalidCoordinate``,
+    ///   ``VectorTileError/coordinateOutOfBounds``, or
+    ///   ``VectorTileError/parseFailed``.
+    public init(
         mvtData data: Data,
         x: Int,
         y: Int,
@@ -27,15 +29,16 @@ extension VectorTile {
         indexed sortOption: RTreeSortOption? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
+    ) throws {
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
+            throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
+            throw VectorTileError.coordinateOutOfBounds(
+                x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
         self.x = x
@@ -59,7 +62,9 @@ extension VectorTile {
             layerAllowlist: layerAllowlist.map(Set.init),
             calculateBoundingBox: true,
             logger: logger)
-        else { return nil }
+        else {
+            throw VectorTileError.parseFailed(format: "MVT", reason: "protobuf deserialization failed")
+        }
 
         self.layers = parsedLayers
         self.layerNames = Array(layers.keys)
@@ -79,16 +84,18 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the tile coordinates are invalid, out of bounds, or decoding fails.
-    public init?(
+    /// - Throws: ``VectorTileError/invalidCoordinate``,
+    ///   ``VectorTileError/coordinateOutOfBounds``, or
+    ///   ``VectorTileError/parseFailed``.
+    public init(
         mvtData data: Data,
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        self.init(
+    ) throws {
+        try self.init(
             mvtData: data,
             x: tile.x,
             y: tile.y,
@@ -110,8 +117,11 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
-    public init?(
+    /// - Throws: ``VectorTileError/fileReadFailed``,
+    ///   ``VectorTileError/invalidCoordinate``,
+    ///   ``VectorTileError/coordinateOutOfBounds``, or
+    ///   ``VectorTileError/parseFailed``.
+    public init(
         contentsOfMVT url: URL,
         x: Int,
         y: Int,
@@ -120,12 +130,18 @@ extension VectorTile {
         indexed sortOption: RTreeSortOption? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        guard let data = try? Data(contentsOf: url) else {
-            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
-            return nil
+    ) throws {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
         }
-        self.init(
+        catch {
+            (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Failed to load vector tile from \(url)")
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
+        try self.init(
             mvtData: data,
             x: x,
             y: y,
@@ -145,16 +161,19 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read, coordinates are invalid, or decoding fails.
-    public init?(
+    /// - Throws: ``VectorTileError/fileReadFailed``,
+    ///   ``VectorTileError/invalidCoordinate``,
+    ///   ``VectorTileError/coordinateOutOfBounds``, or
+    ///   ``VectorTileError/parseFailed``.
+    public init(
         contentsOfMVT url: URL,
         tile: MapTile,
         projection: Projection = .epsg4326,
         indexed sortOption: RTreeSortOption? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        self.init(
+    ) throws {
+        try self.init(
             contentsOfMVT: url,
             x: tile.x,
             y: tile.y,

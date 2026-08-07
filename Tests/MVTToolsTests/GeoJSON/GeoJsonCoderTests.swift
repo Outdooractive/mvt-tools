@@ -12,7 +12,7 @@ struct GeoJsonFormatIOTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let tile = try #require(VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14))
+        let tile = try VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14)
 
         let allLayersJSONData = try #require(tile.toGeoJson(layerProperty: VectorTile.defaultLayerPropertyName))
         let allLayersFc = try #require(FeatureCollection(jsonData: allLayersJSONData))
@@ -32,11 +32,11 @@ struct GeoJsonFormatIOTests {
     @Test
     func geoJSONWithNull() throws {
         let fc = FeatureCollection(Feature(Point(Coordinate3D(latitude: 47.56, longitude: 10.22, m: 1234))))
-        var tile = try #require(VectorTile(x: 8657, y: 5725, z: 14))
+        var tile = try VectorTile(x: 8657, y: 5725, z: 14)
         tile.addGeoJson(geoJson: fc, layerName: "test")
 
         let data = try #require(tile.mvtData())
-        let decodedTile = try #require(VectorTile(mvtData: data, x: 8657, y: 5725, z: 14))
+        let decodedTile = try VectorTile(mvtData: data, x: 8657, y: 5725, z: 14)
         let decodedFc = try #require(decodedTile.features(for: "test").first)
         let decodedCoordinate = try #require(decodedFc.geometry.allCoordinates.first)
 
@@ -48,7 +48,7 @@ struct GeoJsonFormatIOTests {
     @Test
     func loadGeoJson() throws {
         let geoJsonData = try TestData.dataFromFile(name: "14_8716_8015.geojson")
-        let tile = try #require(VectorTile(geoJsonData: geoJsonData, layerProperty: nil))
+        let tile = try VectorTile(geoJsonData: geoJsonData, layerProperty: nil)
         #expect(tile.isEmpty == false)
         #expect(tile.origin == .geoJson)
 
@@ -63,14 +63,14 @@ struct GeoJsonFormatIOTests {
             .appendingPathComponent("test_write_geojson_\(UUID().uuidString).geojson")
         defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        var tile = try #require(VectorTile(x: 0, y: 0, z: 0))
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
         let feature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 10.0)))
         tile.appendFeatures([feature], to: "test")
 
         let success = tile.writeGeoJson(to: tempUrl)
         #expect(success)
 
-        let readTile = try #require(VectorTile(contentsOfGeoJson: tempUrl, layerProperty: nil))
+        let readTile = try VectorTile(contentsOfGeoJson: tempUrl, layerProperty: nil)
         #expect(readTile.isEmpty == false)
     }
 

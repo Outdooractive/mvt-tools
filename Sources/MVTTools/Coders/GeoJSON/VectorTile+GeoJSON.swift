@@ -21,17 +21,26 @@ extension VectorTile {
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the GeoJSON data cannot be parsed or the tile coordinates are invalid.
-    public init?(
+    /// - Throws: ``VectorTileError/parseFailed``,
+    ///   ``VectorTileError/invalidCoordinate``, or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         geoJsonData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        guard let featureCollection = FeatureCollection(jsonData: data),
-              let fcBoundingBox = featureCollection.calculateBoundingBox()
-        else { return nil }
+    ) throws {
+        guard let featureCollection = FeatureCollection(jsonData: data) else {
+            throw VectorTileError.parseFailed(
+                format: "GeoJSON",
+                reason: "unable to parse FeatureCollection from data")
+        }
+        guard let fcBoundingBox = featureCollection.calculateBoundingBox() else {
+            throw VectorTileError.parseFailed(
+                format: "GeoJSON",
+                reason: "unable to calculate bounding box (empty collection)")
+        }
 
         // Find the minimal tile for the GeoJSON
         let tile = MapTile(boundingBox: fcBoundingBox)
@@ -41,13 +50,14 @@ extension VectorTile {
 
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
+            throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
 
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
+            throw VectorTileError.coordinateOutOfBounds(
+                x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
         self.projection = .epsg4326
@@ -84,20 +94,29 @@ extension VectorTile {
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Returns: `nil` when the file cannot be read or the GeoJSON data cannot be parsed.
-    public init?(
+    /// - Throws: ``VectorTileError/fileReadFailed``,
+    ///   ``VectorTileError/parseFailed``,
+    ///   ``VectorTileError/invalidCoordinate``, or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         contentsOfGeoJson url: URL,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        guard let data = try? Data(contentsOf: url) else {
+    ) throws {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        }
+        catch {
             (logger ?? VectorTile.logger)?.warning("Failed to import GeoJSON from \(url)")
-            return nil
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
         }
 
-        self.init(
+        try self.init(
             geoJsonData: data,
             indexed: sortOption,
             layerProperty: layerProperty,

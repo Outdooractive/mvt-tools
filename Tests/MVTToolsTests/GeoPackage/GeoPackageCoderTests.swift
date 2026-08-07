@@ -14,7 +14,7 @@ struct VectorTileGeoPackageTests {
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
         defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
         let point = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1))
         tile.setFeatures([point], for: "test_table")
         try await tile.writeGeoPackage(to: tempUrl, table: "test_table")
@@ -31,7 +31,7 @@ struct VectorTileGeoPackageTests {
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
         defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
         let point = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1))
         let line = Feature(LineString([
             Coordinate3D(latitude: 10.0, longitude: 20.0),
@@ -53,7 +53,7 @@ struct VectorTileGeoPackageTests {
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
         defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
         let point = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1))
         let line = Feature(LineString([
             Coordinate3D(latitude: 10.0, longitude: 20.0),
@@ -79,7 +79,7 @@ struct VectorTileGeoPackageTests {
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
         defer { try? FileManager.default.removeItem(at: tempUrl) }
 
-        var tile = VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)!
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
         let point = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1))
         let line = Feature(LineString([
             Coordinate3D(latitude: 10.0, longitude: 20.0),

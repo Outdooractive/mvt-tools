@@ -43,16 +43,25 @@ extension VectorTile {
     /// Load a tile from the given file URL and return the names of every layer it contains.
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
-    /// - Returns: An array of layer name strings, or `nil` if the file could not be read or decoded.
-    public static func layerNames(at url: URL) -> [String]? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    /// - Returns: An array of layer name strings, or `nil` if the data could not be decoded.
+    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
+    public static func layerNames(at url: URL) throws -> [String]? {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        }
+        catch {
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
         return layerNames(from: data)
     }
 
     /// Gather summary information about the features in each layer of this tile.
     ///
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the tile has no layers.
-    public func tileInfo() -> [LayerInfo]? {
+    /// - Returns: An array of ``LayerInfo`` values, one per layer.
+    public func tileInfo() -> [LayerInfo] {
         var result: [LayerInfo] = []
 
         for (layerName, layerContainer) in layers {
@@ -161,9 +170,18 @@ extension VectorTile {
     /// Load a tile from the given file URL and gather summary information about each of its layers.
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the file could not be read or decoded.
-    public static func tileInfo(at url: URL) -> [LayerInfo]? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
+    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
+    public static func tileInfo(at url: URL) throws -> [LayerInfo]? {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        }
+        catch {
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
         return tileInfo(from: data)
     }
 

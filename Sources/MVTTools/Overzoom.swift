@@ -40,7 +40,7 @@ extension VectorTile {
             return nil
         }
 
-        guard var result = VectorTile(
+        guard var result = try? VectorTile(
             x: targetX,
             y: targetY,
             z: targetZ,
@@ -75,12 +75,13 @@ extension VectorTile {
     ///   - targetZ: The target tile's zoom level.
     /// - Returns: A rezoomed `VectorTile` at the target coordinates. The
     ///   tile may be empty if no sources were valid ancestors/descendants.
+    /// - Throws: ``VectorTileError`` if the target coordinates are invalid.
     public static func rezoom(
         _ sources: [VectorTile],
         toTargetX targetX: Int,
         targetY: Int,
         targetZ: Int
-    ) -> VectorTile {
+    ) throws -> VectorTile {
         let target = MapTile(x: targetX, y: targetY, z: targetZ)
 
         // Use the projection from the first valid source, or default to
@@ -93,10 +94,7 @@ extension VectorTile {
             }
         }
 
-        guard var result = VectorTile(x: targetX, y: targetY, z: targetZ, projection: projection) else {
-            // Should never fail for valid coordinates
-            return VectorTile(x: 0, y: 0, z: 0, projection: projection)!
-        }
+        var result = try VectorTile(x: targetX, y: targetY, z: targetZ, projection: projection)
 
         for source in sources {
             guard let rezoomed = source.rezoom(toTargetX: targetX, targetY: targetY, targetZ: targetZ) else {

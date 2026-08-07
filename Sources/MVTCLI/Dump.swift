@@ -80,8 +80,6 @@ extension CLI {
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
                 logger: options.verbose ? CLI.logger : nil)
 
-            guard let tile else { throw CLIError("Failed to parse the resource at '\(path)'") }
-
             if options.verbose {
                 print("Dumping \(format) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
 

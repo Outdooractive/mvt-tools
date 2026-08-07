@@ -20,17 +20,26 @@ extension VectorTile {
     ///       When `nil`, features are imported as-is from the FIT data.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Returns: `nil` when the FIT data cannot be parsed or the tile coordinates are invalid.
-    public init?(
+    /// - Throws: ``VectorTileError/parseFailed``,
+    ///   ``VectorTileError/invalidCoordinate``, or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         fitData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        guard let featureCollection = FeatureCollection(fitData: data),
-              let fcBoundingBox = featureCollection.calculateBoundingBox()
-        else { return nil }
+    ) throws {
+        guard let featureCollection = FeatureCollection(fitData: data) else {
+            throw VectorTileError.parseFailed(
+                format: "FIT",
+                reason: "unable to parse FeatureCollection from data")
+        }
+        guard let fcBoundingBox = featureCollection.calculateBoundingBox() else {
+            throw VectorTileError.parseFailed(
+                format: "FIT",
+                reason: "unable to calculate bounding box (empty collection)")
+        }
 
         let tile = MapTile(boundingBox: fcBoundingBox)
         self.x = tile.x
@@ -39,13 +48,14 @@ extension VectorTile {
 
         guard x >= 0, y >= 0, z >= 0 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
-            return nil
+            throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
 
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate || y >= maximumTileCoordinate {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Tile coordinate outside bounds")
-            return nil
+            throw VectorTileError.coordinateOutOfBounds(
+                x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
         self.projection = .epsg4326
@@ -104,19 +114,28 @@ extension VectorTile {
     ///       When `nil`, features are imported as-is from the FIT data.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Returns: `nil` when the file cannot be read or the data cannot be parsed.
-    public init?(
+    /// - Throws: ``VectorTileError/fileReadFailed``,
+    ///   ``VectorTileError/parseFailed``,
+    ///   ``VectorTileError/invalidCoordinate``, or
+    ///   ``VectorTileError/coordinateOutOfBounds``.
+    public init(
         contentsOfFIT url: URL,
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = nil,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
-    ) {
-        guard let data = try? Data(contentsOf: url) else {
-            (logger ?? VectorTile.logger)?.warning("Failed to load FIT from \(url)")
-            return nil
+    ) throws {
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
         }
-        self.init(
+        catch {
+            (logger ?? VectorTile.logger)?.warning("Failed to load FIT from \(url)")
+            throw VectorTileError.fileReadFailed(
+                url: url,
+                reason: error.localizedDescription)
+        }
+        try self.init(
             fitData: data,
             indexed: sortOption,
             layerProperty: layerProperty,
