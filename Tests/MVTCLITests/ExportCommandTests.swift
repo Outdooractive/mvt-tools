@@ -35,6 +35,16 @@ struct ExportCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func exportCsvToGeoJson() throws {
+        let path = try generateSmallCsv().path
+        let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("exp_\(UUID().uuidString).geojson")
+        defer { try? FileManager.default.removeItem(at: outUrl) }
+        _ = try runCLI(args: ["export", path, "--output", outUrl.path, "--force-overwrite"])
+        let fc = try assertGeoJsonFile(at: outUrl)
+        #expect(!fc.features.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func exportShapefileToGeoJson() throws {
         let path = try generateSmallShapefile().path
         let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("exp_\(UUID().uuidString).geojson")

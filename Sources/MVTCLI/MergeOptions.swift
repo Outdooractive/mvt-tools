@@ -12,12 +12,12 @@ extension CLI {
         @Option(
             name: [.short, .customLong("output")],
             help: "Output file (optional, default is console).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "json", "geojson", "fit", "gpx", "shp", "gpkg"]))
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "json", "geojson", "fit", "gpx", "csv", "shp", "gpkg"]))
         var outputFile: String?
 
         @Option(
             name: [.customShort("O"), .long],
-            help: "Output file format (optional, one of 'auto', 'geojson', 'mvt', 'mlt', 'fit', 'gpx', 'shapefile', 'geopackage').")
+            help: "Output file format (optional, one of 'auto', 'geojson', 'mvt', 'mlt', 'fit', 'gpx', 'csv', 'shapefile', 'geopackage').")
         var outputFormat: TileFormat?
 
         @Option(
@@ -98,7 +98,7 @@ extension CLI {
 
         @Argument(
             help: "Files to merge (file or URL).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
         var other: [String] = []
 
     }
@@ -269,7 +269,7 @@ extension CLI.MergeOptions {
         }
         else {
             switch resolvedOutputFormat {
-            case .geoJson, .fit, .gpx, .shapefile, .geopackage:
+            case .geoJson, .fit, .gpx, .csv, .shapefile, .geopackage:
                 exportOptions.bufferSize = .extent(0)
             default:
                 exportOptions.bufferSize = .extent(512)

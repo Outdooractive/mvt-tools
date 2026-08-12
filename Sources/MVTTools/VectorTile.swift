@@ -25,6 +25,8 @@ public struct VectorTile: Sendable {
         case fit
         /// The tile was created from a GPX file
         case gpx
+        /// The tile was created from a CSV file
+        case csv
         /// The tile was created from a Shapefile
         case shapefile
         /// The tile was created from a GeoPackage

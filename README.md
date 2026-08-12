@@ -12,7 +12,7 @@
 
 # MVTTools
 
-MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles, GeoJSON, GPX, Shapefile, and GeoPackage files.
+MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles, GeoJSON, GPX, CSV, Shapefile, and GeoPackage files.
 
 ## Table of Contents
 
@@ -25,6 +25,8 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
   - [Write MVT](#write-mvt)
   - [Read GPX](#read-gpx)
   - [Write GPX](#write-gpx)
+  - [Read CSV](#read-csv)
+  - [Write CSV](#write-csv)
   - [Read Shapefile](#read-shapefile)
   - [Write Shapefile](#write-shapefile)
   - [Read GeoPackage](#read-geopackage)
@@ -63,6 +65,7 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
 - **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
 - **GeoJSON import/export** — convert between MVT and GeoJSON formats.
 - **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
+- **CSV import/export** — convert between MVT and CSV formats; a header row is required and geometry is never guessed.
 - **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
 - **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export with complete roundtrip fidelity via `"gpkg_layer"` metadata.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
@@ -172,6 +175,30 @@ try gpxData?.write(to: URL(fileURLWithPath: "output.gpx"))
 
 // Or write directly
 tile.writeGPX(to: URL(fileURLWithPath: "output.gpx"))
+```
+
+### Read CSV
+
+```swift
+let csvData = try Data(contentsOf: URL(fileURLWithPath: "points.csv"))
+let tile = try VectorTile(csvData: csvData)
+
+// A header row is required; geometry is never guessed.
+// Latitude/longitude columns (or a WKT "geometry" column) are used.
+print(tile.layerNames)   // ["Layer-0"]
+
+// With a non-default delimiter:
+let tile = try VectorTile(csvData: csvData, delimiter: ";")
+```
+
+### Write CSV
+
+```swift
+let csvData = tile.toCsvData()
+try csvData?.write(to: URL(fileURLWithPath: "output.csv"))
+
+// Or write directly
+tile.writeCSV(to: URL(fileURLWithPath: "output.csv"))
 ```
 
 ### Read Shapefile
@@ -473,7 +500,7 @@ You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 - or locally to `/usr/local/bin` with `./install_mvt.sh`
 
-`mvt` works with MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage files from local disk or served from a web server.
+`mvt` works with MVT, MLT, GeoJSON, GPX, CSV, Shapefile, and GeoPackage files from local disk or served from a web server.
 
 GeoJSONs can contain a layer name in their Feature properties (default name is `vt_layer`), and any resulting GeoJSON will automatically include this property.
 This can be controlled with the options `--property-name` (or `-P`), `--disable-input-layer-property` (or `-Di`) and `--disable-output-layer-property` (or `-Do`).
@@ -481,11 +508,11 @@ Some commands allow limiting the result to certain layers with `--layer` (or `-l
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, Shapefile, and GeoPackage files.
+OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
 
 A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
 This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
-Tile coordinates are not necessary for GeoJSON, GPX, Shapefile, and GeoPackage files.
+Tile coordinates are not necessary for GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
 
 Examples:
 - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -498,7 +525,7 @@ OPTIONS:
   -h, --help              Show help information.
 
 SUBCOMMANDS:
-  dump (default)          Print the input file (MVT, MLT, GeoJSON, GPX, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console
+  dump (default)          Print the input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console
   info                    Print information about the input file
   query                   Query the features in the input file
   merge                   Merge any number of input files into a single file of any supported format
@@ -679,7 +706,7 @@ mvt merge --output merged.mvt path/to/first.geojson path/to/second.geojson
 mvt merge --output merged.geojson path/to/first.mvt path/to/second.mvt
 
 # All supported formats can be mixed:
-mvt merge --output merged.gpkg data.geojson tracks.gpx roads.shp tile.mvt
+mvt merge --output merged.gpkg data.geojson tracks.gpx points.csv roads.shp tile.mvt
 ```
 ---
 ### mvt export

@@ -74,6 +74,25 @@ struct ImportCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importCsvToMvt() throws {
+        let input = try generateSmallCsv()
+        let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("imp_\(UUID().uuidString).mvt")
+        defer { try? FileManager.default.removeItem(at: outUrl) }
+        _ = try runCLI(args: ["import", "-x", "0", "-y", "0", "-z", "0", "--output", outUrl.path, "--force-overwrite", input.path])
+        try assertMvtFile(at: outUrl)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func importCsvToGeoJson() throws {
+        let input = try generateSmallCsv()
+        let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("imp_\(UUID().uuidString).geojson")
+        defer { try? FileManager.default.removeItem(at: outUrl) }
+        _ = try runCLI(args: ["import", "--output", outUrl.path, "--force-overwrite", input.path])
+        let fc = try assertGeoJsonFile(at: outUrl)
+        #expect(!fc.features.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importShapefileToMvt() throws {
         let input = try generateSmallShapefile()
         let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("imp_\(UUID().uuidString).mvt")

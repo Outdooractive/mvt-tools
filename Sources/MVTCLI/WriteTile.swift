@@ -51,6 +51,11 @@ extension CLI {
                 throw CLIError("Failed to write GPX")
             }
 
+        case .csv:
+            guard tile.writeCSV(to: url, options: options) else {
+                throw CLIError("Failed to write CSV")
+            }
+
         case .shapefile:
             try tile.writeShapefile(to: url, options: options)
 

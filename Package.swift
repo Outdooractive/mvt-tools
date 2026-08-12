@@ -20,6 +20,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.2.1"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-csv", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.2"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.4"),
         .package(url: "https://github.com/Outdooractive/gis-tools-fit", from: "1.0.0"),
@@ -41,6 +42,7 @@ let package = Package(
             name: "MVTTools",
             dependencies: [
                 .product(name: "GISTools", package: "gis-tools"),
+                .product(name: "GISToolsCSV", package: "gis-tools-csv"),
                 .product(name: "GISToolsGeoPackage", package: "gis-tools-geopackage"),
                 .product(name: "GISToolsGPX", package: "gis-tools-gpx"),
                 .product(name: "GISToolsFIT", package: "gis-tools-fit"),
