@@ -8,12 +8,13 @@ A Swift package for reading, writing, converting, and inspecting
 [GeoJSON](https://geojson.org/),
 [GPX](https://www.topografix.com/gpx.asp),
 [FIT](https://developer.garmin.com/fit/overview/),
+[CSV](https://en.wikipedia.org/wiki/Comma-separated_values),
 [Shapefile](https://www.esri.com/content/dam/esrisites/sitecore-archive/Files/Pdfs/library/whitepapers/pdfs/shapefile.pdf),
 and [GeoPackage](https://www.geopackage.org/) files.
 
 Two products:
 - **`mvt`** — CLI executable (`MVTCLI` target): dump, info, query, merge, import, export
-- **`MVTTools`** — library target: `VectorTile` model, MVT/MLT encode/decode, GeoJSON/GPX/FIT/Shapefile/GeoPackage I/O, spatial queries
+- **`MVTTools`** — library target: `VectorTile` model, MVT/MLT encode/decode, GeoJSON/GPX/FIT/CSV/Shapefile/GeoPackage I/O, spatial queries
 
 Key source areas:
 - **`VectorTile.swift`** — Central model: holds `[String: LayerContainer]` (layer name → features),
@@ -26,6 +27,7 @@ Key source areas:
 - **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
 - **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`
 - **`Coders/GPX/VectorTile+GPX.swift`** — VectorTile GPX import/export init, `toGpxData()`, `writeGPX()`
+- **`Coders/CSV/VectorTile+CSV.swift`** — VectorTile CSV import/export init, `toCsvData()`, `writeCSV()`
 - **`Coders/FIT/VectorTile+FIT.swift`** — VectorTile FIT import/export init, `toFitData()`, `writeFIT()`
 - **`Coders/Shapefile/VectorTile+Shapefile.swift`** — VectorTile Shapefile import/export init, `writeShapefile()`, `writeShapefiles()`
 - **`Coders/GeoPackage/VectorTile+GeoPackage.swift`** — VectorTile GeoPackage import/export init, `writeGeoPackage()`
@@ -47,6 +49,7 @@ Projections: EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), noSR
 
 Dependencies:
 - **GISTools** — geometry types, projections, R-Tree
+- **GISToolsCSV** — CSV import/export
 - **GISToolsGPX** — GPX import/export
 - **GISToolsFIT** — FIT import/export
 - **GISToolsShapefile** — Shapefile import/export

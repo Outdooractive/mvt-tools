@@ -168,6 +168,17 @@ func generateSmallGpx() throws -> URL {
     return url
 }
 
+func generateSmallCsv() throws -> URL {
+    let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).csv")
+    let csv = """
+    id,longitude,latitude,name
+    1,20.0,10.0,PointA
+    2,40.0,30.0,PointB
+    """
+    try csv.data(using: .utf8)!.write(to: url)
+    return url
+}
+
 func generateSmallFit() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).fit")
     let coords: [Coordinate3D] = [

@@ -11,6 +11,7 @@ enum TileFormat: Equatable {
     case geoJson(layerProperty: String?)
     case fit
     case gpx
+    case csv
     case shapefile
     case geopackage
 
@@ -22,6 +23,8 @@ enum TileFormat: Equatable {
             self = .geoJson(layerProperty: nil)
         case "gpx":
             self = .gpx
+        case "csv":
+            self = .csv
         case "fit":
             self = .fit
         case "shp":
@@ -41,6 +44,7 @@ enum TileFormat: Equatable {
         case .geoJson: return ["geojson", "json"]
         case .fit: return ["fit"]
         case .gpx: return ["gpx"]
+        case .csv: return ["csv"]
         case .shapefile: return ["shp"]
         case .geopackage: return ["gpkg"]
         }
@@ -49,7 +53,7 @@ enum TileFormat: Equatable {
     /// Whether this format supports named layers on input.
     var supportsInputLayers: Bool {
         switch self {
-        case .mvt, .mlt, .geoJson, .fit, .gpx, .geopackage: true
+        case .mvt, .mlt, .geoJson, .fit, .gpx, .csv, .geopackage: true
         case .shapefile: false
         }
     }
@@ -57,7 +61,7 @@ enum TileFormat: Equatable {
     /// Whether this format can use the layer property for input routing.
     var supportsInputLayerProperty: Bool {
         switch self {
-        case .geoJson, .gpx: true
+        case .geoJson, .gpx, .csv: true
         default: false
         }
     }
@@ -121,6 +125,13 @@ extension TileFormat {
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
+        case .csv:
+            return try VectorTile(
+                contentsOfCSV: url,
+                layerProperty: layerProperty,
+                layerAllowlist: layerAllowlist,
+                logger: logger)
+
         case .shapefile:
             return try VectorTile(
                 shapefile: url,
@@ -172,7 +183,7 @@ extension TileFormat {
         default:
             throw CLIError(
                 "Unrecognized file extension '.\(url.pathExtension)'. "
-                + "Supported: mvt, pbf, mlt, geojson, json, fit, gpx, shp, gpkg")
+                + "Supported: mvt, pbf, mlt, geojson, json, fit, gpx, csv, shp, gpkg")
         }
     }
 
@@ -189,6 +200,7 @@ extension TileFormat: CustomStringConvertible {
         case .geoJson: return "geojson"
         case .fit: return "fit"
         case .gpx: return "gpx"
+        case .csv: return "csv"
         case .shapefile: return "shapefile"
         case .geopackage: return "geopackage"
         }
@@ -208,6 +220,7 @@ extension TileFormat: ExpressibleByArgument {
         case "geojson", "json": self = .geoJson(layerProperty: nil)
         case "fit": self = .fit
         case "gpx": self = .gpx
+        case "csv": self = .csv
         case "shp", "shapefile": self = .shapefile
         case "gpkg", "geopackage": self = .geopackage
         default: return nil
