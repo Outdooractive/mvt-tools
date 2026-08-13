@@ -11,7 +11,8 @@ extension CLI {
     ///
     /// Each source tile must be an ancestor or descendant of the target
     /// tile. Features are re-projected and clipped to the target tile's
-    /// bounding box at encode time.
+    /// bounding box at encode time. CSV input and output are configured with
+    /// the `--csv-*` options.
     struct Rezoom: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
@@ -53,12 +54,12 @@ extension CLI {
         @Option(
             name: [.short, .customLong("output")],
             help: "Output file.",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "json", "geojson", "gpx", "shp", "gpkg"]))
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "json", "geojson", "gpx", "csv", "shp", "gpkg"]))
         var outputFile: String?
 
         @Option(
             name: [.customShort("O"), .long],
-            help: "Output file format (optional, one of 'auto', 'geojson', 'mvt', 'mlt', 'gpx', 'shapefile', 'geopackage').")
+            help: "Output file format (optional, one of 'auto', 'geojson', 'mvt', 'mlt', 'gpx', 'csv', 'shapefile', 'geopackage').")
         var outputFormat: TileFormat?
 
         @Option(
@@ -135,9 +136,15 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @OptionGroup
+        var csvReadOptions: CSVReadCLIOptions
+
+        @OptionGroup
+        var csvWriteOptions: CSVWriteCLIOptions
+
         @Argument(
             help: "Source tiles to rezoom (file or URL).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "shp", "gpkg"]))
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "csv", "shp", "gpkg"]))
         var sources: [String] = []
 
         mutating func run() async throws {
@@ -202,6 +209,7 @@ extension CLI {
                     from: sourceUrl,
                     layerAllowlist: effectiveAllowlist,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
+                    csvReadOptions: csvReadOptions.options,
                     logger: options.verbose ? CLI.logger : nil)
 
                 if let layerDenylist {
@@ -263,7 +271,7 @@ extension CLI {
             }
             else {
                 switch resolvedOutputFormat {
-                case .geoJson, .gpx, .shapefile, .geopackage:
+                case .geoJson, .gpx, .csv, .shapefile, .geopackage:
                     exportOptions.bufferSize = .extent(0)
                 default:
                     exportOptions.bufferSize = .extent(512)
@@ -306,6 +314,7 @@ extension CLI {
                     format: resolvedOutputFormat,
                     to: outputUrl,
                     options: exportOptions,
+                    csvWriteOptions: csvWriteOptions.options(delimiter: csvReadOptions.delimiter.value),
                     prettyPrint: prettyPrint,
                     propertyName: disableOutputLayerProperty ? nil : propertyName)
             }

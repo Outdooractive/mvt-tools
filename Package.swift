@@ -19,8 +19,8 @@ let package = Package(
             targets: ["MVTTools"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.2.1"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-csv", from: "1.0.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.3.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-csv", from: "1.1.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.2"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.4"),
         .package(url: "https://github.com/Outdooractive/gis-tools-fit", from: "1.0.0"),
@@ -35,6 +35,7 @@ let package = Package(
             name: "MVTCLI",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "GISToolsCSV", package: "gis-tools-csv"),
                 .target(name: "MVTTools"),
             ],
             swiftSettings: [.interoperabilityMode(.Cxx)]),

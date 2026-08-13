@@ -7,13 +7,14 @@ extension CLI {
     /// A command that prints the contents of any supported input file
     /// as pretty-printed GeoJSON to the console.
     ///
-    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input,
-    /// with layer filtering, output simplification, and control over the
-    /// GeoJSON layer property name.
+    /// Supports MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage
+    /// input, with layer filtering, output simplification, and control over
+    /// the GeoJSON layer property name. CSV input is configured with the
+    /// `--csv-*` options.
     struct Dump: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Print the input file (MVT, MLT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console")
+            abstract: "Print the input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console")
 
         @Option(
             name: .shortAndLong,
@@ -55,9 +56,12 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @OptionGroup
+        var csvOptions: CSVReadCLIOptions
+
         @Argument(
-            help: "The input file (MLT, MVT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
+            help: "The input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
         var path: String
 
         mutating func run() async throws {
@@ -78,6 +82,7 @@ extension CLI {
                 from: url,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
+                csvReadOptions: csvOptions.options,
                 logger: options.verbose ? CLI.logger : nil)
 
             if options.verbose {

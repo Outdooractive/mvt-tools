@@ -16,7 +16,7 @@ extension VectorTile {
     ///
     /// - Parameters:
     ///   - data: CSV data.
-    ///   - delimiter: The field delimiter (default `","`).
+    ///   - readOptions: Options controlling CSV parsing.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       When `nil`, all features are placed in a single default layer.
@@ -27,13 +27,13 @@ extension VectorTile {
     ///   ``VectorTileError/coordinateOutOfBounds``.
     public init(
         csvData data: Data,
-        delimiter: Character = CSVCoder.defaultDelimiter,
+        readOptions: CSVReadOptions = CSVReadOptions(),
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) throws {
-        guard let featureCollection = try? CSVCoder.read(from: data, delimiter: delimiter) else {
+        guard let featureCollection = try? CSVCoder.read(from: data, options: readOptions) else {
             throw VectorTileError.parseFailed(
                 format: "CSV",
                 reason: "unable to parse FeatureCollection from data")
@@ -111,7 +111,7 @@ extension VectorTile {
     ///
     /// - Parameters:
     ///   - url: The file URL to read CSV data from.
-    ///   - delimiter: The field delimiter (default `","`).
+    ///   - readOptions: Options controlling CSV parsing.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       When `nil`, all features are placed in a single default layer.
@@ -123,7 +123,7 @@ extension VectorTile {
     ///   ``VectorTileError/coordinateOutOfBounds``.
     public init(
         contentsOfCSV url: URL,
-        delimiter: Character = CSVCoder.defaultDelimiter,
+        readOptions: CSVReadOptions = CSVReadOptions(),
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
@@ -141,7 +141,7 @@ extension VectorTile {
         }
         try self.init(
             csvData: data,
-            delimiter: delimiter,
+            readOptions: readOptions,
             indexed: sortOption,
             layerProperty: layerProperty,
             layerAllowlist: layerAllowlist,
@@ -152,31 +152,31 @@ extension VectorTile {
 
     /// Export the tile's content as CSV data.
     ///
-    /// - Parameter delimiter: The field delimiter (default `","`).
+    /// - Parameter writeOptions: Options controlling CSV serialization.
     /// - Parameter options: Export options controlling simplification.
     /// - Returns: The CSV data, or `nil` if serialization fails.
     public func toCsvData(
-        delimiter: Character = CSVCoder.defaultDelimiter,
+        writeOptions: CSVWriteOptions = CSVWriteOptions(),
         options: VectorTile.ExportOptions? = nil
     ) -> Data? {
         let allFeatures = processFeatures(layers.values.flatMap(\.features), options: options)
         let fc = FeatureCollection(allFeatures)
-        return try? CSVCoder.write(fc, delimiter: delimiter)
+        return try? CSVCoder.write(fc, options: writeOptions)
     }
 
     /// Write the tile's content as CSV to a file URL.
     ///
     /// - Parameter url: The destination file URL.
-    /// - Parameter delimiter: The field delimiter (default `","`).
+    /// - Parameter writeOptions: Options controlling CSV serialization.
     /// - Parameter options: Export options controlling simplification.
     /// - Returns: `true` if the write succeeds, `false` otherwise.
     @discardableResult
     public func writeCSV(
         to url: URL,
-        delimiter: Character = CSVCoder.defaultDelimiter,
+        writeOptions: CSVWriteOptions = CSVWriteOptions(),
         options: VectorTile.ExportOptions? = nil
     ) -> Bool {
-        guard let data: Data = toCsvData(delimiter: delimiter, options: options) else { return false }
+        guard let data: Data = toCsvData(writeOptions: writeOptions, options: options) else { return false }
         do {
             try data.write(to: url)
             return true
