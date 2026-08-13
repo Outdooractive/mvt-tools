@@ -93,6 +93,45 @@ struct ImportCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importCsvWithCsvOptions() throws {
+        let input = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("imp_\(UUID().uuidString).csv")
+        let output = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("imp_\(UUID().uuidString).csv")
+        defer {
+            try? FileManager.default.removeItem(at: input)
+            try? FileManager.default.removeItem(at: output)
+        }
+
+        let csv = """
+        id;longitude;latitude;name
+        1;20.0;10.0;NULL
+        2;40.0;30.0;PointB
+        """
+        try #require(csv.data(using: .utf8)).write(to: input)
+
+        _ = try runCLI(args: [
+            "import", input.path,
+            "--output", output.path,
+            "--force-overwrite",
+            "--csv-delimiter", ";",
+            "--csv-omit-null",
+            "--csv-geometry-format", "geojson",
+            "--csv-geometry-column", "geom",
+            "--csv-no-header",
+            "--csv-null-value", "N/A",
+            "--csv-line-ending", "crlf",
+        ])
+
+        let outputData = try Data(contentsOf: output)
+        let outputText = String(decoding: outputData, as: UTF8.self)
+        #expect(!outputText.hasPrefix("id;"))
+        #expect(outputText.contains("N/A"))
+        #expect(outputText.contains("\r\n"))
+        #expect(outputText.contains("Point"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importShapefileToMvt() throws {
         let input = try generateSmallShapefile()
         let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("imp_\(UUID().uuidString).mvt")

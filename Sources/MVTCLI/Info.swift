@@ -6,13 +6,14 @@ extension CLI {
 
     /// A command that prints information about any supported input file.
     ///
-    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input
-    /// with configurable tables of per-layer feature counts, property
-    /// histograms, and property value distributions.
+    /// Supports MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage
+    /// input with configurable tables of per-layer feature counts, property
+    /// histograms, and property value distributions. CSV input is configured
+    /// with the `--csv-*` options.
     struct Info: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Print information about the input file (MLT, MVT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage)",
+            abstract: "Print information about the input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage)",
             discussion: """
             Available tables:
             - features: Feature counts (points, linestrings, polygons) for each layer
@@ -41,9 +42,12 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @OptionGroup
+        var csvOptions: CSVReadCLIOptions
+
         @Argument(
-            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
         var path: String
 
         mutating func run() async throws {
@@ -63,6 +67,7 @@ extension CLI {
             else {
                 let tile = try await format.loadTile(
                     from: url,
+                    csvReadOptions: csvOptions.options,
                     logger: options.verbose ? CLI.logger : nil)
                 layers = tile.tileInfo()
             }

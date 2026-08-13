@@ -6,7 +6,7 @@ import MVTTools
 /// The main entry point for the `mvt` command line tool.
 ///
 /// Provides subcommands for inspecting, converting, and working with
-/// MVT/MLT vector tiles, GeoJSON, GPX, Shapefile, and GeoPackage files.
+/// MVT/MLT vector tiles, GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
 @main
 struct CLI: AsyncParsableCommand {
 

@@ -1,4 +1,5 @@
 import Foundation
+import GISToolsCSV
 import MVTTools
 
 // MARK: - Shared tile writing helper
@@ -15,6 +16,7 @@ extension CLI {
     ///   - format: The target file format.
     ///   - url: The destination file URL.
     ///   - options: Export options (buffer, compression, simplification).
+    ///   - csvWriteOptions: Options controlling CSV output.
     ///   - prettyPrint: Whether to pretty-print GeoJSON output.
     ///   - propertyName: The layer property name for GeoJSON output, or `nil`
     ///     to omit the layer property.
@@ -23,6 +25,7 @@ extension CLI {
         format: TileFormat,
         to url: URL,
         options: VectorTile.ExportOptions,
+        csvWriteOptions: CSVWriteOptions = CSVWriteOptions(),
         prettyPrint: Bool,
         propertyName: String?
     ) async throws {
@@ -52,7 +55,7 @@ extension CLI {
             }
 
         case .csv:
-            guard tile.writeCSV(to: url, options: options) else {
+            guard tile.writeCSV(to: url, writeOptions: csvWriteOptions, options: options) else {
                 throw CLIError("Failed to write CSV")
             }
 

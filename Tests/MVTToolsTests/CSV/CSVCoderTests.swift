@@ -1,5 +1,6 @@
 import Foundation
 import GISTools
+import GISToolsCSV
 @testable import MVTTools
 import Testing
 
@@ -82,8 +83,29 @@ struct VectorTileCSVTests {
         1;11.518585;48.135125;Marienplatz
         """
         let data = try #require(csv.data(using: .utf8))
-        let tile = try VectorTile(csvData: data, delimiter: ";")
+        let tile = try VectorTile(
+            csvData: data,
+            readOptions: CSVReadOptions(delimiter: ";"))
         #expect(tile.layers["Layer-0"]?.features.count == 1)
+    }
+
+    @Test
+    func csvReadAndWriteOptions() throws {
+        let csv = """
+        id,longitude,latitude,name
+        1,11.518585,48.135125,NULL
+        """
+        let data = try #require(csv.data(using: .utf8))
+        let tile = try VectorTile(
+            csvData: data,
+            readOptions: CSVReadOptions(nullHandling: .omit))
+        let feature = try #require(tile.layers["Layer-0"]?.features.first)
+        #expect(feature.properties["name"] == nil)
+
+        let exported = try #require(tile.toCsvData(
+            writeOptions: CSVWriteOptions(delimiter: ";", lineEnding: .crlf)))
+        #expect(String(decoding: exported, as: UTF8.self).contains(";"))
+        #expect(String(decoding: exported, as: UTF8.self).contains("\r\n"))
     }
 
 }

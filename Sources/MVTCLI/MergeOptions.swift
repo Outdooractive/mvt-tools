@@ -7,6 +7,8 @@ import MVTTools
 extension CLI {
 
     /// Options shared by the ``Merge`` and ``Import`` commands.
+    ///
+    /// CSV input and output are configured with the `--csv-*` options.
     struct MergeOptions: ParsableArguments {
 
         @Option(
@@ -101,6 +103,12 @@ extension CLI {
             completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
         var other: [String] = []
 
+        @OptionGroup
+        var csvReadOptions: CSVReadCLIOptions
+
+        @OptionGroup
+        var csvWriteOptions: CSVWriteCLIOptions
+
     }
 
 }
@@ -150,6 +158,7 @@ extension CLI.MergeOptions {
             let existingFormat = TileFormat(url: outputUrl) ?? resolvedOutputFormat
             tile = try? await existingFormat.loadTile(
                 from: outputUrl,
+                csvReadOptions: mergeOptions.csvReadOptions.options,
                 logger: cliOptions.verbose ? CLI.logger : nil)
         }
 
@@ -223,6 +232,7 @@ extension CLI.MergeOptions {
                 from: otherUrl,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: mergeOptions.disableInputLayerProperty ? nil : mergeOptions.propertyName,
+                csvReadOptions: mergeOptions.csvReadOptions.options,
                 logger: cliOptions.verbose ? CLI.logger : nil)
 
             if let layerDenylist {
@@ -314,6 +324,8 @@ extension CLI.MergeOptions {
                 format: resolvedOutputFormat,
                 to: outputUrl,
                 options: exportOptions,
+                csvWriteOptions: mergeOptions.csvWriteOptions.options(
+                    delimiter: mergeOptions.csvReadOptions.delimiter.value),
                 prettyPrint: mergeOptions.prettyPrint,
                 propertyName: mergeOptions.disableOutputLayerProperty ? nil : mergeOptions.propertyName)
         }
@@ -332,4 +344,3 @@ extension CLI.MergeOptions {
     }
 
 }
-

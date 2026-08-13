@@ -11,13 +11,14 @@ extension CLI {
 
     /// A command that queries features in any supported input file.
     ///
-    /// Supports MVT, MLT, GeoJSON, GPX, Shapefile, and GeoPackage input
-    /// with spatial queries (by coordinate and tolerance) and text-based
-    /// queries (by search term), with output to a file or the console.
+    /// Supports MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage
+    /// input with spatial queries (by coordinate and tolerance) and
+    /// text-based queries (by search term), with output to a file or the
+    /// console. CSV input is configured with the `--csv-*` options.
     struct Query: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(
-            abstract: "Query the features in the input file (MLT, MVT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage)",
+            abstract: "Query the features in the input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage)",
             discussion: """
             SEARCH TERM SYNTAX:
               Spatial:   near(latitude,longitude,tolerance(m))
@@ -90,9 +91,12 @@ extension CLI {
         @OptionGroup
         var options: Options
 
+        @OptionGroup
+        var csvOptions: CSVReadCLIOptions
+
         @Argument(
-            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, Shapefile, or GeoPackage).",
-            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "shp", "gpkg"]))
+            help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage).",
+            completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
         var path: String
 
         @Argument(help: "Search term, can be a string or a coordinate in the form 'latitude,longitude,tolerance(meters)'.")
@@ -148,6 +152,7 @@ extension CLI {
                 from: url,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
+                csvReadOptions: csvOptions.options,
                 logger: options.verbose ? CLI.logger : nil)
 
             if let layerDenylist {

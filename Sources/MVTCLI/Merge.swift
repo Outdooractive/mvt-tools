@@ -6,9 +6,9 @@ extension CLI {
 
     /// A command that merges multiple input files into a single tile.
     ///
-    /// Supports MVT, MLT, GeoJSON, GPX, FIT, Shapefile, and GeoPackage input,
-    /// with layer filtering, output compression, feature simplification,
-    /// and customizable buffer sizes.
+    /// Supports MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage
+    /// input, with layer filtering, output compression, feature
+    /// simplification, customizable buffer sizes, and CSV read/write options.
     struct Merge: AsyncParsableCommand {
 
         static let configuration = CommandConfiguration(

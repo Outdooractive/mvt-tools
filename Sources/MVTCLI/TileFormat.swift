@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import GISToolsCSV
 import Logging
 import MVTTools
 
@@ -79,6 +80,7 @@ extension TileFormat {
     ///   - layerAllowlist: Optional list of layer names to include.
     ///   - layerProperty: Property name used for layer routing (GeoJSON/GPX).
     ///   - geopackageTable: When set, only this table is loaded from a GeoPackage.
+    ///   - csvReadOptions: Options controlling CSV input.
     ///   - logger: Optional logger instance.
     /// - Returns: A loaded tile.
     /// - Throws: ``VectorTileError`` or ``GeoPackageError``.
@@ -87,6 +89,7 @@ extension TileFormat {
         layerAllowlist: [String]? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         geopackageTable: String? = nil,
+        csvReadOptions: CSVReadOptions = CSVReadOptions(),
         logger: Logger? = nil
     ) async throws -> VectorTile {
         switch self {
@@ -128,6 +131,7 @@ extension TileFormat {
         case .csv:
             return try VectorTile(
                 contentsOfCSV: url,
+                readOptions: csvReadOptions,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
