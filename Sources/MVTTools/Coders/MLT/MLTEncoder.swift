@@ -162,58 +162,16 @@ enum MLTEncoder {
 
                 case .multiPolygon:
                     let mpoly = feature.geometry as! MultiPolygon
-                    // PostGIS ST_ClipByBox2D can produce MultiPolygons where
-                    // holes (interior rings) are stored as separate polygons
-                    // instead of being associated with their parent exterior
-                    // ring.  Without re-grouping, maplibre renders these holes
-                    // as filled polygons, causing triangular artifacts.
-                    //
-                    // Re-group rings using the same winding-order heuristic as
-                    // the MVT decoder's classifyRings: a ring that is NOT
-                    // clockwise (in geographic coordinates) starts a new
-                    // polygon; CW rings become holes of the current polygon.
-                    //
-                    // Only re-group when the original structure has at least one
-                    // single-ring polygon whose ring is clockwise (a hole that
-                    // was separated from its parent).  This avoids re-grouping
-                    // correctly structured MultiPolygons (e.g. from test data
-                    // where both exterior and interior rings happen to have the
-                    // same winding order).
-                    let needsRegrouping: Bool = mpoly.coordinates.contains { poly in
-                        poly.count == 1
-                            && poly[0].count >= 4
-                            && Ring(poly[0])?.isClockwise == true
-                    }
-
-                    let polygonsToEncode: [[[Coordinate3D]]]
-                    if needsRegrouping {
-                        let allRings = mpoly.coordinates.flatMap { $0 }
-                        var regrouped: [[[Coordinate3D]]] = []
-                        var currentRings: [[Coordinate3D]] = []
-                        for ring in allRings {
-                            let isExterior: Bool
-                            if ring.count >= 4, let ringObj = Ring(ring) {
-                                isExterior = !ringObj.isClockwise
-                            }
-                            else {
-                                isExterior = true
-                            }
-                            if isExterior, currentRings.isNotEmpty {
-                                regrouped.append(currentRings)
-                                currentRings = []
-                            }
-                            currentRings.append(ring)
-                        }
-                        if currentRings.isNotEmpty {
-                            regrouped.append(currentRings)
-                        }
-                        polygonsToEncode = regrouped
-                    }
-                    else {
-                        polygonsToEncode = mpoly.coordinates
-                    }
-
-                    for poly in polygonsToEncode {
+                    // Encode the MultiPolygon structure as-is: each element's
+                    // rings (first = exterior, subsequent = holes) are written
+                    // to the topology so the decoder reconstructs the exact
+                    // grouping.  Any hole/interior-ring association is the
+                    // responsibility of the data source (e.g. PostGIS
+                    // ST_MakeValid) and must not be re-derived here via a
+                    // winding-order heuristic, which corrupts legitimate
+                    // MultiPolygons that contain several separate same-winding
+                    // components (e.g. many disjoint forest patches).
+                    for poly in mpoly.coordinates {
                         polygonRingCounts.append(UInt32(poly.count))
                         for ring in poly { collectRing(ring) }
                     }
