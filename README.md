@@ -65,7 +65,7 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
 - **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
 - **GeoJSON import/export** — convert between MVT and GeoJSON formats.
 - **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
-- **CSV import/export** — convert between MVT and CSV formats; a header row is required and geometry is never guessed.
+- **CSV import/export** — convert between MVT and CSV formats; a header row is required and geometry is never guessed. Works directly with Postgres/Postgis CSV exports (`COPY TO`)
 - **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
 - **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export with complete roundtrip fidelity via `"gpkg_layer"` metadata.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
