@@ -141,14 +141,35 @@ enum MLTEncoder {
                 // the decoder. Storing it would inflate every ring size by 1 and
                 // shift all subsequent cumulative ring offsets, corrupting polygon
                 // geometry for consumers like maplibre-gl-js.
-                let collectRing: ([Coordinate3D]) -> Void = { ring in
-                    var coords = ring
-                    if coords.count > 1, coords.first == coords.last {
-                        coords.removeLast()
+
+                // Tile-space signed area (maplibre's calculateSignedArea formula,
+                // y grows downward). Negative area = exterior for mvt-style rings.
+                func tileArea(_ ring: [(Int, Int)]) -> Double {
+                    var sum = 0.0
+                    let n = ring.count
+                    for i in 0 ..< n {
+                        let (x1, y1) = ring[i]
+                        let (x2, y2) = ring[(i + 1) % n]
+                        sum += Double(x2 - x1) * Double(y1 + y2)
                     }
-                    let projected = coords.map(projectionFunction)
-                    partSizes.append(UInt32(projected.count))
-                    projectedCoords.append(contentsOf: projected)
+                    return sum
+                }
+
+                // Normalize one polygon's winding in TILE SPACE so that the
+                // exterior (first) ring has negative area and all holes have
+                // positive area. maplibre's classifyRings operates on the
+                // flattened, tile-space ring list, so winding must be consistent
+                // there (not only in the source projection).
+                func normalizePolygonTilespace(_ rings: [[(Int, Int)]]) -> [[(Int, Int)]] {
+                    guard var first = rings.first else { return rings }
+                    if tileArea(first) > 0 { first.reverse() }
+                    var result = [first]
+                    for hole in rings.dropFirst() {
+                        var h = hole
+                        if tileArea(h) < 0 { h.reverse() }
+                        result.append(h)
+                    }
+                    return result
                 }
 
                 switch feature.geometry.type {
@@ -158,13 +179,32 @@ enum MLTEncoder {
 
                 case .polygon:
                     let poly = feature.geometry as! Polygon
-                    for ring in poly.rings { collectRing(ring.coordinates) }
+                    var rings = poly.rings.map { ring in
+                        var coords = ring.coordinates
+                        if coords.count > 1, coords.first == coords.last { coords.removeLast() }
+                        return coords.map(projectionFunction)
+                    }
+                    rings = normalizePolygonTilespace(rings)
+                    polygonRingCounts.append(UInt32(rings.count))
+                    for ring in rings {
+                        partSizes.append(UInt32(ring.count))
+                        projectedCoords.append(contentsOf: ring)
+                    }
 
                 case .multiPolygon:
                     let mpoly = feature.geometry as! MultiPolygon
                     for poly in mpoly.coordinates {
-                        polygonRingCounts.append(UInt32(poly.count))
-                        for ring in poly { collectRing(ring) }
+                        var rings = poly.map { (ringCoords: [Coordinate3D]) -> [(Int, Int)] in
+                            var coords = ringCoords
+                            if coords.count > 1, coords.first == coords.last { coords.removeLast() }
+                            return coords.map(projectionFunction)
+                        }
+                        rings = normalizePolygonTilespace(rings)
+                        polygonRingCounts.append(UInt32(rings.count))
+                        for ring in rings {
+                            partSizes.append(UInt32(ring.count))
+                            projectedCoords.append(contentsOf: ring)
+                        }
                     }
 
                 default:

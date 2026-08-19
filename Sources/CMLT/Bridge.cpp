@@ -788,7 +788,31 @@ uint8_t* mlt_encoder_finish(
     // filters compare those strings. Do NOT re-enable this setting without
     // first verifying round-trip decoding against the maplibre-gl-js WASM
     // decoder across a representative set of tiles.
-    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) { c.useFsst = false; }));
+    //
+    // Morton/Hilbert dictionary vertex encoding is also disabled. With real
+    // PostGIS-sourced tiles (many features per layer, mixed geometries,
+    // vertices spanning the buffer zone with negative coordinates), the
+    // C++ MLT encoder's space-filling-curve dictionary path produces tiles
+    // whose decoded ring0 starts at a dictionary-sorted anchor rather than
+    // the encoded first vertex and whose winding is flipped. This breaks
+    // maplibre-gl-js's `classifyRings` (it keys exterior-vs-hole off the
+    // first ring's signed area) and produces triangular fill artifacts on
+    // polygons-with-holes. Plain (zigzag-delta) vertex encoding preserves
+    // vertex order and winding at the cost of slightly larger tiles.
+    //
+    // Disabling `enableMortonEncoding` alone is NOT sufficient: the Hilbert
+    // path is gated only by `validCoordinateRange`, not by config. To force
+    // the plain path, `geometryEncodingOption` is set to a non-AUTO value so
+    // `encodeGeometryColumn` takes the early-return plain branch when morton
+    // is disabled (see geometry.hpp:
+    //   `if (integerEncodingOption != AUTO && !enableMortonEncoding)`).
+    // Do NOT re-enable without a fix for the upstream encoder:
+    // https://github.com/maplibre/maplibre-tile-spec
+    auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) {
+        c.useFsst = false;
+        c.enableMortonEncoding = false;
+        c.geometryEncodingOption = mlt::IntegerEncodingOption::PLAIN;
+    }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
     std::memcpy(buffer, result.data(), result.size());
     *outLength = result.size();
