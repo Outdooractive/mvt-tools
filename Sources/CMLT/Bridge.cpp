@@ -789,29 +789,29 @@ uint8_t* mlt_encoder_finish(
     // first verifying round-trip decoding against the maplibre-gl-js WASM
     // decoder across a representative set of tiles.
     //
-    // Morton/Hilbert dictionary vertex encoding is also disabled. With real
-    // PostGIS-sourced tiles (many features per layer, mixed geometries,
-    // vertices spanning the buffer zone with negative coordinates), the
-    // C++ MLT encoder's space-filling-curve dictionary path produces tiles
-    // whose decoded ring0 starts at a dictionary-sorted anchor rather than
-    // the encoded first vertex and whose winding is flipped. This breaks
-    // maplibre-gl-js's `classifyRings` (it keys exterior-vs-hole off the
-    // first ring's signed area) and produces triangular fill artifacts on
-    // polygons-with-holes. Plain (zigzag-delta) vertex encoding preserves
-    // vertex order and winding at the cost of slightly larger tiles.
+    // The C++ MLT encoder's Morton/Hilbert dictionary vertex encoding
+    // corrupts ring vertex data on real PostGIS-sourced tiles: the decoded
+    // ring0 contains different vertices than what was encoded, flipping
+    // ring winding and breaking maplibre-gl-js's `classifyRings` (which keys
+    // exterior-vs-hole off the first ring's signed area), producing
+    // triangular fill artifacts. The topology streams (numRings/numParts/
+    // numGeometries) are NOT affected — AUTO encoding for topology is safe.
     //
-    // Disabling `enableMortonEncoding` alone is NOT sufficient: the Hilbert
-    // path is gated only by `validCoordinateRange`, not by config. To force
-    // the plain path, `geometryEncodingOption` is set to a non-AUTO value so
-    // `encodeGeometryColumn` takes the early-return plain branch when morton
-    // is disabled (see geometry.hpp:
-    //   `if (integerEncodingOption != AUTO && !enableMortonEncoding)`).
-    // Do NOT re-enable without a fix for the upstream encoder:
-    // https://github.com/maplibre/maplibre-tile-spec
+    // To force plain (zigzag-delta) vertex encoding, `enableMortonEncoding`
+    // is disabled and `geometryEncodingOption` is set to PLAIN. Both are
+    // required: the early-return plain branch in `encodeGeometryColumn` only
+    // triggers when `integerEncodingOption != AUTO && !enableMortonEncoding`.
+    // Topology encoding is left at AUTO (the default) for best compression.
+    // Do NOT re-enable Morton/Hilbert without a fix for the upstream C++
+    // encoder: https://github.com/maplibre/maplibre-tile-spec
     auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) {
         c.useFsst = false;
         c.enableMortonEncoding = false;
         c.geometryEncodingOption = mlt::IntegerEncodingOption::PLAIN;
+        // Topology streams are safe with AUTO; only the vertex dictionary
+        // path is buggy. Explicitly set AUTO to avoid inheriting PLAIN from
+        // geometryEncodingOption, preserving topology compression.
+        c.geometryTopologyEncodingOption = mlt::IntegerEncodingOption::AUTO;
     }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
     std::memcpy(buffer, result.data(), result.size());
