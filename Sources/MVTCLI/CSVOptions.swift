@@ -24,11 +24,17 @@ struct CSVReadCLIOptions: ParsableArguments {
         help: "Omit CSV NULL and empty properties.")
     var omitNull = false
 
+    @Flag(
+        name: [.customLong("cLS", withSingleDash: true), .customLong("csv-linestring")],
+        help: "Treat CSV input as a single LineString: concatenate the coordinates of all rows (points, multipoints, linestrings, and multilinestrings).")
+    var treatAsLineString = false
+
     /// The configured CSV read options.
     var options: CSVReadOptions {
         CSVReadOptions(
             delimiter: delimiter.value,
-            nullHandling: omitNull ? .omit : nullHandling.value)
+            nullHandling: omitNull ? .omit : nullHandling.value,
+            treatAsLineString: treatAsLineString)
     }
 
 }

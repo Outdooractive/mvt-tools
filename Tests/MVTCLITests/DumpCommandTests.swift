@@ -100,4 +100,19 @@ struct DumpCommandTests {
         #expect(output.contains("FeatureCollection"))
     }
 
+    // MARK: CSV options
+
+    @Test(.timeLimit(.minutes(1)))
+    func dumpCsvWithTreatAsLineString() throws {
+        let path = try generateSmallCsv().path
+        let output = try runCLI(args: ["dump", "--csv-linestring", path])
+        #expect(output.contains(#""type" : "LineString""#))
+        #expect(!output.contains(#""type" : "Point""#))
+
+        // Without the flag, the points stay separate.
+        let plainOutput = try runCLI(args: ["dump", path])
+        #expect(plainOutput.contains(#""type" : "Point""#))
+        #expect(!plainOutput.contains(#""type" : "LineString""#))
+    }
+
 }

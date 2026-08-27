@@ -506,6 +506,9 @@ GeoJSONs can contain a layer name in their Feature properties (default name is `
 This can be controlled with the options `--property-name` (or `-P`), `--disable-input-layer-property` (or `-Di`) and `--disable-output-layer-property` (or `-Do`).
 Some commands allow limiting the result to certain layers with `--layer` (or `-l`), which can be repeated for as many layers as necessary.
 
+CSV input and output are controlled with the `--csv-*` options (`--csv-delimiter`, `--csv-null-handling`, `--csv-omit-null`, `--csv-linestring`, `--csv-geometry-format`, …).
+With `--csv-linestring` (or `-cLS`), the coordinates of all CSV rows are concatenated into a single `LineString` feature — useful for GPS track exports.
+
 ```bash
 # mvt -h
 OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
