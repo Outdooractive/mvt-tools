@@ -1,4 +1,4 @@
-name: Homebrew
+name: Release
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   homebrew:
-    name: Bump Homebrew formula
+    name: Do a CLI tool release build
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,11 +51,3 @@ jobs:
           name: ${{ inputs.tag_name }}
           files: mvt.tar.gz
           fail_on_unmatched_files: true
-      - uses: mislav/bump-homebrew-formula-action@v3
-        with:
-          formula-name: mvt-tools
-          homebrew-tap: Outdooractive/homebrew-tap
-          tag-name: ${{ inputs.tag_name }}
-          download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ inputs.tag_name }}/mvt.tar.gz
-        env:
-          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
