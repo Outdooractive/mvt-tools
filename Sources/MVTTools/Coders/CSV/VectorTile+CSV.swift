@@ -1,3 +1,4 @@
+#if EnableCSV
 import Foundation
 import GISTools
 import GISToolsCSV
@@ -187,3 +188,4 @@ extension VectorTile {
     }
 
 }
+#endif

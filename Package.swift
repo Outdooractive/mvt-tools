@@ -18,10 +18,30 @@ let package = Package(
             name: "MVTTools",
             targets: ["MVTTools"]),
     ],
+    traits: [
+        .trait(
+            name: "EnableMLT",
+            description: "Enables the MapLibre tile specification (MLT) decoder/encoder backed by a C++ bridge (FastPFOR + FSST). Requires Swift C++ interoperability."),
+        .trait(
+            name: "EnableCSV",
+            description: "Enables CSV vector tile import/export."),
+        .trait(
+            name: "EnableGeoPackage",
+            description: "Enables GeoPackage vector tile import/export via gis-tools-geopackage."),
+        .trait(
+            name: "EnableGPX",
+            description: "Enables GPX vector tile import/export."),
+        .trait(
+            name: "EnableFIT",
+            description: "Enables FIT vector tile import/export."),
+        .trait(
+            name: "EnableShapefile",
+            description: "Enables Shapefile vector tile import/export."),
+    ],
     dependencies: [
         .package(url: "https://github.com/Outdooractive/gis-tools", from: "2.3.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-csv", from: "1.2.0"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.2"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", from: "1.0.3"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", from: "1.0.4"),
         .package(url: "https://github.com/Outdooractive/gis-tools-fit", from: "1.0.0"),
         .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", from: "1.0.2"),
@@ -43,27 +63,38 @@ let package = Package(
             name: "MVTTools",
             dependencies: [
                 .product(name: "GISTools", package: "gis-tools"),
-                .product(name: "GISToolsCSV", package: "gis-tools-csv"),
-                .product(name: "GISToolsGeoPackage", package: "gis-tools-geopackage"),
-                .product(name: "GISToolsGPX", package: "gis-tools-gpx"),
-                .product(name: "GISToolsFIT", package: "gis-tools-fit"),
-                .product(name: "GISToolsShapefile", package: "gis-tools-shapefile"),
+                .product(name: "GISToolsCSV", package: "gis-tools-csv",
+                         condition: .when(traits: ["EnableCSV"])),
+                .product(name: "GISToolsGeoPackage", package: "gis-tools-geopackage",
+                         condition: .when(traits: ["EnableGeoPackage"])),
+                .product(name: "GISToolsGPX", package: "gis-tools-gpx",
+                         condition: .when(traits: ["EnableGPX"])),
+                .product(name: "GISToolsFIT", package: "gis-tools-fit",
+                         condition: .when(traits: ["EnableFIT"])),
+                .product(name: "GISToolsShapefile", package: "gis-tools-shapefile",
+                         condition: .when(traits: ["EnableShapefile"])),
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .target(name: "CMLT"),
+                .target(name: "CMLT", condition: .when(traits: ["EnableMLT"])),
             ],
-            swiftSettings: [.interoperabilityMode(.Cxx)]),
+            swiftSettings: [
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+            ]),
 
         .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
             exclude: ["TestData"],
-            swiftSettings: [.interoperabilityMode(.Cxx)]),
+            swiftSettings: [
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+            ]),
         .testTarget(
             name: "MVTCLITests",
             dependencies: ["MVTCLI"],
-            swiftSettings: [.interoperabilityMode(.Cxx)]),
+            swiftSettings: [
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+            ]),
 
         // MARK: - MLT C++ bridge (decoder + encoder + FastPFOR + FSST)
 

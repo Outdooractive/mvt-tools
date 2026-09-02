@@ -1,3 +1,4 @@
+#if EnableGeoPackage
 import Foundation
 import GISTools
 import GISToolsGeoPackage
@@ -154,3 +155,4 @@ extension VectorTile {
     }
 
 }
+#endif

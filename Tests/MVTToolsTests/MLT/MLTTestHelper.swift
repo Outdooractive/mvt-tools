@@ -1,3 +1,4 @@
+#if EnableMLT
 import Foundation
 import Gzip
 
@@ -117,3 +118,4 @@ enum MLTTestHelper {
     }
 
 }
+#endif

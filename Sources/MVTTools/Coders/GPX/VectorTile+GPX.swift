@@ -1,3 +1,4 @@
+#if EnableGPX
 import Foundation
 import GISTools
 import GISToolsGPX
@@ -163,3 +164,4 @@ extension VectorTile {
     }
 
 }
+#endif

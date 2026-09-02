@@ -1,3 +1,4 @@
+#if EnableGeoPackage
 import Foundation
 import GISTools
 import GISToolsGeoPackage
@@ -108,3 +109,5 @@ struct VectorTileGeoPackageTests {
     }
 
 }
+
+#endif

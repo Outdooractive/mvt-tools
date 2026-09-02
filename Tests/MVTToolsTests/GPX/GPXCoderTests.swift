@@ -1,3 +1,4 @@
+#if EnableGPX
 import Foundation
 import GISTools
 @testable import MVTTools
@@ -67,3 +68,5 @@ struct VectorTileGPXTests {
     }
 
 }
+
+#endif

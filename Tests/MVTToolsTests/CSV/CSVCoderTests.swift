@@ -1,3 +1,4 @@
+#if EnableCSV
 import Foundation
 import GISTools
 import GISToolsCSV
@@ -109,3 +110,5 @@ struct VectorTileCSVTests {
     }
 
 }
+
+#endif

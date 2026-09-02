@@ -1,3 +1,4 @@
+#if EnableMLT
 import CMLT
 import Foundation
 import GISTools
@@ -350,3 +351,4 @@ enum MLTDecoder {
     }
 
 }
+#endif

@@ -1,3 +1,4 @@
+#if EnableFIT
 import Foundation
 import GISTools
 import GISToolsFIT
@@ -125,3 +126,5 @@ struct VectorTileFITTests {
     }
 
 }
+
+#endif

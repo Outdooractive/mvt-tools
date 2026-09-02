@@ -1,3 +1,4 @@
+#if EnableShapefile
 import Foundation
 import GISTools
 import GISToolsShapefile
@@ -94,3 +95,5 @@ struct VectorTileShapefileTests {
     }
 
 }
+
+#endif

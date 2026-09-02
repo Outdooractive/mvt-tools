@@ -1,3 +1,4 @@
+#if EnableFIT
 import Foundation
 import GISTools
 import GISToolsFIT
@@ -178,3 +179,4 @@ extension VectorTile {
     }
 
 }
+#endif
