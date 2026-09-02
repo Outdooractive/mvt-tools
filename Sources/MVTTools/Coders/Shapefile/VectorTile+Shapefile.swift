@@ -1,3 +1,4 @@
+#if EnableShapefile
 import Foundation
 import GISTools
 import GISToolsShapefile
@@ -146,3 +147,4 @@ public enum ShapefileError: Error, Equatable {
     case mixedGeometry(types: Set<GeoJsonType>)
 
 }
+#endif

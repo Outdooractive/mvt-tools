@@ -19,4 +19,4 @@ jobs:
       with:
         swift-version: '6.3.3'
     - name: Build and Test
-      run: swift test
+      run: swift test --enable-all-traits

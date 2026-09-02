@@ -1,3 +1,4 @@
+#if EnableMLT
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
@@ -340,3 +341,4 @@ enum MLTEncoder {
     }
 
 }
+#endif

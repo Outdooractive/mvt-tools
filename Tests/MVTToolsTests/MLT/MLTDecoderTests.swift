@@ -1,3 +1,4 @@
+#if EnableMLT
 import Foundation
 import GISTools
 @testable import MVTTools
@@ -164,3 +165,5 @@ struct MLTDecoderTests {
     }
 
 }
+
+#endif
