@@ -280,8 +280,8 @@ extension VectorTile {
     ) -> BoundingBox {
         let tolerance = fabs(tolerance)
 
-        switch projection {
-        case .noSRID:
+        switch projection.kind {
+        case .undefined:
             return BoundingBox(
                 coordinates: [
                     Coordinate3D(
@@ -294,7 +294,7 @@ extension VectorTile {
                         projection: projection),
                 ])!
 
-        case .epsg3857, .epsg4326, .epsg4978:
+        case .geographic, .planar, .geocentric:
             return BoundingBox(
                 coordinates: [
                     Coordinate3D(
@@ -307,7 +307,6 @@ extension VectorTile {
                         projection: projection),
                 ],
                 padding: tolerance)!
-                .clamped()
         }
     }
 

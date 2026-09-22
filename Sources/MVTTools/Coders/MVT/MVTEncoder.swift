@@ -41,15 +41,8 @@ enum MVTEncoder {
 
         // Determine the clipping bounding box.
         var clipBoundingBox: BoundingBox?
-        switch projection {
-        case .noSRID:
-            break
-        case .epsg3857:
-            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        case .epsg4326:
-            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
-        case .epsg4978:
-            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4978)
+        if projection.hasSRID {
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         var bufferSize = 0

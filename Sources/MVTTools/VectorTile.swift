@@ -153,14 +153,13 @@ public struct VectorTile: Sendable {
         self.layers = [:]
         self.layerNames = []
 
-        switch projection {
-        case .noSRID:
+        if projection.hasSRID {
+            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
+        }
+        else {
             self.boundingBox = BoundingBox(
                 southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
                 northEast: Coordinate3D(x: 4096, y: 4096, projection: .noSRID))
-
-        case .epsg3857, .epsg4326, .epsg4978:
-            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         if let sortOption {

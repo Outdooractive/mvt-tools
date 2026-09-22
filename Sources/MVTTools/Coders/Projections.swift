@@ -15,60 +15,26 @@ enum Projections {
         }
     }
 
-    /// Returns a projection function that converts tile-local coordinates to EPSG:4978.
-    static func projectToEpsg4978(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Int, Int) -> Coordinate3D {
-        let projectedTo4326 = projectToEpsg4326(x: x, y: y, z: z, extent: extent)
-        return { (cx, cy) -> Coordinate3D in
-            projectedTo4326(cx, cy).projected(to: .epsg4978)
-        }
-    }
-
-    /// Returns a projection function that converts tile-local coordinates to EPSG:3857.
-    static func projectToEpsg3857(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Int, Int) -> Coordinate3D {
-        let extent = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
-        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
-        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
-
-        return { (cx, cy) -> Coordinate3D in
-            let projectedX = topLeft.x + (Double(cx) / extent) * xSpan
-            let projectedY = topLeft.y - (Double(cy) / extent) * ySpan
-            return Coordinate3D(x: projectedX, y: projectedY)
-        }
-    }
-
-    /// Returns a projection function that converts tile-local coordinates to EPSG:4326.
-    static func projectToEpsg4326(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Int, Int) -> Coordinate3D {
-        let extent = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
-        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
-        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
-
-        return { (cx, cy) -> Coordinate3D in
-            let projectedX = topLeft.x + (Double(cx) / extent) * xSpan
-            let projectedY = topLeft.y - (Double(cy) / extent) * ySpan
-            return Coordinate3D(x: projectedX, y: projectedY).projected(to: .epsg4326)
-        }
-    }
-
-    /// Picks the forward projection function matching the given projection.
+    /// Returns a projection function that converts tile-local coordinates
+    /// into `projection` for *any* registered projection.
+    ///
+    /// The MVT/MLT tile grid is a Web Mercator pyramid: tile-local
+    /// coordinates are linear in Web Mercator meters. The function therefore
+    /// interpolates linearly in EPSG:3857 within the tile bounds and projects
+    /// the result through gis-tools' EPSG:4326 pivot into the target
+    /// projection. For EPSG:3857, EPSG:4326 and EPSG:4978 this is identical
+    /// to the previous per-projection special cases, but projections
+    /// registered at runtime (e.g. via ``CustomProjection``) are now supported
+    /// as well.
+    ///
+    /// - Parameters:
+    ///   - projection: The target projection.
+    ///   - x: The tile's x coordinate.
+    ///   - y: The tile's y coordinate.
+    ///   - z: The tile's zoom level.
+    ///   - extent: The layer extent (tile grid size).
+    /// - Returns: A function mapping tile-local (x, y) integers to
+    ///   `Coordinate3D` in `projection`.
     static func forwardProjection(
         for projection: Projection,
         x: Int,
@@ -76,15 +42,21 @@ enum Projections {
         z: Int,
         extent: Int
     ) -> (Int, Int) -> Coordinate3D {
-        switch projection {
-        case .noSRID:
-            passThroughFromTile(x: x, y: y)
-        case .epsg3857:
-            projectToEpsg3857(x: x, y: y, z: z, extent: extent)
-        case .epsg4326:
-            projectToEpsg4326(x: x, y: y, z: z, extent: extent)
-        case .epsg4978:
-            projectToEpsg4978(x: x, y: y, z: z, extent: extent)
+        if !projection.hasSRID {
+            return passThroughFromTile(x: x, y: y)
+        }
+
+        let extent = Double(extent)
+        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
+        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
+        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
+        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
+
+        return { (cx, cy) -> Coordinate3D in
+            let projectedX = topLeft.x + (Double(cx) / extent) * xSpan
+            let projectedY = topLeft.y - (Double(cy) / extent) * ySpan
+            let mercatorCoordinate = Coordinate3D(x: projectedX, y: projectedY, projection: .epsg3857)
+            return mercatorCoordinate.projected(to: projection)
         }
     }
 
@@ -101,46 +73,34 @@ extension Projections {
         }
     }
 
-    /// Returns a projection function that converts EPSG:3857 to tile-local integers.
-    static func projectFromEpsg3857(
+    /// Returns a projection function that converts coordinates in `projection`
+    /// to tile-local integers for *any* registered projection.
+    ///
+    /// Coordinates are projected into EPSG:3857 (the native space of the MVT
+    /// tile grid), then mapped linearly into the tile extent. For EPSG:3857,
+    /// EPSG:4326 and EPSG:4978 this is identical to the previous
+    /// per-projection special cases, but projections registered at runtime
+    /// (e.g. via ``CustomProjection``) are now supported as well.
+    ///
+    /// - Parameters:
+    ///   - projection: The source projection of the input coordinates.
+    ///   - x: The tile's x coordinate.
+    ///   - y: The tile's y coordinate.
+    ///   - z: The tile's zoom level.
+    ///   - extent: The layer extent (tile grid size).
+    /// - Returns: A function mapping `Coordinate3D` in `projection` to
+    ///   tile-local (x, y) integers.
+    static func inverseProjection(
+        for projection: Projection,
         x: Int,
         y: Int,
         z: Int,
         extent: Int
     ) -> (Coordinate3D) -> (Int, Int) {
-        let extent = Double(extent)
-        let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
-        let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
-        let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
-
-        return { coordinate in
-            let projectedX = Int(((coordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY = Int(((topLeft.y - coordinate.y) / ySpan) * extent)
-            return (projectedX, projectedY)
+        if !projection.hasSRID {
+            return passThroughToTile()
         }
-    }
 
-    /// Returns a projection function that converts EPSG:4978 to tile-local integers.
-    static func projectFromEpsg4978(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Coordinate3D) -> (Int, Int) {
-        let projectedFrom4326 = projectFromEpsg4326(x: x, y: y, z: z, extent: extent)
-        return { coordinate in
-            projectedFrom4326(coordinate.projected(to: .epsg4326))
-        }
-    }
-
-    /// Returns a projection function that converts EPSG:4326 to tile-local integers.
-    static func projectFromEpsg4326(
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Coordinate3D) -> (Int, Int) {
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
         let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
@@ -152,26 +112,6 @@ extension Projections {
             let projectedX = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
             let projectedY = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
             return (projectedX, projectedY)
-        }
-    }
-
-    /// Picks the inverse projection function matching the given projection.
-    static func inverseProjection(
-        for projection: Projection,
-        x: Int,
-        y: Int,
-        z: Int,
-        extent: Int
-    ) -> (Coordinate3D) -> (Int, Int) {
-        switch projection {
-        case .noSRID:
-            passThroughToTile()
-        case .epsg3857:
-            projectFromEpsg3857(x: x, y: y, z: z, extent: extent)
-        case .epsg4326:
-            projectFromEpsg4326(x: x, y: y, z: z, extent: extent)
-        case .epsg4978:
-            projectFromEpsg4978(x: x, y: y, z: z, extent: extent)
         }
     }
 

@@ -117,8 +117,8 @@ extension VectorTile {
         }
 
         var clipBoundingBox: BoundingBox?
-        if bufferSize != 0 {
-            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg4326)
+        if bufferSize != 0, projection.hasSRID {
+            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
             if let box = clipBoundingBox {
                 let sqrt2 = 2.0.squareRoot()
                 let diagonal = Double(VectorTile.ExportOptions.extent) * sqrt2

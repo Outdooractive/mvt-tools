@@ -47,13 +47,13 @@ extension VectorTile {
         self.projection = projection
         self.logger = logger
 
-        switch projection {
-        case .noSRID:
+        if projection.hasSRID {
+            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
+        }
+        else {
             self.boundingBox = BoundingBox(
                 southWest: Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
                 northEast: Coordinate3D(x: Double(ExportOptions.extent), y: Double(ExportOptions.extent), projection: .noSRID))
-        case .epsg3857, .epsg4326, .epsg4978:
-            self.boundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
         }
 
         guard let parsedLayers = MVTDecoder.decode(
