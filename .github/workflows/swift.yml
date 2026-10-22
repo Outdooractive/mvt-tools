@@ -2,21 +2,37 @@ name: Swift
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build:
-
+  macos:
+    name: build (macos)
     runs-on: macos-latest
+    timeout-minutes: 45
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - uses: swift-actions/setup-swift@v3
-      with:
-        swift-version: '6.3.3'
-    - name: Build and Test
-      run: swift test --enable-all-traits
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.3.3'
+      - name: Build and Test
+        run: swift test --enable-all-traits
+
+  linux:
+    name: build (linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: swift:6.3.3
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build and Test
+        run: swift test --enable-all-traits
