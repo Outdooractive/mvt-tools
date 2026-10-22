@@ -21,40 +21,50 @@ struct DumpCommandTests {
         #expect(output.contains("FeatureCollection"))
     }
 
+    #if EnableGPX
     @Test(.timeLimit(.minutes(1)))
     func dumpGpx() throws {
         let path = try generateSmallGpx().path
         let output = try runCLI(args: ["dump", path])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableFIT
     @Test(.timeLimit(.minutes(1)))
     func dumpFit() throws {
         let path = try generateSmallFit().path
         let output = try runCLI(args: ["dump", path])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableShapefile
     @Test(.timeLimit(.minutes(1)))
     func dumpShapefile() throws {
         let path = try generateSmallShapefile().path
         let output = try runCLI(args: ["dump", path])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableGeoPackage
     @Test(.timeLimit(.minutes(1)))
     func dumpGeoPackage() async throws {
         let path = try await generateSmallGeoPackage().path
         let output = try runCLI(args: ["dump", path])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
     func dumpMlt() throws {
         let path = try generateSmallMlt().path
         let output = try runCLI(args: ["dump", "-x", "0", "-y", "0", "-z", "0", path])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     // MARK: Parameters
 
@@ -102,6 +112,7 @@ struct DumpCommandTests {
 
     // MARK: CSV options
 
+    #if EnableCSV
     @Test(.timeLimit(.minutes(1)))
     func dumpCsvWithTreatAsLineString() throws {
         let path = try generateSmallCsv().path
@@ -114,5 +125,6 @@ struct DumpCommandTests {
         #expect(plainOutput.contains(#""type" : "Point""#))
         #expect(!plainOutput.contains(#""type" : "LineString""#))
     }
+    #endif
 
 }

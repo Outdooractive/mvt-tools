@@ -101,11 +101,15 @@ extension TileFormat {
                 logger: logger)
 
         case .mlt(let x, let y, let z):
+            #if EnableMLT
             return try VectorTile(
                 contentsOfMLT: url,
                 x: x, y: y, z: z,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .geoJson(let defaultLayerProperty):
             return try VectorTile(
@@ -115,37 +119,57 @@ extension TileFormat {
                 logger: logger)
 
         case .fit:
+            #if EnableFIT
             return try VectorTile(
                 contentsOfFIT: url,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .gpx:
+            #if EnableGPX
             return try VectorTile(
                 contentsOfGPX: url,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .csv:
+            #if EnableCSV
             return try VectorTile(
                 contentsOfCSV: url,
                 readOptions: csvReadOptions,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .shapefile:
+            #if EnableShapefile
             return try VectorTile(
                 shapefile: url,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .geopackage:
+            #if EnableGeoPackage
             return try await VectorTile(
                 geopackage: url,
                 table: geopackageTable,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
         }
     }
 
@@ -189,6 +213,24 @@ extension TileFormat {
                 "Unrecognized file extension '.\(url.pathExtension)'. "
                 + "Supported: mvt, pbf, mlt, geojson, json, fit, gpx, csv, shp, gpkg")
         }
+    }
+
+}
+
+// MARK: - Build availability
+
+extension TileFormat {
+
+    /// The error thrown when the receiver's format is not compiled into this build.
+    ///
+    /// Optional formats are gated behind package traits (see `Package.swift`).
+    /// A format may still be recognized on the command line — e.g. via its file
+    /// extension or `--output-format` — even though its coder was left out of
+    /// the build; reading or writing it then fails with this error.
+    var unavailableError: CLIError {
+        CLIError(
+            "Format '\(self)' is not available in this build "
+            + "(enable the corresponding package trait)")
     }
 
 }

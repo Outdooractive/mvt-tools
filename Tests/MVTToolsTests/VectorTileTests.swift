@@ -18,7 +18,7 @@ struct VectorTileTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         #expect(mvt.isEmpty == false)
 
-        let layerNames = try VectorTile.layerNames(from: mvt)?.sorted()
+        let layerNames = VectorTile.layerNames(from: mvt)?.sorted()
         #expect(layerNames == tileLayerNames)
 
         let tile = try VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14)
@@ -257,7 +257,7 @@ struct VectorTileTests {
     /// Tests that `layerNames(from:)` returns an empty array for empty protobuf data.
     @Test
     func layerNamesFromEmptyData() throws {
-        let names = try VectorTile.layerNames(from: Data())
+        let names = VectorTile.layerNames(from: Data())
         #expect(names?.isEmpty == true)
     }
 

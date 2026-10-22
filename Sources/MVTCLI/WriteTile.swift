@@ -42,28 +42,52 @@ extension CLI {
             tile.writeMVT(to: url, options: options)
 
         case .mlt:
+            #if EnableMLT
             tile.writeMLT(to: url, options: options)
+            #else
+            throw format.unavailableError
+            #endif
 
         case .fit:
+            #if EnableFIT
             guard tile.writeFIT(to: url, options: options) else {
                 throw CLIError("Failed to write FIT")
             }
+            #else
+            throw format.unavailableError
+            #endif
 
         case .gpx:
+            #if EnableGPX
             guard tile.writeGPX(to: url, options: options) else {
                 throw CLIError("Failed to write GPX")
             }
+            #else
+            throw format.unavailableError
+            #endif
 
         case .csv:
+            #if EnableCSV
             guard tile.writeCSV(to: url, writeOptions: csvWriteOptions, options: options) else {
                 throw CLIError("Failed to write CSV")
             }
+            #else
+            throw format.unavailableError
+            #endif
 
         case .shapefile:
+            #if EnableShapefile
             try tile.writeShapefile(to: url, options: options)
+            #else
+            throw format.unavailableError
+            #endif
 
         case .geopackage:
+            #if EnableGeoPackage
             try await tile.writeGeoPackage(to: url, options: options)
+            #else
+            throw format.unavailableError
+            #endif
         }
     }
 

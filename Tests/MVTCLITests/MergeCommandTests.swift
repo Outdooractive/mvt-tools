@@ -32,6 +32,7 @@ struct MergeCommandTests {
         try assertMvtFile(at: outUrl)
     }
 
+    #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
     func mergeToMlt() throws {
         let input = try generateSmallGeoJson()
@@ -40,6 +41,7 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", "-x", "0", "-y", "0", "-z", "0", input.path])
         #expect(FileManager.default.fileExists(atPath: outUrl.path))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func mergeToGeoJson() throws {
@@ -51,6 +53,7 @@ struct MergeCommandTests {
         #expect(!fc.features.isEmpty)
     }
 
+    #if EnableGPX
     @Test(.timeLimit(.minutes(1)))
     func mergeToGpx() throws {
         let input = try generateSmallGeoJson()
@@ -59,7 +62,9 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", input.path])
         #expect(FileManager.default.fileExists(atPath: outUrl.path))
     }
+    #endif
 
+    #if EnableShapefile
     @Test(.timeLimit(.minutes(1)))
     func mergeToShapefile() throws {
         let input = try generateSmallGeoJson()
@@ -68,7 +73,9 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", input.path])
         #expect(FileManager.default.fileExists(atPath: outUrl.path))
     }
+    #endif
 
+    #if EnableGeoPackage
     @Test(.timeLimit(.minutes(1)))
     func mergeToGeoPackage() throws {
         let input = try generateSmallGeoJson()
@@ -77,9 +84,11 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", input.path])
         #expect(FileManager.default.fileExists(atPath: outUrl.path))
     }
+    #endif
 
     // MARK: Multi-format merge
 
+    #if EnableGPX
     @Test(.timeLimit(.minutes(1)))
     func mergeGeoJsonAndGpxToGeoJson() throws {
         let gj = try generateSmallGeoJson()
@@ -90,6 +99,7 @@ struct MergeCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
     // MARK: Parameters
 

@@ -20,33 +20,41 @@ struct QueryCommandTests {
         #expect(output.contains("FeatureCollection"))
     }
 
+    #if EnableGPX
     @Test(.timeLimit(.minutes(1)))
     func queryGpxByText() throws {
         let path = try generateSmallGpx().path
         let output = try runCLI(args: ["query", path, "PointA"])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableShapefile
     @Test(.timeLimit(.minutes(1)))
     func queryShapefileByText() throws {
         let path = try generateSmallShapefile().path
         let output = try runCLI(args: ["query", path, "nothing"])
         #expect(output.contains("features") || output.contains("Nothing found"))
     }
+    #endif
 
+    #if EnableGeoPackage
     @Test(.timeLimit(.minutes(1)))
     func queryGeoPackageByText() async throws {
         let path = try await generateSmallGeoPackage().path
         let output = try runCLI(args: ["query", path, "A"])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
     func queryMltByText() throws {
         let path = try generateSmallMlt().path
         let output = try runCLI(args: ["query", "-x", "0", "-y", "0", "-z", "0", path, "A"])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     // MARK: Parameter variants
 

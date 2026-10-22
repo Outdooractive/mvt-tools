@@ -1,7 +1,11 @@
 import Foundation
 import GISTools
+#if EnableFIT
 import GISToolsFIT
+#endif
+#if EnableShapefile
 import GISToolsShapefile
+#endif
 import MVTTools
 import Testing
 
@@ -95,7 +99,7 @@ var testDataDir: URL {
 @discardableResult
 func runCLI(args: [String]) throws -> String {
     let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mvt_stdout_\(UUID().uuidString).txt")
-    FileManager.default.createFile(atPath: tempUrl.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: tempUrl.path, contents: nil)
     defer { try? FileManager.default.removeItem(at: tempUrl) }
     let stdoutHandle = try FileHandle(forWritingTo: tempUrl)
     let process = Process()
@@ -121,8 +125,8 @@ func runCLI(args: [String]) throws -> String {
 func runCLIWithStderr(args: [String]) throws -> (stdout: String, stderr: String, exitCode: Int32) {
     let stdoutUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mvt_stdout_\(UUID().uuidString).txt")
     let stderrUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mvt_stderr_\(UUID().uuidString).txt")
-    FileManager.default.createFile(atPath: stdoutUrl.path, contents: nil)
-    FileManager.default.createFile(atPath: stderrUrl.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: stdoutUrl.path, contents: nil)
+    _ = FileManager.default.createFile(atPath: stderrUrl.path, contents: nil)
     defer {
         try? FileManager.default.removeItem(at: stdoutUrl)
         try? FileManager.default.removeItem(at: stderrUrl)
@@ -155,6 +159,7 @@ func generateSmallGeoJson() throws -> URL {
     return url
 }
 
+#if EnableGPX
 func generateSmallGpx() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).gpx")
     let gpx = """
@@ -167,7 +172,9 @@ func generateSmallGpx() throws -> URL {
     try gpx.data(using: .utf8)!.write(to: url)
     return url
 }
+#endif
 
+#if EnableCSV
 func generateSmallCsv() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).csv")
     let csv = """
@@ -178,7 +185,9 @@ func generateSmallCsv() throws -> URL {
     try csv.data(using: .utf8)!.write(to: url)
     return url
 }
+#endif
 
+#if EnableFIT
 func generateSmallFit() throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).fit")
     let coords: [Coordinate3D] = [
@@ -207,7 +216,9 @@ func generateSmallFit() throws -> URL {
     try data.write(to: url)
     return url
 }
+#endif
 
+#if EnableShapefile
 func generateSmallShapefile() throws -> URL {
     let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("shp_\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -219,7 +230,9 @@ func generateSmallShapefile() throws -> URL {
     try ShapefileCoder.write(fc, to: shapefileUrl)
     return shapefileUrl.appendingPathExtension("shp")
 }
+#endif
 
+#if EnableGeoPackage
 func generateSmallGeoPackage() async throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).gpkg")
     var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
@@ -232,7 +245,9 @@ func generateSmallGeoPackage() async throws -> URL {
     try await tile.writeGeoPackage(to: url)
     return url
 }
+#endif
 
+#if EnableMLT
 func generateSmallMlt(coord: Int = 0) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).mlt")
     var tile = try VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)
@@ -243,6 +258,7 @@ func generateSmallMlt(coord: Int = 0) throws -> URL {
     try data.write(to: url)
     return url
 }
+#endif
 
 func generateSmallMvt(coord: Int = 0) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).mvt")

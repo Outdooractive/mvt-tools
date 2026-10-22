@@ -24,6 +24,7 @@ struct ExportCommandTests {
         #expect(!fc.features.isEmpty)
     }
 
+    #if EnableGPX
     @Test(.timeLimit(.minutes(1)))
     func exportGpxToGeoJson() throws {
         let path = try generateSmallGpx().path
@@ -33,7 +34,9 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
+    #if EnableCSV
     @Test(.timeLimit(.minutes(1)))
     func exportCsvToGeoJson() throws {
         let path = try generateSmallCsv().path
@@ -43,7 +46,9 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
+    #if EnableShapefile
     @Test(.timeLimit(.minutes(1)))
     func exportShapefileToGeoJson() throws {
         let path = try generateSmallShapefile().path
@@ -53,7 +58,9 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
+    #if EnableGeoPackage
     @Test(.timeLimit(.minutes(1)))
     func exportGeoPackageToGeoJson() async throws {
         let path = try await generateSmallGeoPackage().path
@@ -63,7 +70,9 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
+    #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
     func exportMltToGeoJson() throws {
         let path = try generateSmallMlt().path
@@ -73,6 +82,7 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func exportWithCompression() throws {
