@@ -141,6 +141,7 @@ struct TileDataContentConsistencyTests {
 
     // MARK: - Layer structure: all three formats
 
+    #if EnableMLT
     @Test
     func mvtAndMltHaveSameLayers() throws {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
@@ -156,9 +157,11 @@ struct TileDataContentConsistencyTests {
                     "Feature count mismatch in layer '\(layerName)'")
         }
     }
+    #endif
 
     // MARK: - Total feature counts (accounting for multi-geometry flattening)
 
+    #if EnableMLT
     @Test
     func rawCountsMatchBetweenMvtAndMlt() throws {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
@@ -173,6 +176,7 @@ struct TileDataContentConsistencyTests {
         #expect(mvtTotal == mltTotal,
                 "MVT (\(mvtTotal)) vs MLT (\(mltTotal)) raw counts differ")
     }
+    #endif
 
     @Test
     func flattenedCountsMatchBetweenMvtAndGeoJson() throws {
@@ -193,6 +197,7 @@ struct TileDataContentConsistencyTests {
 
     // MARK: - Per-layer property consistency (MVT vs MLT)
 
+    #if EnableMLT
     @Test
     func mvtAndMltHaveSamePropertiesPerLayer() throws {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
@@ -214,9 +219,11 @@ struct TileDataContentConsistencyTests {
                     "Property mismatch in layer '\(layerName)'")
         }
     }
+    #endif
 
     // MARK: - Per-layer geometry consistency (MVT vs MLT)
 
+    #if EnableMLT
     @Test
     func mvtAndMltHaveSameGeometriesPerLayer() throws {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
@@ -246,6 +253,7 @@ struct TileDataContentConsistencyTests {
                     "Geometry mismatch in layer '\(layerName)' (\(mismatchCount) differences, tolerance \(tolerance))")
         }
     }
+    #endif
 
     // MARK: - Per-layer property consistency (MVT vs GeoJSON)
 
