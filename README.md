@@ -57,6 +57,8 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
   - [mvt import](#mvt-import)
   - [mvt load](#mvt-load)
   - [mvt rezoom](#mvt-rezoom)
+  - [mvt reproject](#mvt-reproject)
+  - [Projections](#projections)
 - [Development](#development)
 - [Contributing](#contributing)
 - [TODOs and future improvements](#todos-and-future-improvements)
@@ -77,7 +79,7 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
 - **Property queries** — powerful RPN-based query DSL with comparisons, string operators, regex, set membership, boolean logic, and existence checks.
 - **Layer management** — extract, merge, remove, or filter layers and features.
 - **Tile metadata** — per-layer feature counts, geometry-type breakdowns, property histograms.
-- **Command-line tool** — `mvt` with subcommands: `dump`, `info`, `query`, `merge`, `import`, `export`, `load`, `rezoom`.
+- **Command-line tool** — `mvt` with subcommands: `dump`, `info`, `query`, `merge`, `import`, `export`, `load`, `rezoom`, `reproject`.
 
 ## Requirements
 
@@ -215,7 +217,14 @@ print(tile.layerNames)   // ["Layer-0"]
 let tile = try VectorTile(
     csvData: csvData,
     readOptions: CSVReadOptions(delimiter: ";"))
+
+// Projected data uses x/y (or longitude/latitude) and an explicit CRS.
+let projected = try VectorTile(
+    csvData: csvData,
+    readOptions: CSVReadOptions(projection: .epsg3857))
 ```
+
+A `projection`, `crs`, or `srid` column can declare the CRS directly. Non-empty values must be consistent across the file.
 
 ### Write CSV
 
@@ -535,6 +544,8 @@ Some commands allow limiting the result to certain layers with `--layer` (or `-l
 CSV input and output are controlled with the `--csv-*` options (`--csv-delimiter`, `--csv-null-handling`, `--csv-omit-null`, `--csv-linestring`, `--csv-geometry-format`, …).
 With `--csv-linestring` (or `-cLS`), the coordinates of all CSV rows are concatenated into a single `LineString` feature — useful for GPS track exports.
 
+Use `--input-projection` (`-ip`) and `--output-projection` (`-op`) to select input and output CRS independently. CSV also honors `projection`/`crs`/`srid` columns.
+
 ```bash
 # mvt -h
 OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
@@ -562,6 +573,7 @@ SUBCOMMANDS:
   export                  Alias for 'merge'
   load                    Download all tiles within a bounding box from a tile URL template
   rezoom                  Overzoom or underzoom source tiles into a single output tile at a target zoom level
+  reproject               Reproject any supported input file to a target CRS
 
   See 'mvt help <subcommand>' for detailed help.
 ```

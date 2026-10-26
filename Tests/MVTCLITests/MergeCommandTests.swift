@@ -1,4 +1,5 @@
 import Foundation
+import GISTools
 import MVTTools
 import Testing
 
@@ -125,6 +126,44 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", "--pretty-print", input.path])
         let data = try Data(contentsOf: outUrl)
         #expect(!data.isEmpty)
+    }
+
+}
+
+// MARK: - Projection options
+
+struct MergeProjectionTests {
+
+    @Test(.timeLimit(.minutes(1)))
+    func mergeWithInputAndOutputProjection() throws {
+        let input = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("merge_projection_\(UUID().uuidString).geojson")
+        let output = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("merge_projection_\(UUID().uuidString).geojson")
+        defer {
+            try? FileManager.default.removeItem(at: input)
+            try? FileManager.default.removeItem(at: output)
+        }
+
+        let json = """
+        {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[1281000,6125000]}}]}
+        """
+        try Data(json.utf8).write(to: input)
+
+        let (_, stderr, exitCode) = try runCLIWithStderr(args: [
+            "merge",
+            "-ip", "3857",
+            "-op", "4326",
+            "--output", output.path,
+            input.path,
+        ])
+        #expect(exitCode == 0, "stderr: \(stderr)")
+
+        let collection = try #require(FeatureCollection(jsonData: try Data(contentsOf: output)))
+        let point = try #require(collection.features.first?.geometry as? Point)
+        #expect(point.coordinate.projection == .epsg4326)
+        #expect(abs(point.coordinate.longitude - 11.5) < 0.01)
+        #expect(abs(point.coordinate.latitude - 48.1) < 0.01)
     }
 
 }

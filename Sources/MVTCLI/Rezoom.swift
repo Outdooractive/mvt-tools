@@ -142,6 +142,9 @@ extension CLI {
         @OptionGroup
         var csvWriteOptions: CSVWriteCLIOptions
 
+        @OptionGroup
+        var projectionOptions: ProjectionOptions
+
         @Argument(
             help: "Source tiles to rezoom (file or URL).",
             completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "gpx", "csv", "shp", "gpkg"]))
@@ -210,6 +213,7 @@ extension CLI {
                     layerAllowlist: effectiveAllowlist,
                     layerProperty: disableInputLayerProperty ? nil : propertyName,
                     csvReadOptions: csvReadOptions.options,
+                    inputProjection: projectionOptions.input,
                     logger: options.verbose ? CLI.logger : nil)
 
                 if let layerDenylist {
@@ -235,11 +239,14 @@ extension CLI {
             }
 
             // 4. Rezoom
-            let result = try VectorTile.rezoom(
+            var result = try VectorTile.rezoom(
                 loadedSources,
                 toTargetX: targetXYZ.x,
                 targetY: targetXYZ.y,
                 targetZ: targetXYZ.z)
+            if let outputProjection = projectionOptions.output {
+                result = try result.projected(to: outputProjection)
+            }
 
             if options.verbose {
                 print("Rezoomed \(loadedSources.count) source(s) into target \(targetXYZ.z)/\(targetXYZ.x)/\(targetXYZ.y) (\(result.layerNames.count) layers)")

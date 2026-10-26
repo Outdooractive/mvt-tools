@@ -29,6 +29,16 @@ extension CLI {
         prettyPrint: Bool,
         propertyName: String?
     ) async throws {
+        var tile = tile
+        switch format {
+        case .fit, .gpx:
+            if tile.projection != .epsg4326 {
+                tile = try tile.projected(to: .epsg4326)
+            }
+        default:
+            break
+        }
+
         switch format {
         case .geoJson:
             guard let data = tile.toGeoJson(

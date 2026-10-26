@@ -1,5 +1,5 @@
 {
-  "originHash" : "de8266d835c7df1f3037f993afd53e6d0ab7692ac87ad6a6d9a43a71df986aae",
+  "originHash" : "fb459a2eb389e2fc3deab28594eda55b54b1e6bcf409bdc5346bdeb678707892",
   "pins" : [
     {
       "identity" : "gis-tools",
@@ -15,44 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Outdooractive/gis-tools-csv",
       "state" : {
-        "revision" : "50fd299cd8b63d8744e7edc1514bb3b4ab64aaf0",
-        "version" : "3.0.0-beta.5"
-      }
-    },
-    {
-      "identity" : "gis-tools-fit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Outdooractive/gis-tools-fit",
-      "state" : {
-        "revision" : "3ad3e7031230c8611bd0141fe207b4e86920cb7d",
-        "version" : "3.0.0-beta.5"
-      }
-    },
-    {
-      "identity" : "gis-tools-geopackage",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Outdooractive/gis-tools-geopackage",
-      "state" : {
-        "revision" : "1f27a51c97a6fac0af0064b16cb472d8aabd9dd4",
-        "version" : "3.0.0-beta.5"
-      }
-    },
-    {
-      "identity" : "gis-tools-gpx",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Outdooractive/gis-tools-gpx",
-      "state" : {
-        "revision" : "33f88c540e365d191464003a175cd73da50dd709",
-        "version" : "3.0.0-beta.5"
-      }
-    },
-    {
-      "identity" : "gis-tools-shapefile",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Outdooractive/gis-tools-shapefile",
-      "state" : {
-        "revision" : "656ff6a37fc647c4fb4c54e9695f50348bf422e9",
-        "version" : "3.0.0-beta.5"
+        "revision" : "12d0bbad1a1091fa1db7447252184fcdbc7c0989",
+        "version" : "3.0.0-beta.6"
       }
     },
     {

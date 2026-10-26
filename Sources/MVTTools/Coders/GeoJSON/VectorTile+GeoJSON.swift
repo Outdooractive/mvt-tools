@@ -20,6 +20,7 @@ extension VectorTile {
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - projection: The CRS to reinterpret the raw GeoJSON coordinates in. Defaults to EPSG:4326.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Throws: VectorTileError.
     public init(
@@ -27,6 +28,7 @@ extension VectorTile {
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
+        projection: Projection? = nil,
         logger: Logger? = nil
     ) throws {
         // `toGeoJson(options:)` can gzip its output, so accept gzipped input
@@ -37,11 +39,15 @@ extension VectorTile {
             data = (try? data.gunzipped()) ?? data
         }
 
-        guard let featureCollection = FeatureCollection(jsonData: data) else {
+        guard let parsedCollection = FeatureCollection(jsonData: data) else {
             throw VectorTileError.parseFailed(
                 format: "GeoJSON",
                 reason: "unable to parse FeatureCollection from data")
         }
+        let sourceProjection = projection ?? .epsg4326
+        let featureCollection = sourceProjection == .epsg4326
+            ? parsedCollection
+            : FeatureCollection(parsedCollection.features.map { $0.retagged(to: sourceProjection) })
         guard let fcBoundingBox = featureCollection.calculateBoundingBox() else {
             throw VectorTileError.parseFailed(
                 format: "GeoJSON",
@@ -66,8 +72,8 @@ extension VectorTile {
                 x: x, y: y, z: z, maxBound: maximumTileCoordinate)
         }
 
-        self.projection = .epsg4326
-        self.boundingBox = tile.boundingBox(projection: projection)
+        self.projection = sourceProjection
+        self.boundingBox = tile.boundingBox(projection: sourceProjection)
         self.logger = logger
 
         let layerAllowlistSet: Set<String>? = if let layerAllowlist {
@@ -99,6 +105,7 @@ extension VectorTile {
     ///   - layerProperty: An optional property name used to assign features to layers.
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
+    ///   - projection: The CRS to reinterpret the raw GeoJSON coordinates in. Defaults to EPSG:4326.
     ///   - logger: An optional logger instance. Defaults to `nil`.
     /// - Throws: VectorTileError.
     public init(
@@ -106,6 +113,7 @@ extension VectorTile {
         indexed sortOption: RTreeSortOption? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         layerAllowlist: [String]? = nil,
+        projection: Projection? = nil,
         logger: Logger? = nil
     ) throws {
         let data: Data
@@ -124,6 +132,7 @@ extension VectorTile {
             indexed: sortOption,
             layerProperty: layerProperty,
             layerAllowlist: layerAllowlist,
+            projection: projection,
             logger: logger)
     }
 

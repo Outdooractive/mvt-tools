@@ -59,6 +59,9 @@ extension CLI {
         @OptionGroup
         var csvOptions: CSVReadCLIOptions
 
+        @OptionGroup
+        var projectionOptions: ProjectionOptions
+
         @Argument(
             help: "The input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage).",
             completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
@@ -78,12 +81,16 @@ extension CLI {
                 ? nil
                 : layerAllowlist
 
-            let tile = try await format.loadTile(
+            var tile = try await format.loadTile(
                 from: url,
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
                 csvReadOptions: csvOptions.options,
+                inputProjection: projectionOptions.input,
                 logger: options.verbose ? CLI.logger : nil)
+            if let outputProjection = projectionOptions.output {
+                tile = try tile.projected(to: outputProjection)
+            }
 
             if options.verbose {
                 print("Dumping \(format) tile '\(url.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")

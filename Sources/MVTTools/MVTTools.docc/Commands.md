@@ -22,6 +22,7 @@ brew install Outdooractive/homebrew-tap/mvt-tools
 | `mvt export` | Alias for `merge` |
 | `mvt load` | Download a bounding-box tile cover from a URL template |
 | `mvt rezoom` | Overzoom/underzoom source tiles into one target tile |
+| `mvt reproject` | Reproject any supported input to a target CRS |
 
 Tile coordinates are needed for MVT/MLT. They can be passed with `--x`,
 `--y`, `--z`, or parsed from a path such as `14/8716/8015.pbf` or
@@ -49,6 +50,26 @@ mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles \
 minimum longitude is greater than its maximum crosses the antimeridian, for
 example `170,-10,-170,10`. Use `--layout tree` for `z/x/y.ext` output and
 `--overwrite-existing` to replace existing files.
+
+## Projections
+
+All file-conversion commands accept separate input and output CRS options:
+
+| Option | Short | Description |
+|---|---|---|
+| `--input-projection` | `-ip` | Input CRS: `auto`, SRID, `EPSG:n`, `noSRID`, or registered WKT. |
+| `--output-projection` | `-op` | Output CRS: `auto`, SRID, `EPSG:n`, `noSRID`, or registered WKT. |
+
+MVT/MLT, CSV, GeoJSON, GPX and FIT default to EPSG:4326. Shapefile and GeoPackage use their embedded CRS. An explicit input projection overrides the format default; for Shapefile/GeoPackage this reinterprets the raw coordinates, which is useful when file metadata is wrong. Use `--output-projection` or `mvt reproject` for an actual coordinate transformation.
+
+GeoJSON input projection reinterprets raw coordinates in the selected CRS, not from 4326. CSV also accepts `projection`/`crs`/`srid` columns.
+
+```bash
+mvt reproject -ip 3857 -op 4326 --output out.geojson 14/8716/8015.mvt
+mvt reproject -op 3857 --output out.mvt input.geojson
+```
+
+`reproject` accepts the same layer filters (`--layer`, `--drop-layer`), simplification, buffering, compression and CSV options as `merge`.
 
 ## Output formats
 
