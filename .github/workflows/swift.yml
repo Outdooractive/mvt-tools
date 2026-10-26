@@ -66,7 +66,8 @@ jobs:
           fi
 
           IGNORE='(Tests/|\.build/|Dependencies/|/checkouts/|CMLT/|VectorTile_Tile\.swift)'
-          OBJECTS=(.build/debug/MVTToolsTests.so .build/debug/MVTCLITests.so)
+          BIN="$(swift build --show-bin-path)"
+          OBJECTS=("$BIN/MVTToolsTests.so" "$BIN/MVTCLITests.so")
 
           llvm-cov report "${OBJECTS[@]}" \
             -instr-profile="$PROF_DATA" \

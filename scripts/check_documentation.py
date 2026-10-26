@@ -53,6 +53,10 @@ def build_symbol_graph() -> Path:
         str(SYMBOL_DIR),
     ]
 
+    modules = Path(bin_path) / "Modules"
+    if modules.exists():
+        command.extend(["-I", str(modules)])
+
     # GISTools depends on a C zlib module whose module map lives in the
     # dependency checkout rather than in the product directory.
     czlib = ROOT / ".build" / "checkouts" / "gis-tools" / "Sources" / "GISToolsCZlib"
