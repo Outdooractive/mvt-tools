@@ -122,7 +122,9 @@ extension CLI {
             var coordinate: Coordinate3D?
             var tolerance: CLLocationDistance?
 
-            let possibleCoordinateParts = searchTerm.extractingGroupsUsingPattern("^([\\d\\.]+),([\\d\\.]+),([\\d\\.]+)$", caseInsensitive: false)
+            let possibleCoordinateParts = searchTerm.extractingGroupsUsingPattern(
+                "^\\s*(-?[\\d.]+)\\s*,\\s*(-?[\\d.]+)\\s*,\\s*(-?[\\d.]+)\\s*$",
+                caseInsensitive: false)
             if possibleCoordinateParts.count >= 3 {
                 if let partLatitude = Double(possibleCoordinateParts[0]),
                    let partLongitude = Double(possibleCoordinateParts[1]),
@@ -285,7 +287,7 @@ extension CLI {
                     }
                     return feature
                 })
-            return FeatureCollection(features)
+            return features.isEmpty ? nil : FeatureCollection(features)
         }
 
         /// Queries features in a tile by a text search term.
@@ -312,7 +314,7 @@ extension CLI {
                     }
                     return feature
                 })
-            return FeatureCollection(features)
+            return features.isEmpty ? nil : FeatureCollection(features)
         }
 
     }

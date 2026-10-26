@@ -175,7 +175,7 @@ extension CLI {
             }
             let propertyNames = propertyValues.flatMap({ $1.keys }).sorted()
 
-            var tableHeader = ["Name"]
+            var tableHeader = ["Property"]
             tableHeader.append(contentsOf: propertyNames)
 
             var table: [[String]] = []
@@ -290,7 +290,8 @@ extension CLI {
             var properties: Set<String> = []
 
             let components = rawValue.components(separatedBy: ",")
-            for component in components {
+            for rawComponent in components {
+                let component = rawComponent.trimmingCharacters(in: .whitespaces)
                 if component == "features" {
                     result.append(.features)
                     continue

@@ -8,3 +8,7 @@ xcuserdata
 *~
 \#*
 .\#*
+*.profraw
+*.profdata
+coverage-report.txt
+coverage-summary.json

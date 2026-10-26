@@ -14,13 +14,11 @@ extension VectorTile {
     /// The shapefile's projection is read from its `.prj` file (defaults to `.epsg4326`).
     ///
     /// - Parameters:
-    ///   - shapefile: The base URL of the shapefile (may include `.shp` extension).
+    ///   - url: The base URL of the shapefile (may include `.shp` extension).
     ///   - layerName: The target layer name. When `nil`, the shapefile's filename is used.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         shapefile url: URL,
         layerName: String? = nil,
@@ -47,7 +45,7 @@ extension VectorTile {
         self.y = tile.y
         self.z = tile.z
 
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -77,6 +75,31 @@ extension VectorTile {
         }
     }
 
+    /// Create a vector tile from a Shapefile.
+    ///
+    /// This is a convenience alias for
+    /// ``VectorTile/init(shapefile:layerName:indexed:logger:)`` that matches
+    /// the `contentsOf…` naming used by the other format coders.
+    ///
+    /// - Parameters:
+    ///   - url: The base URL of the shapefile (may include `.shp`).
+    ///   - layerName: The target layer name. Defaults to the filename.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing.
+    ///   - logger: An optional logger instance.
+    /// - Throws: VectorTileError.
+    public init(
+        contentsOfShapefile url: URL,
+        layerName: String? = nil,
+        indexed sortOption: RTreeSortOption? = nil,
+        logger: Logger? = nil
+    ) throws {
+        try self.init(
+            shapefile: url,
+            layerName: layerName,
+            indexed: sortOption,
+            logger: logger)
+    }
+
     // MARK: - Export
 
     /// Write a single layer as a Shapefile.
@@ -86,7 +109,7 @@ extension VectorTile {
     ///   - layerName: When non-nil, only this layer is exported. When `nil`, all layers are merged.
     ///   - encoding: The string encoding for the DBF file (default `.utf8`).
     ///   - options: Export options controlling simplification.
-    /// - Throws: ``ShapefileError/mixedGeometry`` if the exported features have mixed geometry types.
+    /// - Throws: `a Shapefile error` if the exported features have mixed geometry types.
     public func writeShapefile(
         to url: URL,
         layerName: String? = nil,
@@ -103,11 +126,14 @@ extension VectorTile {
 
         guard features.isNotEmpty else { return }
 
+        // Features without a geometry cannot be represented in a Shapefile.
         let processed = processFeatures(features, options: options)
-        let geometryTypes = Set(processed.map(\.geometry.type))
-        guard geometryTypes.count == 1 else {
+            .filter({ $0.geometry != nil })
+        let geometryTypes = Set(processed.compactMap(\.geometry?.type))
+        guard geometryTypes.count <= 1 else {
             throw ShapefileError.mixedGeometry(types: geometryTypes)
         }
+        guard geometryTypes.count == 1 else { return }
 
         let fc = FeatureCollection(processed)
         try ShapefileCoder.write(fc, to: url, encoding: encoding)
@@ -119,7 +145,7 @@ extension VectorTile {
     ///   - directory: The output directory. One `.shp`/`.dbf`/`.prj` set per layer.
     ///   - encoding: The string encoding for DBF files (default `.utf8`).
     ///   - options: Export options controlling simplification.
-    /// - Throws: ``ShapefileError`` or file I/O errors.
+    /// - Throws: `a Shapefile error` or file I/O errors.
     public func writeShapefiles(
         to directory: URL,
         encoding: String.Encoding = .utf8,

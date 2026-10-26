@@ -5,7 +5,7 @@ import GISTools
 
 extension VectorTile {
 
-    /// Add features from a ``GeoJson`` object to this tile.
+    /// Add features from a `GeoJSON` object to this tile.
     ///
     /// - Parameter geoJson: The source GeoJSON data.
     /// - Parameter layerName: The target layer name. When `nil`, a layer name is auto-generated.
@@ -45,7 +45,7 @@ extension VectorTile {
         }
     }
 
-    /// Replace all features in this tile with those from a ``GeoJson`` object.
+    /// Replace all features in this tile with those from a `GeoJSON` object.
     ///
     /// Unlike ``addGeoJson(geoJson:layerName:layerProperty:layerAllowlist:)``,
     /// this method clears existing features from each target layer before adding the new ones.

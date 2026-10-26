@@ -62,4 +62,13 @@ struct InfoCommandTests {
         #expect(output.contains("class"))
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func infoTablesAcceptWhitespace() throws {
+        let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
+        let output = try runCLI(args: ["info", "-i", "features, property=class", mvtPath])
+        #expect(output.contains("Features"))
+        #expect(output.contains("Property"))
+        #expect(output.contains("hospital"))
+    }
+
 }

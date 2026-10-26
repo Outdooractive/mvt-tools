@@ -39,14 +39,14 @@ let package = Package(
             description: "Enables Shapefile vector tile import/export."),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", exact: "3.0.0-beta.1"),
-        // NOTE: The gis-tools-* format packages below pin gis-tools to exactly 3.0.0-beta.1,
-        // so gis-tools cannot be bumped until matching format package releases exist.
-        .package(url: "https://github.com/Outdooractive/gis-tools-csv", exact: "3.0.0-beta.1"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", exact: "3.0.0-beta.1"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-gpx", exact: "3.0.0-beta.1"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-fit", exact: "3.0.0-beta.1"),
-        .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", exact: "3.0.0-beta.1"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", exact: "3.0.0-beta.5"),
+        // The gis-tools-* format packages pin gis-tools to the same exact version,
+        // so all six packages must be updated together.
+        .package(url: "https://github.com/Outdooractive/gis-tools-csv", exact: "3.0.0-beta.5"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", exact: "3.0.0-beta.5"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-gpx", exact: "3.0.0-beta.5"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-fit", exact: "3.0.0-beta.5"),
+        .package(url: "https://github.com/Outdooractive/gis-tools-shapefile", exact: "3.0.0-beta.5"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", from: "7.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.8.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.16.2"),

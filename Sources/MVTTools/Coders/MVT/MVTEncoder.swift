@@ -18,11 +18,11 @@ enum MVTEncoder {
     /// applies gzip compression if requested.
     ///
     /// - Parameters:
-    ///   - layers: A dictionary of layer names to their ``VectorTile.LayerContainer``.
+    ///   - layers: A dictionary of layer names to their `VectorTile.LayerContainer`.
     ///   - x: The tile column index.
     ///   - y: The tile row index.
     ///   - z: The tile zoom level.
-    ///   - projection: The source projection of the input coordinates (default: ``Projection/epsg4326``).
+    ///   - projection: The source projection of the input coordinates (default: `Projection.epsg4326`).
     ///   - options: Export options controlling buffer size, simplification, and compression.
     /// - Returns: The serialized MVT protobuf bytes (optionally gzip-compressed), or `nil` on failure.
     static func encode(
@@ -66,36 +66,20 @@ enum MVTEncoder {
             simplifyDistance = meters
         }
 
-        if bufferSize != 0,
-           let boundingBoxToExpand = clipBoundingBox
-        {
-            let sqrt2 = 2.0.squareRoot()
-            let diagonal = Double(extent) * sqrt2
-            let bufferDiagonal = Double(bufferSize) * sqrt2
-            let factor = bufferDiagonal / diagonal
-
-            let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
-            let distance = diagonalLength * factor
-
-            clipBoundingBox = boundingBoxToExpand.expanded(byDistance: distance)
+        if bufferSize != 0, let boundingBox = clipBoundingBox {
+            clipBoundingBox = VectorTile.expanded(boundingBox, byBufferSize: bufferSize)
         }
 
         var vectorTileLayers: [VectorTile_Tile.Layer] = []
 
-        for (layerName, layerContainer) in layers {
+        for (layerName, layerContainer) in layers.sorted(by: { $0.key < $1.key }) {
             guard layerContainer.features.isNotEmpty else { continue }
 
-            let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
-                if simplifyDistance > 0.0 {
-                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
-                }
-                else {
-                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox) })
-                }
-            }
-            else {
-                layerContainer.features
-            }
+            let layerFeatures = VectorTile.processedFeatures(
+                layerContainer.features,
+                clipBoundingBox: clipBoundingBox,
+                simplifyDistance: simplifyDistance)
+                .filter({ $0.geometry != nil })
 
             guard layerFeatures.isNotEmpty else { continue }
 
@@ -127,7 +111,7 @@ enum MVTEncoder {
         }
     }
 
-    /// Encodes a collection of ``Feature`` values into a version-2 protobuf layer.
+    /// Encodes a collection of `Feature` values into a version-2 protobuf layer.
     ///
     /// Deduplicates property keys and values across features and assigns them
     /// integer indices in the layer's key/value tables.
@@ -135,9 +119,9 @@ enum MVTEncoder {
     /// - Parameters:
     ///   - features: The features to encode.
     ///   - extent: The tile extent value for the layer.
-    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///   - projectionFunction: A closure that converts a `Coordinate3D` to tile-local
     ///     (x, y) integers.
-    /// - Returns: A ``VectorTile_Tile.Layer`` populated with the encoded features, keys, and values.
+    /// - Returns: A `VectorTile_Tile.Layer` populated with the encoded features, keys, and values.
     static func encodeVersion2(
         features: [Feature],
         extent: UInt32,
@@ -153,7 +137,7 @@ enum MVTEncoder {
         var keyPositions: [String: UInt32] = [:]
 
         var values: [VectorTile_Tile.Value] = []
-        var valuePositions: [AnyHashable: UInt32] = [:]
+        var valuePositions: [MVTEncoder.EncodedPropertyValue: UInt32] = [:]
 
         for feature in features {
             guard var vectorTileFeature = vectorTileFeature(from: feature, projectionFunction: projectionFunction) else { continue }
@@ -170,69 +154,19 @@ enum MVTEncoder {
                     return index
                 }()
 
-                // Encode arrays and dictionaries as JSON encoded strings
-                let hashablePropertyValue: AnyHashable? = {
-                    if let array = propertyValue as? [Sendable] {
-                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: array)) else { return nil }
-                        return String(data: data, encoding: .utf8) ?? ""
-                    }
-                    else if let dictionary = propertyValue as? [String: Sendable] {
-                        guard let data: Data = (try? JSONSerialization.data(withJSONObject: dictionary)) else { return nil }
-                        return String(data: data, encoding: .utf8) ?? ""
-                    }
-                    else if let number = propertyValue as? NSNumber {
-                        // NSNumber/NSDecimalNumber can have unreliable hash/equality as AnyHashable on Linux.
-                        // Bridge to native Swift types for safe dictionary key usage.
-                        let cType = number.objCType.pointee
-                        switch cType {
-                        case 66 /* 'B' (bool) */, 99 /* 'c' (char → BOOL) */:
-                            return number.boolValue as Bool
-                        case 100 /* 'd' (double) */, 102 /* 'f' (float) */:
-                            return number.doubleValue as Double
-                        case 113 /* 'q' (long long) */, 105 /* 'i' (int) */, 108 /* 'l' (long) */:
-                            return number.int64Value as Int64
-                        case 81 /* 'Q' (unsigned long long) */:
-                            return number.uint64Value as UInt64
-                        default:
-                            return number.doubleValue as Double
-                        }
-                    }
-                    else if let value = propertyValue as? AnyHashable {
-                        return value
-                    }
-                    else {
-                        return nil
-                    }
-                }()
+                // Encode arrays and dictionaries as JSON encoded strings.
+                // The key is a type-tagged enum instead of `AnyHashable`:
+                // Foundation bridges numeric `AnyHashable` values, so `Int(1)`
+                // and `Double(1.0)`, or `Int64(1)` and `UInt64(1)`, compare
+                // equal and would otherwise share one value table entry and
+                // lose their original type.
+                guard let valueKey = MVTEncoder.encodedPropertyValue(from: propertyValue) else { continue }
 
-                guard let hashablePropertyValue else { continue }
-
-                let valueIndex: UInt32 = valuePositions[hashablePropertyValue] ?? {
-                    var encodedPropertyValue = VectorTile_Tile.Value()
-
-                    switch hashablePropertyValue {
-                    case let string as String:
-                        encodedPropertyValue.stringValue = string
-                    case let int as Int:
-                        encodedPropertyValue.intValue = Int64(int)
-                    case let bool as Bool:
-                        encodedPropertyValue.boolValue = bool
-                    case let double as Double:
-                        encodedPropertyValue.doubleValue = double
-                    case let float as Float:
-                        encodedPropertyValue.floatValue = float
-                    case let uint as UInt64:
-                        encodedPropertyValue.uintValue = uint
-                    case let sint as Int64:
-                        encodedPropertyValue.sintValue = sint
-                    default:
-                        encodedPropertyValue.stringValue = ""
-                    }
-
-                    values.append(encodedPropertyValue)
+                let valueIndex: UInt32 = valuePositions[valueKey] ?? {
+                    values.append(valueKey.protobufValue)
 
                     let index = UInt32(values.count - 1)
-                    valuePositions[hashablePropertyValue] = index
+                    valuePositions[valueKey] = index
 
                     return index
                 }()
@@ -253,14 +187,14 @@ enum MVTEncoder {
         return layer
     }
 
-    /// Converts a ``Feature`` into a ``VectorTile_Tile.Feature`` with encoded geometry.
+    /// Converts a `Feature` into a `VectorTile_Tile.Feature` with encoded geometry.
     ///
-    /// Handles all geometry types: ``Point``, ``MultiPoint``, ``LineString``,
-    /// ``MultiLineString``, ``Polygon``, and ``MultiPolygon``.
+    /// Handles all geometry types: `Point`, `MultiPoint`, `LineString`,
+    /// `multi-line string`, `Polygon`, and `MultiPolygon`.
     ///
     /// - Parameters:
     ///   - feature: The source feature to encode.
-    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///   - projectionFunction: A closure that converts a `Coordinate3D` to tile-local
     ///     (x, y) integers.
     /// - Returns: A protobuf feature with geometry integers, or `nil` if the geometry
     ///   type is unsupported.
@@ -268,10 +202,12 @@ enum MVTEncoder {
         from feature: Feature,
         projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
     ) -> VectorTile_Tile.Feature? {
+        guard let geometry = feature.geometry else { return nil }
+
         var geometryIntegers: [UInt32]?
         var geometryType: VectorTile_Tile.GeomType?
 
-        switch feature.geometry {
+        switch geometry {
         case let point as Point:
             geometryType = .point
             geometryIntegers = self.geometryIntegers(
@@ -302,14 +238,20 @@ enum MVTEncoder {
 
         case let polygon as Polygon:
             geometryType = .polygon
+            // MVT requires exterior rings to be clockwise in tile space and
+            // holes counter-clockwise. `withWindingOrder(.counterClockwise)`
+            // produces that orientation in geographic/GeoJSON coordinates,
+            // which the decoder's `isUnprojectedClockwise` check expects.
+            let normalized = polygon.withWindingOrder(.counterClockwise)
             geometryIntegers = self.geometryIntegers(
-                fromMultiCoordinates: polygon.coordinates,
+                fromMultiCoordinates: normalized.coordinates,
                 ofType: .polygon,
                 projectionFunction: projectionFunction)
 
         case let multiPolygon as MultiPolygon:
             geometryType = .polygon
-            let multiCoordinates: [[Coordinate3D]] = Array(multiPolygon.polygons.map({ $0.coordinates }).joined())
+            let normalized = multiPolygon.withWindingOrder(.counterClockwise)
+            let multiCoordinates: [[Coordinate3D]] = Array(normalized.polygons.map({ $0.coordinates }).joined())
             geometryIntegers = self.geometryIntegers(
                 fromMultiCoordinates: multiCoordinates,
                 ofType: .polygon,
@@ -348,7 +290,7 @@ enum MVTEncoder {
     /// - Parameters:
     ///   - multiCoordinates: An array of coordinate rings to encode.
     ///   - featureType: The protobuf geometry type (point, linestring, polygon).
-    ///   - projectionFunction: A closure that converts a ``Coordinate3D`` to tile-local
+    ///   - projectionFunction: A closure that converts a `Coordinate3D` to tile-local
     ///     (x, y) integers.
     /// - Returns: An array of encoded geometry integers, or `nil` if the input is invalid.
     static func geometryIntegers(
@@ -358,28 +300,51 @@ enum MVTEncoder {
     ) -> [UInt32]? {
         var geometryIntegers: [UInt32] = []
 
-        var dx = 0
-        var dy = 0
+        var previousX = 0
+        var previousY = 0
 
-        var commandId: UInt32 = 0
-        var commandCount: UInt32 = 0
-        var commandInteger: UInt32 = 0
+        /// Projects and appends one coordinate, returning `false` when the
+        /// coordinate or its delta cannot be represented in the MVT command
+        /// stream (32-bit signed range).
+        func appendCoordinate(_ coordinate: Coordinate3D) -> Bool {
+            let (x, y) = projectionFunction(coordinate)
+
+            guard MVTEncoder.isRepresentableTileCoordinate(x),
+                  MVTEncoder.isRepresentableTileCoordinate(y),
+                  let encodedX = MVTEncoder.zigZagEncodedUInt32(x - previousX),
+                  let encodedY = MVTEncoder.zigZagEncodedUInt32(y - previousY)
+            else { return false }
+
+            geometryIntegers.append(encodedX)
+            geometryIntegers.append(encodedY)
+            previousX = x
+            previousY = y
+            return true
+        }
+
+        func appendCommand(id: UInt32, count: Int) -> Bool {
+            // The command count occupies the upper 29 bits of the command
+            // integer, so it must fit into 0 ... 2^29 - 1.
+            guard count > 0,
+                  count <= 0x1FFF_FFFF,
+                  let count = UInt32(exactly: count)
+            else { return false }
+
+            geometryIntegers.append((id & 0x7) | (count << 3))
+            return true
+        }
 
         // Encode points
         if featureType == .point {
-            commandId = MVTEncoder.commandIdMoveTo
-            commandCount = UInt32(multiCoordinates.count)
-            commandInteger = (commandId & 0x7) | (commandCount << 3)
-            geometryIntegers.append(commandInteger)
+            let pointCount = multiCoordinates.count
+            guard pointCount > 0,
+                  appendCommand(id: MVTEncoder.commandIdMoveTo, count: pointCount)
+            else { return nil }
 
             for coordinates in multiCoordinates {
-                guard let moveToCoordinate = coordinates.first else { continue }
-
-                let (x, y) = projectionFunction(moveToCoordinate)
-                geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
-                geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
-                dx = x
-                dy = y
+                guard let coordinate = coordinates.first,
+                      appendCoordinate(coordinate)
+                else { return nil }
             }
 
             return geometryIntegers
@@ -393,64 +358,152 @@ enum MVTEncoder {
                   let moveToCoordinate = coordinates.first
             else { continue }
 
-            commandId = MVTEncoder.commandIdMoveTo
-            commandCount = 1
-            commandInteger = (commandId & 0x7) | (commandCount << 3)
-            geometryIntegers.append(commandInteger)
-
-            let (x, y) = projectionFunction(moveToCoordinate)
-            geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
-            geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
-            dx = x
-            dy = y
+            guard appendCommand(id: MVTEncoder.commandIdMoveTo, count: 1),
+                  appendCoordinate(moveToCoordinate)
+            else { return nil }
 
             if featureType == .linestring
                 || coordinates.get(at: 0) != coordinates.get(at: -1)
             {
-                commandId = MVTEncoder.commandIdLineTo
-                commandCount = UInt32(coordinates.count - 1)
-                commandInteger = (commandId & 0x7) | (commandCount << 3)
-                geometryIntegers.append(commandInteger)
+                guard appendCommand(id: MVTEncoder.commandIdLineTo, count: coordinates.count - 1) else { return nil }
 
                 for coordinate in coordinates[1...] {
-                    let (x, y) = projectionFunction(coordinate)
-                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
-                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
-                    dx = x
-                    dy = y
+                    guard appendCoordinate(coordinate) else { return nil }
                 }
             }
             else {
-                commandId = MVTEncoder.commandIdLineTo
-                commandCount = UInt32(coordinates.count - 2)
-                commandInteger = (commandId & 0x7) | (commandCount << 3)
-                geometryIntegers.append(commandInteger)
+                guard appendCommand(id: MVTEncoder.commandIdLineTo, count: coordinates.count - 2) else { return nil }
 
                 for coordinate in coordinates[1 ..< coordinates.count - 1] {
-                    let (x, y) = projectionFunction(coordinate)
-                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(x) - dx)))
-                    geometryIntegers.append(UInt32(MVTEncoder.zigZagEncode(Int(y) - dy)))
-                    dx = x
-                    dy = y
+                    guard appendCoordinate(coordinate) else { return nil }
                 }
             }
 
             if featureType == .polygon {
-                commandId = MVTEncoder.commandIdClosePath
-                commandCount = 1
-                commandInteger = (commandId & 0x7) | (commandCount << 3)
-                geometryIntegers.append(commandInteger)
+                guard appendCommand(id: MVTEncoder.commandIdClosePath, count: 1) else { return nil }
             }
         }
 
         return geometryIntegers
     }
 
-    private static func zigZagEncode(_ n: Int) -> Int {
-        (n >> 31) ^ (n << 1)
+    /// A Boolean value indicating whether `value` can be stored in an MVT
+    /// geometry command. MVT command parameters are 32-bit signed integers.
+    ///
+    /// - Parameter value: The projected tile coordinate or coordinate delta.
+    /// - Returns: `true` if the value fits into the signed 32-bit range.
+    private static func isRepresentableTileCoordinate(_ value: Int) -> Bool {
+        value >= Int(Int32.min) && value <= Int(Int32.max)
+    }
+
+    /// Zigzag-encodes a signed 32-bit delta into an MVT command parameter.
+    ///
+    /// - Parameter value: The delta to encode.
+    /// - Returns: The encoded unsigned 32-bit value, or `nil` when `value`
+    ///   does not fit into the signed 32-bit range.
+    private static func zigZagEncodedUInt32(_ value: Int) -> UInt32? {
+        guard isRepresentableTileCoordinate(value) else { return nil }
+
+        let encoded = (value << 1) ^ (value >> 31)
+        return UInt32(bitPattern: Int32(truncatingIfNeeded: encoded))
     }
 
     // MARK: - Projections
 
+
+    // MARK: - Property values
+
+    /// A type-tagged property value used as the key when deduplicating the
+    /// MVT value table.
+    private enum EncodedPropertyValue: Hashable {
+
+        case string(String)
+        case bool(Bool)
+        case int(Int)
+        case int64(Int64)
+        case uint64(UInt64)
+        case double(Double)
+        case float(Float)
+
+        /// The protobuf representation of this value.
+        var protobufValue: VectorTile_Tile.Value {
+            var value = VectorTile_Tile.Value()
+
+            switch self {
+            case let .string(string): value.stringValue = string
+            case let .bool(bool): value.boolValue = bool
+            case let .int(int): value.intValue = Int64(int)
+            case let .int64(int64): value.intValue = int64
+            case let .uint64(uint64): value.uintValue = uint64
+            case let .double(double): value.doubleValue = double
+            case let .float(float): value.floatValue = float
+            }
+
+            return value
+        }
+
+    }
+
+    /// Converts a `Feature` property value into a type-tagged MVT value.
+    ///
+    /// Arrays and dictionaries are JSON-encoded as strings, matching the
+    /// decoder's inverse conversion.
+    ///
+    /// - Parameter propertyValue: The property value from a feature.
+    /// - Returns: The encoded value, or `nil` when the value cannot be
+    ///   represented.
+    private static func encodedPropertyValue(
+        from propertyValue: Sendable
+    ) -> EncodedPropertyValue? {
+        if let array = propertyValue as? [Sendable] {
+            guard let data = try? JSONSerialization.data(withJSONObject: array) else { return nil }
+            return .string(String(decoding: data, as: UTF8.self))
+        }
+        if let dictionary = propertyValue as? [String: Sendable] {
+            guard let data = try? JSONSerialization.data(withJSONObject: dictionary) else { return nil }
+            return .string(String(decoding: data, as: UTF8.self))
+        }
+        if let string = propertyValue as? String { return .string(string) }
+        if let bool = propertyValue as? Bool { return .bool(bool) }
+        if let int = propertyValue as? Int { return .int(int) }
+        if let int8 = propertyValue as? Int8 { return .int(Int(int8)) }
+        if let int16 = propertyValue as? Int16 { return .int(Int(int16)) }
+        if let int32 = propertyValue as? Int32 { return .int(Int(int32)) }
+        if let int64 = propertyValue as? Int64 { return .int64(int64) }
+        if let uint64 = propertyValue as? UInt64 { return .uint64(uint64) }
+        if let uint = propertyValue as? UInt { return .uint64(UInt64(uint)) }
+        if let uint8 = propertyValue as? UInt8 { return .uint64(UInt64(uint8)) }
+        if let uint16 = propertyValue as? UInt16 { return .uint64(UInt64(uint16)) }
+        if let uint32 = propertyValue as? UInt32 { return .uint64(UInt64(uint32)) }
+        if let double = propertyValue as? Double { return .double(double) }
+        if let float = propertyValue as? Float { return .float(float) }
+
+        if let number = propertyValue as? NSNumber {
+            // Fallback for Foundation-produced numbers (JSONSerialization on
+            // Darwin). Native Swift types are handled above so unsigned
+            // values keep their signedness on Linux.
+            let cType = number.objCType.pointee
+            switch cType {
+            case 66 /* 'B' (bool) */, 99 /* 'c' (char → BOOL) */:
+                return .bool(number.boolValue)
+            case 100 /* 'd' (double) */, 102 /* 'f' (float) */:
+                return .double(number.doubleValue)
+            case 113 /* 'q' (long long) */, 105 /* 'i' (int) */, 108 /* 'l' (long) */:
+                return .int64(number.int64Value)
+            case 81 /* 'Q' (unsigned long long) */:
+                return .uint64(number.uint64Value)
+            default:
+                return .double(number.doubleValue)
+            }
+        }
+
+        // Preserve unknown hashable values (e.g. dates) as text instead of
+        // silently writing an empty string.
+        if let hashable = propertyValue as? AnyHashable {
+            return .string(String(describing: hashable))
+        }
+
+        return nil
+    }
 
 }

@@ -51,13 +51,10 @@ struct QueryTests {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
         let tile = try VectorTile(mvtData: mvt, x: 8716, y: 8015, z: 14)
 
-        let results = tile.query(term: "lake")
-        // Results may be empty if no feature properties contain "lake",
-        // but each result should have a layerName and feature.
-        for result in results {
-            #expect(result.layerName.isNotEmpty)
-            #expect(result.feature.geometry.type != .invalid)
-        }
+        let results = tile.query(term: "motorway")
+        #expect(results.isNotEmpty)
+        #expect(results.allSatisfy({ $0.layerName.isNotEmpty }))
+        #expect(results.contains(where: { ($0.feature.properties["class"] as? String) == "motorway" }))
     }
 
     /// Tests that a text search with a non-matching term returns empty results.

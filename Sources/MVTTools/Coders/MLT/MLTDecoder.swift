@@ -10,11 +10,11 @@ enum MLTDecoderError: Error {
     case decodeFailed
 }
 
-/// Decodes MapLibre Tile (MLT) binary data into GISTools ``Feature`` objects
+/// Decodes MapLibre Tile (MLT) binary data into GISTools `Feature` objects
 /// grouped by layer name.
 enum MLTDecoder {
 
-    /// Decode MLT data into a dictionary of layer names to ``VectorTile.LayerContainer`` values.
+    /// Decode MLT data into a dictionary of layer names to `VectorTile.LayerContainer` values.
     ///
     /// Automatically decompresses gzipped input before decoding. The raw tile-extent
     /// coordinates are projected to the target projection using the given tile
@@ -29,8 +29,8 @@ enum MLTDecoder {
     ///   - layerAllowlist: An optional set of layer names to include; `nil` includes all layers.
     ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
     ///   - logger: An optional logger for diagnostic messages.
-    /// - Returns: A dictionary keyed by layer name, each value a ``VectorTile.LayerContainer``.
-    /// - Throws: ``MLTDecoderError/decodeFailed`` if the data is not valid MLT.
+    /// - Returns: A dictionary keyed by layer name, each value a `VectorTile.LayerContainer`.
+    /// - Throws: `MLTDecoderError.decodeFailed` if the data is not valid MLT.
     static func decode(
         from mltData: Data,
         x: Int,
@@ -55,11 +55,11 @@ enum MLTDecoder {
         let handle = try mltData.withUnsafeBytes { (buf: UnsafeRawBufferPointer) -> MLTTileHandle in
             let ptr = buf.bindMemory(to: UInt8.self).baseAddress
             let h = mlt_tile_decode(cxxDecoder, ptr, buf.count)
-            guard h != nil else {
+            guard let h else {
                 logger?.warning("\(z)/\(x)/\(y): Failed to decode MLT tile data")
                 throw MLTDecoderError.decodeFailed
             }
-            return h!
+            return h
         }
         defer { mlt_tile_destroy(handle) }
 
@@ -127,7 +127,7 @@ enum MLTDecoder {
         }
     }
 
-    /// Converts one MLT feature (indexed within a layer) to a GISTools ``Feature``.
+    /// Converts one MLT feature (indexed within a layer) to a GISTools `Feature`.
     private static func convertFeature(
         handle: MLTTileHandle,
         layerIndex: Int,
@@ -182,15 +182,21 @@ enum MLTDecoder {
         let strPtr = mlt_feature_property_string(
             handle, layerIndex, featureIndex, key, &found)
         if found {
-            let val = String(cString: strPtr!)
+            guard let strPtr else { return nil }
+            let val = String(cString: strPtr)
             free(UnsafeMutablePointer(mutating: strPtr))
             return val
         }
 
-        // Try int.
+        // Try signed int.
         let intVal = mlt_feature_property_int(
             handle, layerIndex, featureIndex, key, &found)
         if found { return intVal }
+
+        // Try unsigned int.
+        let uintVal = mlt_feature_property_uint(
+            handle, layerIndex, featureIndex, key, &found)
+        if found { return uintVal }
 
         // Try double.
         let dblVal = mlt_feature_property_double(
@@ -246,7 +252,7 @@ enum MLTDecoder {
             }
         }
 
-        // MultiLineString — decode as individual lines via ring API.
+        // multi-line string — decode as individual lines via ring API.
         if gt == kMLTGeometryMultiLineString {
             let ringCount = mlt_feature_ring_count(
                 handle, layerIndex, featureIndex)

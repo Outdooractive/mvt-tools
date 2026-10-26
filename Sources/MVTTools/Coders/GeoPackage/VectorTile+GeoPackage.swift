@@ -15,12 +15,12 @@ extension VectorTile {
     /// they are split into separate layers accordingly and the property is stripped.
     ///
     /// - Parameters:
-    ///   - geopackage: The file URL of the GeoPackage database.
+    ///   - url: The file URL of the GeoPackage database.
     ///   - table: When non-nil, only this feature table is loaded into a single layer.
     ///     When `nil`, all feature tables are loaded, each as a separate layer.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``GeoPackageError`` if the file cannot be read.
+    /// - Throws: `a GeoPackage error` if the file cannot be read.
     public init(
         geopackage url: URL,
         table: String? = nil,
@@ -83,6 +83,31 @@ extension VectorTile {
         await conn.close()
     }
 
+    /// Create a vector tile from a GeoPackage file.
+    ///
+    /// This is a convenience alias for
+    /// ``VectorTile/init(geopackage:table:indexed:logger:)`` that matches the
+    /// `contentsOf…` naming used by the other format coders.
+    ///
+    /// - Parameters:
+    ///   - url: The file URL of the GeoPackage database.
+    ///   - table: When non-nil, only this feature table is loaded.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing.
+    ///   - logger: An optional logger instance.
+    /// - Throws: `GeoPackageError` if the file cannot be read.
+    public init(
+        contentsOfGeoPackage url: URL,
+        table: String? = nil,
+        indexed sortOption: RTreeSortOption? = nil,
+        logger: Logger? = nil
+    ) async throws {
+        try await self.init(
+            geopackage: url,
+            table: table,
+            indexed: sortOption,
+            logger: logger)
+    }
+
     // MARK: - Export
 
     /// Write the tile's content to a GeoPackage file.
@@ -94,7 +119,7 @@ extension VectorTile {
     ///     When `nil`, one table per layer is created.
     ///   - createSpatialIndex: Whether to create a spatial (rtree) index.
     ///   - options: Export options controlling simplification.
-    /// - Throws: ``GeoPackageError`` or file I/O errors.
+    /// - Throws: `a GeoPackage error` or file I/O errors.
     public func writeGeoPackage(
         to url: URL,
         table: String? = nil,

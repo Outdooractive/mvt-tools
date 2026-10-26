@@ -40,7 +40,7 @@ struct AddSetGeoJsonTests {
         tile.setGeoJson(geoJson: FeatureCollection([feature2]), layerProperty: "vt_layer")
 
         #expect(tile.features(for: "layer_a").count == 1)
-        #expect(tile.features(for: "layer_a").first?.geometry.allCoordinates.first?.latitude == 30.0)
+        #expect(tile.features(for: "layer_a").first?.geometry?.allCoordinates.first?.latitude == 30.0)
     }
 
     /// Tests that `addGeoJson` with a layer allow list only imports the specified layers.
@@ -85,7 +85,7 @@ struct AddSetGeoJsonTests {
         let feature2 = Feature(Point(Coordinate3D(latitude: 30.0, longitude: 30.0)))
         tile.setGeoJson(geoJson: FeatureCollection([feature2]), layerName: "test")
         #expect(tile.features(for: "test").count == 1)
-        #expect(tile.features(for: "test").first?.geometry.allCoordinates.first?.latitude == 30.0)
+        #expect(tile.features(for: "test").first?.geometry?.allCoordinates.first?.latitude == 30.0)
     }
 
     /// Tests that `addGeoJson` with explicit layer name targets the given layer.

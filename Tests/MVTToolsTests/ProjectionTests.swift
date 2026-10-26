@@ -27,15 +27,15 @@ struct ProjectionTests {
     /// Tests converting EPSG:3857 (Web Mercator) coordinates back to EPSG:4326 (lat/lon).
     @Test
     func projectToEpsg4326() {
-        let projection1 = Coordinate3D(x: 1_168_854.653329, y: 2_332_357.812619).projected(to: .epsg4326)
+        let projection1 = Coordinate3D(x: 1_168_854.653329, y: 2_332_357.812619, projection: .epsg3857).projected(to: .epsg4326)
         #expect(abs(projection1.latitude - 20.5) < 0.00001)
         #expect(abs(projection1.longitude - 10.5) < 0.00001)
 
-        let projection2 = Coordinate3D(x: -20_037_508.342789, y: 5_621_521.486192).projected(to: .epsg4326)
+        let projection2 = Coordinate3D(x: -20_037_508.342789, y: 5_621_521.486192, projection: .epsg3857).projected(to: .epsg4326)
         #expect(abs(projection2.latitude - 45.0) < 0.00001)
         #expect(abs(projection2.longitude - -180.0) < 0.00001)
 
-        let projection3 = Coordinate3D(x: 5_009_377.09, y: -5_621_521.49).projected(to: .epsg4326)
+        let projection3 = Coordinate3D(x: 5_009_377.09, y: -5_621_521.49, projection: .epsg3857).projected(to: .epsg4326)
         #expect(abs(projection3.latitude - -45.0) < 0.00001)
         #expect(abs(projection3.longitude - 45.0) < 0.00001)
     }

@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   macos:
-    name: build (macos)
+    name: test (macOS, all traits)
     runs-on: macos-latest
     timeout-minutes: 45
 
@@ -19,11 +23,11 @@ jobs:
       - uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.3.3'
-      - name: Build and Test
+      - name: Build and test
         run: swift test --enable-all-traits
 
   linux:
-    name: build (linux)
+    name: test (Linux, all traits)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container: swift:6.3.3
@@ -34,5 +38,84 @@ jobs:
           submodules: recursive
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
-      - name: Build and Test
+      - name: Build and test
         run: swift test --enable-all-traits
+
+  coverage:
+    name: coverage (Linux, all traits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: swift:6.3.3
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Run tests with coverage
+        run: swift test --enable-all-traits --enable-code-coverage
+      - name: Report library coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROF_DATA="$(find .build -name '*.profdata' -print -quit)"
+          if [ -z "$PROF_DATA" ]; then
+            echo "No profile data produced" >&2
+            exit 1
+          fi
+
+          IGNORE='(Tests/|\.build/|Dependencies/|/checkouts/|CMLT/|VectorTile_Tile\.swift)'
+          OBJECTS=(.build/debug/MVTToolsTests.so .build/debug/MVTCLITests.so)
+
+          llvm-cov report "${OBJECTS[@]}" \
+            -instr-profile="$PROF_DATA" \
+            -ignore-filename-regex="$IGNORE" | tee coverage-report.txt
+
+          # The report's TOTAL row contains region, function, line and branch
+          # percentages in that order; the third one is line coverage.
+          LINE_COVERAGE="$(awk '/^TOTAL/ {
+            found = 0
+            for (i = 1; i <= NF; i++) {
+              if ($i ~ /%$/) {
+                found++
+                if (found == 3) {
+                  gsub("%", "", $i)
+                  print $i
+                }
+              }
+            }
+          }' coverage-report.txt)"
+
+          if [ -z "$LINE_COVERAGE" ]; then
+            echo "Could not parse line coverage from coverage-report.txt" >&2
+            exit 1
+          fi
+
+          echo "Line coverage: ${LINE_COVERAGE}%"
+          awk -v coverage="$LINE_COVERAGE" 'BEGIN { exit (coverage + 0 < 90.0) }' || {
+            echo "Coverage gate failed: ${LINE_COVERAGE}% < 90.00%" >&2
+            exit 1
+          }
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report.txt
+          if-no-files-found: ignore
+
+  docc:
+    name: documentation (DocC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.3.3
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Ensure Python
+        run: command -v python3 >/dev/null || (apt-get update && apt-get install -y python3)
+      - name: Build and validate DocC catalog
+        run: python3 scripts/check_documentation.py

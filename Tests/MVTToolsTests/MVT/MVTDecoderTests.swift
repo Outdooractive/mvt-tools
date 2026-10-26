@@ -68,7 +68,7 @@ struct MVTDecoderTests {
         let geometry5: [UInt32] = [9, 6, 12, 18, 10, 12, 24, 44, 15]
         let coordinates5 = MVTDecoder.multiCoordinatesFrom(
             geometryIntegers: geometry5,
-            ofType: .linestring,
+            ofType: .polygon,
             projectionFunction: Projections.passThroughFromTile(x: 0, y: 0))
         let result5 = [[
             Coordinate3D(x: 3.0, y: 6.0, projection: .noSRID),
@@ -82,7 +82,7 @@ struct MVTDecoderTests {
         let geometry6: [UInt32] = [9, 0, 0, 26, 20, 0, 0, 20, 19, 0, 15, 9, 22, 2, 26, 18, 0, 0, 18, 17, 0, 15, 9, 4, 13, 26, 0, 8, 8, 0, 0, 7, 15]
         let coordinates6 = MVTDecoder.multiCoordinatesFrom(
             geometryIntegers: geometry6,
-            ofType: .linestring,
+            ofType: .polygon,
             projectionFunction: Projections.passThroughFromTile(x: 0, y: 0))
         let result6 = [[
             Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),

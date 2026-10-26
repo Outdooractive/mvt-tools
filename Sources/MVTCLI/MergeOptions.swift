@@ -150,6 +150,22 @@ extension CLI.MergeOptions {
         let xyz = try? xyzOptions.parseXYZ(fromPaths: [mergeOptions.outputFile].trimmed() + mergeOptions.other)
         let (x, y, z) = (xyz?.x, xyz?.y, xyz?.z)
 
+        // Resolve the output format before loading inputs. Previously this
+        // happened inside the input loop, so `mvt merge --output out.mvt`
+        // with no input files wrote GeoJSON into a `.mvt` file.
+        if mergeOptions.outputFormat == nil, let outputUrl {
+            if let extFormat = TileFormat(url: outputUrl) {
+                resolvedOutputFormat = extFormat
+            }
+            else {
+                switch outputUrl.pathExtension.lowercased() {
+                case "mvt", "pbf": resolvedOutputFormat = .mvt(x: x ?? 0, y: y ?? 0, z: z ?? 0)
+                case "mlt": resolvedOutputFormat = .mlt(x: x ?? 0, y: y ?? 0, z: z ?? 0)
+                default: break
+                }
+            }
+        }
+
         // When appending, load the existing output file
         if mergeOptions.append,
            let outputUrl,
@@ -170,8 +186,10 @@ extension CLI.MergeOptions {
                 z: z ?? 0,
                 logger: cliOptions.verbose ? CLI.logger : nil)
 
-            // If no tile coords and output is to console, default to GeoJSON output
-            if x == nil || y == nil || z == nil {
+            // If no tile coords and output is to the console, default to
+            // GeoJSON output. For a file output the extension/format wins so
+            // that (for example) an empty `out.mvt` is still written as MVT.
+            if outputUrl == nil, x == nil || y == nil || z == nil {
                 if case .geoJson = resolvedOutputFormat {} else {
                     resolvedOutputFormat = .geoJson(layerProperty: nil)
                 }
@@ -255,8 +273,8 @@ extension CLI.MergeOptions {
                         }
                     }
                 }
-                else if x != nil, y != nil, z != nil {
-                    resolvedOutputFormat = .mvt(x: x!, y: y!, z: z!)
+                else if let x, let y, let z {
+                    resolvedOutputFormat = .mvt(x: x, y: y, z: z)
                 }
             }
 

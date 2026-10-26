@@ -16,13 +16,12 @@ struct MLTRoundtripConvenienceTests {
             Coordinate3D(latitude: 52.5200, longitude: 13.4050),
         ])!, id: .int(2))
 
-        guard let originalData = MLTEncoder.encode(
+        let originalData = try #require(MLTEncoder.encode(
             layers: [
                 "points": VectorTile.LayerContainer(features: [point], boundingBox: nil),
                 "lines": VectorTile.LayerContainer(features: [line], boundingBox: nil),
             ],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
 
         let tile = try VectorTile(
             mltData: originalData,
@@ -46,10 +45,9 @@ struct MLTRoundtripConvenienceTests {
     func mltContentsOfAndWrite() throws {
         let point = Feature(Point(Coordinate3D(latitude: 48.8566, longitude: 2.3522)), id: .int(1))
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [point], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
 
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mlt_\(UUID().uuidString).mlt")
@@ -73,10 +71,9 @@ struct MLTRoundtripConvenienceTests {
     func mltContentsOfWithTile() throws {
         let point = Feature(Point(Coordinate3D(latitude: 48.8566, longitude: 2.3522)), id: .int(1))
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [point], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
 
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mlt_\(UUID().uuidString).mlt")
@@ -100,6 +97,20 @@ struct MLTRoundtripConvenienceTests {
         #expect(readTile.z == 0)
     }
 
+    @Test
+    func gzippedMltIsDecodedAutomatically() throws {
+        var tile = try VectorTile(x: 0, y: 0, z: 0)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)),
+        ], for: "test")
+
+        let data = try #require(tile.mltData(options: .init(compression: .level(9))))
+        #expect(data.isGzipped)
+
+        let decoded = try VectorTile(mltData: data, x: 0, y: 0, z: 0)
+        #expect(decoded.features(for: "test").count == 1)
+    }
+
     // MARK: - Cross-format roundtrip (MVT ↔ MLT)
 
     @Test
@@ -113,11 +124,10 @@ struct MLTRoundtripConvenienceTests {
         #expect(mvtTile.origin == .mvt)
         #expect(mvtTile.layers.isEmpty == false)
 
-        guard let mltData = MLTEncoder.encode(
+        let mltData = try #require(MLTEncoder.encode(
             layers: mvtTile.layers,
             x: 8716, y: 8015, z: 14,
-            projection: .epsg4326)
-        else { return }
+            projection: .epsg4326))
 
         let mltTile = try VectorTile(
             mltData: mltData,
@@ -143,14 +153,13 @@ struct MLTRoundtripConvenienceTests {
             Coordinate3D(latitude: 52.5200, longitude: 13.4050),
         ])!, id: .int(2))
 
-        guard let mltData = MLTEncoder.encode(
+        let mltData = try #require(MLTEncoder.encode(
             layers: [
                 "points": VectorTile.LayerContainer(features: [point], boundingBox: nil),
                 "lines": VectorTile.LayerContainer(features: [line], boundingBox: nil),
             ],
             x: 8716, y: 8015, z: 14,
-            projection: .epsg4326)
-        else { return }
+            projection: .epsg4326))
 
         let mltTile = try VectorTile(
             mltData: mltData,

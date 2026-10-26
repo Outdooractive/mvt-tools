@@ -44,7 +44,7 @@ extension VectorTile {
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
     /// - Returns: An array of layer name strings, or `nil` if the data could not be decoded.
-    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
+    /// - Throws: VectorTileError.
     public static func layerNames(at url: URL) throws -> [String]? {
         let data: Data
         do {
@@ -60,7 +60,7 @@ extension VectorTile {
 
     /// Gather summary information about the features in each layer of this tile.
     ///
-    /// - Returns: An array of ``LayerInfo`` values, one per layer.
+    /// - Returns: An array of ``VectorTile/LayerInfo`` values, one per layer.
     public func tileInfo() -> [LayerInfo] {
         var result: [LayerInfo] = []
 
@@ -74,7 +74,7 @@ extension VectorTile {
             var unknownFeatures = 0
 
             for feature in layerContainer.features {
-                switch feature.geometry.type {
+                switch feature.geometry?.type {
                 case .point, .multiPoint: pointFeatures += 1
                 case .lineString, .multiLineString: lineStringFeatures += 1
                 case .polygon, .multiPolygon: polygonFeatures += 1
@@ -104,7 +104,7 @@ extension VectorTile {
                 version: nil))
         }
 
-        return result
+        return result.sorted(by: { $0.name < $1.name })
     }
 
     /// Decode a raw MVT `Data` value and gather summary information about each of its layers.
@@ -113,7 +113,7 @@ extension VectorTile {
     /// without requiring a fully-initialized ``VectorTile``.
     ///
     /// - Parameter data: The raw MVT data to decode.
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
+    /// - Returns: An array of ``VectorTile/LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
     public static func tileInfo(from data: Data) -> [LayerInfo]? {
         guard let tile = MVTDecoder.vectorTile(from: data) else { return nil }
 
@@ -164,14 +164,14 @@ extension VectorTile {
                 version: Int(layer.version)))
         }
 
-        return result
+        return result.sorted(by: { $0.name < $1.name })
     }
 
     /// Load a tile from the given file URL and gather summary information about each of its layers.
     ///
     /// - Parameter url: A file URL pointing to an MVT file on disk.
-    /// - Returns: An array of ``LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
-    /// - Throws: ``VectorTileError/fileReadFailed`` if the file cannot be read.
+    /// - Returns: An array of ``VectorTile/LayerInfo`` values, one per layer, or `nil` if the data could not be decoded.
+    /// - Throws: VectorTileError.
     public static func tileInfo(at url: URL) throws -> [LayerInfo]? {
         let data: Data
         do {

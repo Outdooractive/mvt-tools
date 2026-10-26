@@ -18,9 +18,7 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/invalidCoordinate``,
-    ///   ``VectorTileError/coordinateOutOfBounds``, or
-    ///   ``VectorTileError/parseFailed``.
+    /// - Throws: VectorTileError.
     public init(
         mltData data: Data,
         x: Int,
@@ -31,7 +29,7 @@ extension VectorTile {
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) throws {
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -73,7 +71,7 @@ extension VectorTile {
         }
 
         self.layers = parsedLayers
-        self.layerNames = Array(layers.keys)
+        self.layerNames = layers.keys.sorted()
         self.origin = .mlt
 
         if let sortOption {
@@ -90,9 +88,7 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/invalidCoordinate``,
-    ///   ``VectorTileError/coordinateOutOfBounds``, or
-    ///   ``VectorTileError/parseFailed``.
+    /// - Throws: VectorTileError.
     public init(
         mltData data: Data,
         tile: MapTile,
@@ -123,10 +119,7 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/invalidCoordinate``,
-    ///   ``VectorTileError/coordinateOutOfBounds``, or
-    ///   ``VectorTileError/parseFailed``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfMLT url: URL,
         x: Int,
@@ -167,10 +160,7 @@ extension VectorTile {
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/invalidCoordinate``,
-    ///   ``VectorTileError/coordinateOutOfBounds``, or
-    ///   ``VectorTileError/parseFailed``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfMLT url: URL,
         tile: MapTile,

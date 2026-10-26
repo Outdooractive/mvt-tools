@@ -27,6 +27,24 @@ struct VectorTileGeoPackageTests {
     }
 
     @Test
+    func geopackageContentsOfAlias() async throws {
+        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("gpkg_alias_\(UUID().uuidString).gpkg")
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
+
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)),
+        ], for: "alias")
+        try await tile.writeGeoPackage(to: tempUrl)
+
+        let imported = try await VectorTile(contentsOfGeoPackage: tempUrl, table: "alias")
+        #expect(imported.origin == .geopackage)
+        #expect(imported.layerNames == ["alias"])
+        #expect(imported.features(for: "alias").count == 1)
+    }
+
+    @Test
     func geopackageInitAll() async throws {
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
