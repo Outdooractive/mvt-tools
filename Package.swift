@@ -40,9 +40,9 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/Outdooractive/gis-tools", exact: "3.0.0-beta.5"),
-        // The gis-tools-* format packages pin gis-tools to the same exact version,
-        // so all six packages must be updated together.
-        .package(url: "https://github.com/Outdooractive/gis-tools-csv", exact: "3.0.0-beta.5"),
+        // The gis-tools-* format packages pin gis-tools to an exact version;
+        // keep their pins compatible when upgrading the core library.
+        .package(url: "https://github.com/Outdooractive/gis-tools-csv", exact: "3.0.0-beta.6"),
         .package(url: "https://github.com/Outdooractive/gis-tools-geopackage", exact: "3.0.0-beta.5"),
         .package(url: "https://github.com/Outdooractive/gis-tools-gpx", exact: "3.0.0-beta.5"),
         .package(url: "https://github.com/Outdooractive/gis-tools-fit", exact: "3.0.0-beta.5"),
@@ -95,7 +95,8 @@ let package = Package(
             name: "MVTCLITests",
             dependencies: ["MVTCLI"],
             swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+                // MVTCLI itself always uses C++ interoperability.
+                .interoperabilityMode(.Cxx),
             ]),
 
         // MARK: - MLT C++ bridge (decoder + encoder + FastPFOR + FSST)

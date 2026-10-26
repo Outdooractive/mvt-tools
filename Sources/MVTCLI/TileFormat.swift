@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import GISTools
 import GISToolsCSV
 import Logging
 import MVTTools
@@ -81,15 +82,17 @@ extension TileFormat {
     ///   - layerProperty: Property name used for layer routing (GeoJSON/GPX).
     ///   - geopackageTable: When set, only this table is loaded from a GeoPackage.
     ///   - csvReadOptions: Options controlling CSV input.
+    ///   - inputProjection: Optional source CRS override.
     ///   - logger: Optional logger instance.
     /// - Returns: A loaded tile.
-    /// - Throws: ``VectorTileError`` or ``GeoPackageError``.
+    /// - Throws: ``VectorTileError``, ``GeoPackageError``, or ``CLIError``.
     func loadTile(
         from url: URL,
         layerAllowlist: [String]? = nil,
         layerProperty: String? = VectorTile.defaultLayerPropertyName,
         geopackageTable: String? = nil,
         csvReadOptions: CSVReadOptions = CSVReadOptions(),
+        inputProjection: Projection? = nil,
         logger: Logger? = nil
     ) async throws -> VectorTile {
         switch self {
@@ -97,6 +100,7 @@ extension TileFormat {
             return try VectorTile(
                 contentsOfMVT: url,
                 x: x, y: y, z: z,
+                projection: inputProjection ?? .epsg4326,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
 
@@ -105,6 +109,7 @@ extension TileFormat {
             return try VectorTile(
                 contentsOfMLT: url,
                 x: x, y: y, z: z,
+                projection: inputProjection ?? .epsg4326,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
             #else
@@ -116,10 +121,14 @@ extension TileFormat {
                 contentsOfGeoJson: url,
                 layerProperty: layerProperty ?? defaultLayerProperty,
                 layerAllowlist: layerAllowlist,
+                projection: inputProjection,
                 logger: logger)
 
         case .fit:
             #if EnableFIT
+            guard inputProjection == nil || inputProjection == .epsg4326 else {
+                throw CLIError("FIT input is always EPSG:4326; use --output-projection to reproject")
+            }
             return try VectorTile(
                 contentsOfFIT: url,
                 layerProperty: layerProperty,
@@ -131,6 +140,9 @@ extension TileFormat {
 
         case .gpx:
             #if EnableGPX
+            guard inputProjection == nil || inputProjection == .epsg4326 else {
+                throw CLIError("GPX input is always EPSG:4326; use --output-projection to reproject")
+            }
             return try VectorTile(
                 contentsOfGPX: url,
                 layerProperty: layerProperty,
@@ -142,9 +154,13 @@ extension TileFormat {
 
         case .csv:
             #if EnableCSV
+            var readOptions = csvReadOptions
+            if let inputProjection {
+                readOptions.projection = inputProjection
+            }
             return try VectorTile(
                 contentsOfCSV: url,
-                readOptions: csvReadOptions,
+                readOptions: readOptions,
                 layerProperty: layerProperty,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
@@ -154,19 +170,27 @@ extension TileFormat {
 
         case .shapefile:
             #if EnableShapefile
-            return try VectorTile(
+            let tile = try VectorTile(
                 shapefile: url,
                 logger: logger)
+            if let inputProjection, inputProjection != tile.projection {
+                return try tile.retagged(to: inputProjection)
+            }
+            return tile
             #else
             throw unavailableError
             #endif
 
         case .geopackage:
             #if EnableGeoPackage
-            return try await VectorTile(
+            let tile = try await VectorTile(
                 geopackage: url,
                 table: geopackageTable,
                 logger: logger)
+            if let inputProjection, inputProjection != tile.projection {
+                return try tile.retagged(to: inputProjection)
+            }
+            return tile
             #else
             throw unavailableError
             #endif

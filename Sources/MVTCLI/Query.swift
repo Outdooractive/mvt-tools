@@ -94,6 +94,9 @@ extension CLI {
         @OptionGroup
         var csvOptions: CSVReadCLIOptions
 
+        @OptionGroup
+        var projectionOptions: ProjectionOptions
+
         @Argument(
             help: "The input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage).",
             completion: .file(extensions: ["pbf", "mvt", "mlt", "geojson", "json", "fit", "gpx", "csv", "shp", "gpkg"]))
@@ -155,6 +158,7 @@ extension CLI {
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: disableInputLayerProperty ? nil : propertyName,
                 csvReadOptions: csvOptions.options,
+                inputProjection: projectionOptions.input,
                 logger: options.verbose ? CLI.logger : nil)
 
             if let layerDenylist {
@@ -205,6 +209,10 @@ extension CLI {
                     term: searchTerm,
                     layerProperty: disableOutputLayerProperty ? nil : propertyName,
                     in: tile)
+            }
+
+            if let outputProjection = projectionOptions.output {
+                result = result?.projected(to: outputProjection)
             }
 
             if options.verbose {

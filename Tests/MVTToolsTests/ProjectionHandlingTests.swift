@@ -460,3 +460,82 @@ struct ProjectionHandlingTests {
     }
 
 }
+
+// MARK: - Vector tile reprojection and retagging
+
+struct VectorTileProjectionConversionTests {
+
+    @Test
+    func projectedTransformsCoordinates() throws {
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 48.1, longitude: 11.5))),
+        ], for: "points")
+
+        let projected = try tile.projected(to: .epsg3857)
+        let point = try #require(projected.features(for: "points").first?.geometry as? Point)
+
+        #expect(projected.projection == .epsg3857)
+        #expect(point.coordinate.projection == .epsg3857)
+        #expect(abs(point.coordinate.x - 1_280_174.144) < 0.01)
+        #expect(abs(point.coordinate.y - 6_123_507.425) < 0.01)
+
+        // The source tile remains unchanged.
+        #expect(tile.projection == .epsg4326)
+    }
+
+    @Test
+    func retaggedKeepsRawCoordinates() throws {
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 48.1, longitude: 11.5))),
+        ], for: "points")
+
+        let retagged = try tile.retagged(to: .epsg3857)
+        let point = try #require(retagged.features(for: "points").first?.geometry as? Point)
+
+        #expect(retagged.projection == .epsg3857)
+        #expect(point.coordinate.projection == .epsg3857)
+        #expect(point.coordinate.x == 11.5)
+        #expect(point.coordinate.y == 48.1)
+    }
+
+    @Test
+    func retaggedHandlesAllGeometryTypes() throws {
+        let coordinate = Coordinate3D(latitude: 48.1, longitude: 11.5)
+        let ring = Ring(unchecked: [
+            coordinate,
+            Coordinate3D(latitude: 48.2, longitude: 11.5),
+            Coordinate3D(latitude: 48.2, longitude: 11.6),
+            coordinate,
+        ])
+        let polygon = Polygon(unchecked: [ring])
+        let geometries: [any GeoJsonGeometry] = [
+            Point(coordinate),
+            MultiPoint(unchecked: [coordinate]),
+            LineString(unchecked: [coordinate, Coordinate3D(latitude: 48.2, longitude: 11.6)]),
+            MultiLineString(unchecked: [[coordinate, Coordinate3D(latitude: 48.2, longitude: 11.6)]]),
+            polygon,
+            MultiPolygon(unchecked: [polygon]),
+            GeometryCollection([Point(coordinate)]),
+        ]
+
+        for geometry in geometries {
+            let retagged = geometry.retagged(to: .epsg3857)
+            #expect(retagged.projection == .epsg3857, "\(type(of: geometry))")
+        }
+    }
+
+    @Test
+    func conversionPreservesSpatialIndex() throws {
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326, indexed: .hilbert)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 48.1, longitude: 11.5))),
+        ], for: "points")
+
+        #expect(tile.isIndexed)
+        #expect(try tile.projected(to: .epsg3857).isIndexed)
+        #expect(try tile.retagged(to: .epsg3857).isIndexed)
+    }
+
+}

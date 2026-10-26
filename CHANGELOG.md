@@ -9,10 +9,10 @@ and this project adheres to semantic versioning.
 
 ### Changed
 
-- Updated `gis-tools`, `gis-tools-csv`, `gis-tools-fit`,
-  `gis-tools-geopackage`, `gis-tools-gpx`, and `gis-tools-shapefile` to
-  `3.0.0-beta.5`. `GzipSwift`, `swift-argument-parser`, `swift-log`, and
-  `swift-protobuf` remain at their latest compatible releases.
+- Updated `gis-tools`, `gis-tools-fit`, `gis-tools-geopackage`,
+  `gis-tools-gpx`, and `gis-tools-shapefile` to `3.0.0-beta.5`, and
+  `gis-tools-csv` to `3.0.0-beta.6`. `GzipSwift`, `swift-argument-parser`,
+  `swift-log`, and `swift-protobuf` remain at their latest compatible releases.
 - `VectorTile.layerNames` is now sorted, and MVT/MLT/GeoJSON encoding uses
   sorted layer order so repeated runs produce deterministic output.
 - MVT geometry command encoding uses a correct signed 32-bit zigzag encoder.
@@ -55,6 +55,16 @@ and this project adheres to semantic versioning.
 
 ### Added
 
+- Separate `--input-projection` (`-ip`) and `--output-projection` (`-op`)
+  CLI options, plus a new `mvt reproject` command.
+- `VectorTile.projected(to:)` for real CRS transformations and
+  `VectorTile.retagged(to:)` for intentionally reinterpreting coordinates.
+- `--input-projection` support for GeoJSON, CSV, MVT, MLT, Shapefile and
+  GeoPackage. GeoJSON and CSV input projection reinterprets raw coordinates.
+- Projection options are threaded through `dump`, `merge`, `import`,
+  `export`, `query`, `rezoom` and `reproject`.
+- CSV `projection`/`crs`/`srid` columns and the gis-tools-csv 3.0.0-beta.6
+  dependency.
 - DocC catalog (`Sources/MVTTools/MVTTools.docc`) with getting-started, tile
   model, command line, querying, import/export, MLT, and limitations articles.
 - `contentsOfGeoPackage` and `contentsOfShapefile` initializer aliases to match

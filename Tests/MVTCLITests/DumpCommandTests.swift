@@ -128,3 +128,32 @@ struct DumpCommandTests {
     #endif
 
 }
+
+// MARK: - Projection options
+
+struct DumpProjectionTests {
+
+    @Test(.timeLimit(.minutes(1)))
+    func dumpWithInputAndOutputProjection() throws {
+        let input = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("dump_projection_\(UUID().uuidString).geojson")
+        defer { try? FileManager.default.removeItem(at: input) }
+
+        let json = """
+        {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[1281000,6125000]}}]}
+        """
+        try Data(json.utf8).write(to: input)
+
+        let (stdout, stderr, exitCode) = try runCLIWithStderr(args: [
+            "dump", "-ip", "3857", "-op", "4326", input.path,
+        ])
+        #expect(exitCode == 0, "stderr: \(stderr)")
+
+        let collection = try #require(FeatureCollection(jsonString: stdout))
+        let point = try #require(collection.features.first?.geometry as? Point)
+        #expect(point.coordinate.projection == .epsg4326)
+        #expect(abs(point.coordinate.longitude - 11.5) < 0.01)
+        #expect(abs(point.coordinate.latitude - 48.1) < 0.01)
+    }
+
+}

@@ -109,6 +109,9 @@ extension CLI {
         @OptionGroup
         var csvWriteOptions: CSVWriteCLIOptions
 
+        @OptionGroup
+        var projectionOptions: ProjectionOptions
+
     }
 
 }
@@ -198,6 +201,10 @@ extension CLI.MergeOptions {
 
         guard var tile else { throw CLIError("Failed to create a tile") }
 
+        if let outputProjection = mergeOptions.projectionOptions.output {
+            tile = try tile.projected(to: outputProjection)
+        }
+
         if cliOptions.verbose {
             if let outputUrl {
                 print("Merging into \(tile.origin == .none ? "new" : tile.origin.rawValue) tile '\(outputUrl.lastPathComponent)' [\(tile.x),\(tile.y)]@\(tile.z)")
@@ -251,6 +258,7 @@ extension CLI.MergeOptions {
                 layerAllowlist: effectiveAllowlist,
                 layerProperty: mergeOptions.disableInputLayerProperty ? nil : mergeOptions.propertyName,
                 csvReadOptions: mergeOptions.csvReadOptions.options,
+                inputProjection: mergeOptions.projectionOptions.input,
                 logger: cliOptions.verbose ? CLI.logger : nil)
 
             if let layerDenylist {
