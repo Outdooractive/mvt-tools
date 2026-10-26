@@ -66,8 +66,15 @@ jobs:
           fi
 
           IGNORE='(Tests/|\.build/|Dependencies/|/checkouts/|CMLT/|VectorTile_Tile\.swift)'
-          BIN="$(swift build --show-bin-path)"
-          OBJECTS=("$BIN/MVTToolsTests.so" "$BIN/MVTCLITests.so")
+          mapfile -t OBJECTS < <(find .build -type f \
+            \( -name 'MVTToolsTests.so' -o -name 'MVTCLITests.so' \
+               -o -name 'MVTToolsTests' -o -name 'MVTCLITests' \) \
+            | sort)
+          if [ "${#OBJECTS[@]}" -eq 0 ]; then
+            echo "Could not find test binaries" >&2
+            exit 1
+          fi
+          printf 'Coverage objects: %s\n' "${OBJECTS[*]}"
 
           llvm-cov report "${OBJECTS[@]}" \
             -instr-profile="$PROF_DATA" \
