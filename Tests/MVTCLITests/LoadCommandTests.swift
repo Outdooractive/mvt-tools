@@ -232,6 +232,51 @@ struct LoadCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func loadFailOnError() throws {
+        let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: outputDir) }
+
+        let badTemplate = "file:///tmp/mvt_nonexistent_\(UUID().uuidString)/2_{x}_{y}.pbf"
+        let (stdout, _, exitCode) = try runCLIWithStderr(args: [
+            "load",
+            "--bbox=\(Self.bbox)",
+            "--output-dir", outputDir.path,
+            "--fail-on-error",
+            badTemplate,
+        ])
+
+        #expect(exitCode != 0)
+        #expect(stdout.contains("Loaded 0 tiles"))
+        #expect(stdout.contains("6 failed"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func loadFailOnErrorWithPartialFailure() throws {
+        let sourceDir = try makeTileSource()
+        let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: outputDir) }
+
+        // Remove one of the six expected source tiles to force a partial failure.
+        try FileManager.default.removeItem(
+            at: sourceDir.appendingPathComponent("2_2_2.pbf"))
+
+        let template = fileTemplate(sourceDir: sourceDir)
+        let (stdout, _, exitCode) = try runCLIWithStderr(args: [
+            "load",
+            "--bbox=\(Self.bbox)",
+            "--output-dir", outputDir.path,
+            "--fail-on-error",
+            template,
+        ])
+
+        #expect(exitCode != 0)
+        #expect(stdout.contains("Loaded 5 tiles"))
+        #expect(stdout.contains("1 failed"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func loadInvalidBbox() throws {
         let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")

@@ -31,6 +31,9 @@ extension CLI {
             degrees. Tiles are enumerated with a tile-cover algorithm which walks the \
             bounding box edges in tile space and handles antimeridian crossing.
 
+            Individual download failures are soft by default. Pass --fail-on-error to \
+            return a non-zero exit status if any tile cannot be downloaded.
+
             Examples:
               mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles \\
                   https://example.com/tiles/14/{x}/{y}.pbf
@@ -69,6 +72,11 @@ extension CLI {
             help: "Maximum number of concurrent downloads (default: 8).")
         var concurrency: Int = 8
 
+        @Flag(
+            name: .customLong("fail-on-error"),
+            help: "Exit with a non-zero status when any tile download fails.")
+        var failOnError = false
+
         @OptionGroup
         var options: Options
 
@@ -85,7 +93,8 @@ extension CLI {
                 overwriteExisting: overwriteExisting,
                 concurrency: concurrency,
                 baseURL: baseURL,
-                verbose: options.verbose)
+                verbose: options.verbose,
+                failOnError: failOnError)
         }
 
         // MARK: - Execution
@@ -102,7 +111,8 @@ extension CLI {
             overwriteExisting: Bool,
             concurrency: Int,
             baseURL: String,
-            verbose: Bool
+            verbose: Bool,
+            failOnError: Bool = false
         ) async throws {
             // 1. Parse the bounding box
             let bbox = try parseBoundingBox(boundingBox)
@@ -177,6 +187,10 @@ extension CLI {
             }
             else {
                 print("Loaded \(downloaded) tiles (\(skipped) skipped, \(failed) failed) into \(outputURL.path)")
+            }
+
+            if failOnError, failed > 0 {
+                throw CLIError("\(failed) tile download(s) failed")
             }
         }
 

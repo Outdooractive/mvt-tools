@@ -57,6 +57,8 @@ and this project adheres to semantic versioning.
   model, command line, querying, import/export, MLT, and limitations articles.
 - `contentsOfGeoPackage` and `contentsOfShapefile` initializer aliases to match
   the `contentsOf…` naming used by the other format coders.
+- `mvt load --fail-on-error` returns a non-zero exit status when any tile
+  download fails (#60).
 - Regression tests for malformed/truncated geometry, zigzag boundaries,
   integer overflow, extent fallback, version-1 layers, duplicate layers,
   gzipped input, property type fidelity, polygon winding, clipping, buffer
@@ -67,6 +69,8 @@ and this project adheres to semantic versioning.
 
 ### Fixed
 
+- GeoPackage import/export now close the `GeoPackageConnection` on every error
+  path, preventing leaked SQLite handles and file locks (#61).
 - `MVTEncoder` no longer traps when encoding coordinates that do not fit into
   the MVT 32-bit command parameter range.
 - `MVTDecoder` no longer duplicates an explicitly closed ring when a
