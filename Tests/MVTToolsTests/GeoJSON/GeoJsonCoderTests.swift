@@ -38,7 +38,7 @@ struct GeoJsonFormatIOTests {
         let data = try #require(tile.mvtData())
         let decodedTile = try VectorTile(mvtData: data, x: 8657, y: 5725, z: 14)
         let decodedFc = try #require(decodedTile.features(for: "test").first)
-        let decodedCoordinate = try #require(decodedFc.geometry.allCoordinates.first)
+        let decodedCoordinate = try #require(decodedFc.geometry?.allCoordinates.first)
 
         #expect(abs(decodedCoordinate.latitude - 47.56) < 0.00001)
         #expect(abs(decodedCoordinate.longitude - 10.22) < 0.00001)

@@ -18,7 +18,7 @@ extension VectorTile {
     /// Features are copied in geographic coordinates — clipping to the target
     /// tile's bounding box (plus an optional buffer) happens at encode time
     /// when the caller invokes ``mvtData(options:)``, ``writeMVT(to:options:)``,
-    /// or ``toGeoJson(options:)``.
+    /// or `toGeoJson(options:)`.
     ///
     /// - Parameters:
     ///   - targetX: The target tile's x coordinate.
@@ -75,7 +75,7 @@ extension VectorTile {
     ///   - targetZ: The target tile's zoom level.
     /// - Returns: A rezoomed `VectorTile` at the target coordinates. The
     ///   tile may be empty if no sources were valid ancestors/descendants.
-    /// - Throws: ``VectorTileError`` if the target coordinates are invalid.
+    /// - Throws: VectorTileError.
     public static func rezoom(
         _ sources: [VectorTile],
         toTargetX targetX: Int,

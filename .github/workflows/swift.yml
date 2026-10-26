@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   macos:
-    name: build (macos)
+    name: test (macOS, all traits)
     runs-on: macos-latest
     timeout-minutes: 45
 
@@ -19,11 +23,11 @@ jobs:
       - uses: swift-actions/setup-swift@v3
         with:
           swift-version: '6.3.3'
-      - name: Build and Test
+      - name: Build and test
         run: swift test --enable-all-traits
 
   linux:
-    name: build (linux)
+    name: test (Linux, all traits)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container: swift:6.3.3
@@ -34,5 +38,46 @@ jobs:
           submodules: recursive
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
-      - name: Build and Test
+      - name: Build and test
         run: swift test --enable-all-traits
+
+  coverage:
+    name: coverage (Linux, all traits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: swift:6.3.3
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Run tests with coverage
+        run: swift test --enable-all-traits --enable-code-coverage
+      - name: Ensure Python
+        run: command -v python3 >/dev/null || (apt-get update && apt-get install -y python3)
+      - name: Report library coverage
+        run: python3 scripts/coverage.py --minimum 90 | tee coverage-report.txt
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report.txt
+          if-no-files-found: ignore
+
+  docc:
+    name: documentation (DocC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.3.3
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Ensure Python
+        run: command -v python3 >/dev/null || (apt-get update && apt-get install -y python3)
+      - name: Build and validate DocC catalog
+        run: python3 scripts/check_documentation.py

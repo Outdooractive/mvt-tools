@@ -23,9 +23,7 @@ extension VectorTile {
     ///       When `nil`, all features are placed in a single default layer.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         csvData data: Data,
         readOptions: CSVReadOptions = CSVReadOptions(),
@@ -50,7 +48,7 @@ extension VectorTile {
         self.y = tile.y
         self.z = tile.z
 
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -118,10 +116,7 @@ extension VectorTile {
     ///       When `nil`, all features are placed in a single default layer.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfCSV url: URL,
         readOptions: CSVReadOptions = CSVReadOptions(),
@@ -160,7 +155,9 @@ extension VectorTile {
         writeOptions: CSVWriteOptions = CSVWriteOptions(),
         options: VectorTile.ExportOptions? = nil
     ) -> Data? {
-        let allFeatures = processFeatures(layers.values.flatMap(\.features), options: options)
+        let allFeatures = processFeatures(
+            layers.sorted(by: { $0.key < $1.key }).flatMap(\.value.features),
+            options: options)
         let fc = FeatureCollection(allFeatures)
         return try? CSVCoder.write(fc, options: writeOptions)
     }

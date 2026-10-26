@@ -204,7 +204,7 @@ struct LoadCommandTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func loadSoftFailureVerbose() throws {
+    func loadFailureSummaryAndVerbose() throws {
         let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: outputDir) }
@@ -213,22 +213,47 @@ struct LoadCommandTests {
         // force all tile downloads to fail.
         let badTemplate = "file:///tmp/mvt_nonexistent_\(UUID().uuidString)/2_{x}_{y}.pbf"
 
-        // Without verbose: stderr should be silent about soft failures
+        // Without verbose: stderr should be silent, but the exit code is non-zero.
         let (stdout, stderrSilent, exitCodeSilent) = try runCLIWithStderr(args: [
             "load", "--bbox=\(Self.bbox)", "--output-dir", outputDir.path, badTemplate,
         ])
-        #expect(exitCodeSilent == 0)
+        #expect(exitCodeSilent != 0)
         #expect(stdout.contains("Loaded 0 tiles"))
         #expect(stdout.contains("6 failed"))
-        // Without verbose, soft-failure details go to stderr only when verbose — here stderr should be empty
-        #expect(stderrSilent.isEmpty)
+        #expect(stderrSilent.contains("tile download(s) failed"))
 
-        // With verbose: stderr should contain "Failed" messages
-        let (_, stderrVerbose, _) = try runCLIWithStderr(args: [
+        // With verbose: stderr should contain "Failed" messages and the exit code
+        // is still non-zero.
+        let (_, stderrVerbose, exitCodeVerbose) = try runCLIWithStderr(args: [
             "load", "--bbox=\(Self.bbox)", "--output-dir", outputDir.path,
             "--verbose", badTemplate,
         ])
+        #expect(exitCodeVerbose != 0)
         #expect(stderrVerbose.contains("Failed"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func loadPartialFailureExitsNonZero() throws {
+        let sourceDir = try makeTileSource()
+        let outputDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mvt_load_out_\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: outputDir) }
+
+        // Remove one of the six expected source tiles to force a partial failure.
+        try FileManager.default.removeItem(
+            at: sourceDir.appendingPathComponent("2_2_2.pbf"))
+
+        let template = fileTemplate(sourceDir: sourceDir)
+        let (stdout, _, exitCode) = try runCLIWithStderr(args: [
+            "load",
+            "--bbox=\(Self.bbox)",
+            "--output-dir", outputDir.path,
+            template,
+        ])
+
+        #expect(exitCode != 0)
+        #expect(stdout.contains("Loaded 5 tiles"))
+        #expect(stdout.contains("1 failed"))
     }
 
     @Test(.timeLimit(.minutes(1)))

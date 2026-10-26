@@ -16,7 +16,7 @@ extension VectorTile {
         coordinate: Coordinate3D,
         results: [QueryManyLayerAndId])
 
-    /// Identifies a single feature within a ``QueryManyResult`` by its layer name and feature identifier.
+    /// Identifies a single feature within a ``VectorTile/QueryManyResult`` by its layer name and feature identifier.
     public typealias QueryManyLayerAndId = (
         layerName: String,
         featureId: Feature.Identifier)
@@ -51,7 +51,7 @@ extension VectorTile {
     /// - Parameter term: The search term or query DSL expression.
     /// - Parameter layerName: If provided, only features in this layer are searched.
     /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
-    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
+    /// - Returns: An array of ``VectorTile/QueryResult`` tuples, one for each matching feature.
     public func query(
         term: String,
         layerName: String? = nil,
@@ -109,7 +109,7 @@ extension VectorTile {
     /// - Parameter tolerance: The search radius around `coordinate`.
     /// - Parameter layerName: If provided, only this layer is searched.
     /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
-    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
+    /// - Returns: An array of ``VectorTile/QueryResult`` tuples, one for each matching feature.
     public func query(
         at coordinate: Coordinate3D,
         tolerance: CLLocationDistance,
@@ -134,7 +134,7 @@ extension VectorTile {
     /// - Parameter queryBoundingBox: The bounding box to test for intersection.
     /// - Parameter layerName: If provided, only this layer is searched.
     /// - Parameter featureFilter: An optional closure for additional filtering of matched features.
-    /// - Returns: An array of ``QueryResult`` tuples, one for each matching feature.
+    /// - Returns: An array of ``VectorTile/QueryResult`` tuples, one for each matching feature.
     public func query(
         in queryBoundingBox: BoundingBox,
         layerName: String? = nil,
@@ -156,8 +156,11 @@ extension VectorTile {
             else { continue }
 
             let resultFeatures: [Feature] = if let rTree = layerFeatureContainer.rTree {
-                // The search will only return features that intersect with the bounding box
+                // The R-Tree returns bounding-box candidates. Apply the same
+                // precise geometry test as the linear scan so indexed and
+                // non-indexed queries return identical results.
                 rTree.search(inBoundingBox: queryBoundingBox)
+                    .filter({ $0.intersects(queryBoundingBox) })
             }
             else {
                 layerFeatureContainer.features.filter({ feature in
@@ -225,8 +228,11 @@ extension VectorTile {
                 else { continue }
 
                 let resultFeatures: [Feature] = if let rTree = layerFeatureContainer.rTree {
-                    // The search will only return features that intersect with the bounding box
+                    // The R-Tree returns bounding-box candidates. Apply the
+                    // same precise geometry test as the linear scan so indexed
+                    // and non-indexed queries return identical results.
                     rTree.search(inBoundingBox: queryBoundingBox)
+                        .filter({ $0.intersects(queryBoundingBox) })
                 }
                 else {
                     layerFeatureContainer.features.filter({ feature in
@@ -238,6 +244,8 @@ extension VectorTile {
                 }
 
                 for feature in resultFeatures {
+                    guard featureFilter?(feature) ?? true else { continue }
+
                     // All parsed features get automatically an id
                     guard let featureId = feature.id else { continue }
 
@@ -247,8 +255,6 @@ extension VectorTile {
                     else if !includeDuplicates {
                         continue
                     }
-
-                    guard featureFilter?(feature) ?? true else { continue }
 
                     currentResult.append((
                         layerName: layerName,

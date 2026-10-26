@@ -24,7 +24,7 @@ enum Projections {
     /// the result through gis-tools' EPSG:4326 pivot into the target
     /// projection. For EPSG:3857, EPSG:4326 and EPSG:4978 this is identical
     /// to the previous per-projection special cases, but projections
-    /// registered at runtime (e.g. via ``CustomProjection``) are now supported
+    /// registered at runtime (e.g. via `CustomProjection`) are now supported
     /// as well.
     ///
     /// - Parameters:
@@ -48,7 +48,7 @@ enum Projections {
 
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
+        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y, projection: .epsg3857)
         let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
         let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
 
@@ -80,7 +80,7 @@ extension Projections {
     /// tile grid), then mapped linearly into the tile extent. For EPSG:3857,
     /// EPSG:4326 and EPSG:4978 this is identical to the previous
     /// per-projection special cases, but projections registered at runtime
-    /// (e.g. via ``CustomProjection``) are now supported as well.
+    /// (e.g. via `CustomProjection`) are now supported as well.
     ///
     /// - Parameters:
     ///   - projection: The source projection of the input coordinates.
@@ -103,14 +103,17 @@ extension Projections {
 
         let extent = Double(extent)
         let bounds = MapTile(x: x, y: y, z: z).boundingBox(projection: .epsg3857)
-        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y)
+        let topLeft = Coordinate3D(x: bounds.southWest.x, y: bounds.northEast.y, projection: .epsg3857)
         let xSpan: Double = abs(bounds.northEast.x - bounds.southWest.x)
         let ySpan: Double = abs(bounds.northEast.y - bounds.southWest.y)
 
         return { coordinate in
             let projectedCoordinate = coordinate.projected(to: .epsg3857)
-            let projectedX = Int(((projectedCoordinate.x - topLeft.x) / xSpan) * extent)
-            let projectedY = Int(((topLeft.y - projectedCoordinate.y) / ySpan) * extent)
+            // Round to the nearest grid cell. Truncating towards zero would
+            // bias every coordinate towards the tile origin by up to one
+            // extent unit.
+            let projectedX = Int((((projectedCoordinate.x - topLeft.x) / xSpan) * extent).rounded())
+            let projectedY = Int((((topLeft.y - projectedCoordinate.y) / ySpan) * extent).rounded())
             return (projectedX, projectedY)
         }
     }

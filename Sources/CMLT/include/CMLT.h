@@ -128,6 +128,14 @@ int64_t mlt_feature_property_int(
     size_t featureIndex,
     const char* key,
     bool* found);
+/// Reads an unsigned integer property. Returns 0 when the property is missing
+/// or is stored as a signed integer; check `found` for presence.
+uint64_t mlt_feature_property_uint(
+    MLTTileHandle tile,
+    size_t layerIndex,
+    size_t featureIndex,
+    const char* key,
+    bool* found);
 double mlt_feature_property_double(
     MLTTileHandle tile,
     size_t layerIndex,

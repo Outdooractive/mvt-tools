@@ -32,6 +32,28 @@ struct VectorTileShapefileTests {
     }
 
     @Test
+    func shapefileContentsOfAlias() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("shp_alias_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let shapefileUrl = tempDir.appendingPathComponent("alias_points")
+        try ShapefileCoder.write(
+            FeatureCollection([
+                Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)),
+            ]),
+            to: shapefileUrl)
+
+        let tile = try VectorTile(
+            contentsOfShapefile: shapefileUrl.appendingPathExtension("shp"),
+            layerName: "alias")
+        #expect(tile.origin == .shapefile)
+        #expect(tile.layerNames == ["alias"])
+        #expect(tile.features(for: "alias").count == 1)
+    }
+
+    @Test
     func shapefileWriteSingle() throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("shp_\(UUID().uuidString)")

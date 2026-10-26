@@ -26,14 +26,16 @@ extension VectorTileError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .invalidCoordinate(x, y, z):
-            "Invalid tile coordinate: z=\(z), x=\(x), y=\(y). Coordinates must be >= 0."
+            return "Invalid tile coordinate: z=\(z), x=\(x), y=\(y). "
+                + "Coordinates must be >= 0 and z must be less than \(Int.bitWidth - 1)."
         case let .coordinateOutOfBounds(x, y, z, maxBound):
-            "Tile coordinate out of bounds at zoom \(z): x=\(x), y=\(y). "
-            + "Maximum is \(maxBound - 1) (2^\(z) = \(maxBound))."
+            let maximumCoordinate = maxBound > 0 ? maxBound - 1 : maxBound
+            return "Tile coordinate out of bounds at zoom \(z): x=\(x), y=\(y). "
+                + "Maximum is \(maximumCoordinate) (2^\(z) = \(maxBound))."
         case let .fileReadFailed(url, reason):
-            "Failed to read \(url.absoluteString): \(reason)"
+            return "Failed to read \(url.absoluteString): \(reason)"
         case let .parseFailed(format, reason):
-            "Failed to parse \(format) data: \(reason)"
+            return "Failed to parse \(format) data: \(reason)"
         }
     }
 

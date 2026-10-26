@@ -10,12 +10,12 @@ import Logging
 
 enum MVTDecoder {
 
-    /// Deserializes raw MVT protocol buffer data into a ``VectorTile_Tile``.
+    /// Deserializes raw MVT protocol buffer data into a `VectorTile_Tile`.
     ///
     /// Automatically decompresses gzipped input before deserializing.
     ///
     /// - Parameter mvtData: The raw MVT protobuf bytes, optionally gzip-compressed.
-    /// - Returns: A decoded ``VectorTile_Tile``, or `nil` if deserialization fails.
+    /// - Returns: A decoded `VectorTile_Tile`, or `nil` if deserialization fails.
     static func vectorTile(from mvtData: Data) -> VectorTile_Tile? {
         var data = mvtData
         if data.isGzipped {
@@ -25,7 +25,7 @@ enum MVTDecoder {
         return try? VectorTile_Tile(serializedBytes: data)
     }
 
-    /// Decodes all layers from MVT data into ``VectorTile.LayerContainer`` values.
+    /// Decodes all layers from MVT data into `VectorTile.LayerContainer` values.
     ///
     /// This is the main entry point for reading a vector tile. It decompresses the data,
     /// deserializes the protobuf, and parses each layer's features into the appropriate
@@ -36,11 +36,11 @@ enum MVTDecoder {
     ///   - x: The tile column index.
     ///   - y: The tile row index.
     ///   - z: The tile zoom level.
-    ///   - projection: The target projection for coordinates (default: ``Projection/epsg4326``).
+    ///   - projection: The target projection for coordinates (default: `Projection.epsg4326`).
     ///   - layerAllowlist: An optional set of layer names to include; `nil` includes all layers.
     ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
-    ///   - logger: An optional ``Logger`` for diagnostic messages.
-    /// - Returns: A dictionary mapping layer names to their ``VectorTile.LayerContainer``,
+    ///   - logger: An optional `Logger` for diagnostic messages.
+    /// - Returns: A dictionary mapping layer names to their `VectorTile.LayerContainer`,
     ///   or `nil` if the data could not be decoded.
     static func decode(
         from mvtData: Data,
@@ -70,7 +70,11 @@ enum MVTDecoder {
             guard (layerAllowlist?.contains(layer.name) ?? true) else { continue }
 
             let name: String = layer.name
-            let extent = Int(layer.extent)
+            let rawExtent = Int(layer.extent)
+            // An extent of zero is invalid (it would make the tile-local
+            // projection collapse and divide by zero). Fall back to the MVT
+            // default extent, as recommended for missing/invalid values.
+            let extent = rawExtent > 0 ? rawExtent : VectorTile.ExportOptions.extent
             let version = Int(layer.version)
 
             if extent != lastExtent {
@@ -80,8 +84,8 @@ enum MVTDecoder {
             }
 
             switch version {
-            case 2:
-                let layerFeatures: [Feature] = parseVersion2(
+            case 1, 2:
+                let layerFeatures: [Feature] = parseLayer(
                     layer: layer,
                     projectionFunction: projectionFunction,
                     calculateBoundingBox: calculateBoundingBox)
@@ -92,9 +96,28 @@ enum MVTDecoder {
                     layerBoundingBox = boundingBoxes.reduce(boundingBoxes[0], +)
                 }
 
-                layers[name] = VectorTile.LayerContainer(
-                    features: layerFeatures,
-                    boundingBox: layerBoundingBox)
+                // The MVT specification asks for unique layer names, but
+                // real-world tiles occasionally contain duplicates. Merging
+                // them avoids silently discarding data.
+                if let existing = layers[name] {
+                    let features = existing.features + layerFeatures
+                    let combinedBoundingBox: BoundingBox?
+                    if let first = existing.boundingBox, let second = layerBoundingBox {
+                        combinedBoundingBox = first + second
+                    }
+                    else {
+                        combinedBoundingBox = existing.boundingBox ?? layerBoundingBox
+                    }
+
+                    layers[name] = VectorTile.LayerContainer(
+                        features: features,
+                        boundingBox: combinedBoundingBox)
+                }
+                else {
+                    layers[name] = VectorTile.LayerContainer(
+                        features: layerFeatures,
+                        boundingBox: layerBoundingBox)
+                }
 
             default:
                 (logger ?? VectorTile.logger)?.info("\(z)/\(x)/\(y): Layer \(name) has unknown version \(version)")
@@ -104,18 +127,20 @@ enum MVTDecoder {
         return layers
     }
 
-    /// Parses a version-2 MVT layer into an array of ``Feature`` values.
+    /// Parses a version-1 or version-2 MVT layer into an array of `Feature`
+    /// values. Both versions use the same geometry command encoding; they
+    /// differ only in the mandatory layer version metadata.
     ///
     /// Decodes the protobuf geometry, extracts property key/value pairs, and assigns
     /// a unique identifier to each feature.
     ///
     /// - Parameters:
-    ///   - layer: The protobuf ``VectorTile_Tile.Layer`` to parse.
+    ///   - layer: The protobuf `VectorTile_Tile.Layer` to parse.
     ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
-    ///     ``Coordinate3D`` in the target projection.
+    ///     `Coordinate3D` in the target projection.
     ///   - calculateBoundingBox: When `true`, calculate a bounding box for each feature.
-    /// - Returns: An array of decoded ``Feature`` values.
-    static func parseVersion2(
+    /// - Returns: An array of decoded `Feature` values.
+    static func parseLayer(
         layer: VectorTile_Tile.Layer,
         projectionFunction: ((_ x: Int, _ y: Int) -> Coordinate3D),
         calculateBoundingBox: Bool
@@ -216,18 +241,18 @@ enum MVTDecoder {
         return (keys, values)
     }
 
-    /// Converts raw geometry integers and a protobuf geometry type into a ``Feature``.
+    /// Converts raw geometry integers and a protobuf geometry type into a `Feature`.
     ///
-    /// Decodes the integer command stream into ``Coordinate3D`` values and constructs
-    /// the appropriate ``GISTools`` geometry (``Point``, ``MultiPoint``, ``LineString``,
-    /// ``MultiLineString``, ``Polygon``, or ``MultiPolygon``).
+    /// Decodes the integer command stream into `Coordinate3D` values and constructs
+    /// the appropriate `GISTools` geometry (`Point`, `MultiPoint`, `LineString`,
+    /// `multi-line string`, `Polygon`, or `MultiPolygon`).
     ///
     /// - Parameters:
     ///   - geometryIntegers: The raw protobuf geometry integer array.
     ///   - featureType: The protobuf geometry type (point, linestring, polygon).
     ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
-    ///     ``Coordinate3D`` in the target projection.
-    /// - Returns: A ``Feature`` with the decoded geometry, or `nil` if decoding fails.
+    ///     `Coordinate3D` in the target projection.
+    /// - Returns: A `Feature` with the decoded geometry, or `nil` if decoding fails.
     static func convertToLayerFeature(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
@@ -291,7 +316,13 @@ enum MVTDecoder {
                     polygons.append(ifNotNil: Polygon(currentRings.map({ $0.coordinates })))
                 }
 
-                if let multiPolygon = MultiPolygon(polygons.map({ $0.coordinates })) {
+                if polygons.count == 1 {
+                    // A single polygon with holes is still a Polygon. The
+                    // previous implementation always produced a MultiPolygon
+                    // whenever more than one ring was present.
+                    feature = Feature(polygons[0], calculateBoundingBox: calculateBoundingBox)
+                }
+                else if let multiPolygon = MultiPolygon(polygons.map({ $0.coordinates })) {
                     feature = Feature(multiPolygon, calculateBoundingBox: calculateBoundingBox)
                 }
             }
@@ -316,8 +347,8 @@ enum MVTDecoder {
     ///   - geometryIntegers: The raw protobuf geometry integer array.
     ///   - featureType: The protobuf geometry type (used to validate ClosePath).
     ///   - projectionFunction: A closure that converts tile-local (x, y) integers to
-    ///     ``Coordinate3D`` in the target projection.
-    /// - Returns: An array of coordinate rings, where each ring is an array of ``Coordinate3D``.
+    ///     `Coordinate3D` in the target projection.
+    /// - Returns: An array of coordinate rings, where each ring is an array of `Coordinate3D`.
     static func multiCoordinatesFrom(
         geometryIntegers: [UInt32],
         ofType featureType: VectorTile_Tile.GeomType,
@@ -326,61 +357,76 @@ enum MVTDecoder {
         var x = 0
         var y = 0
 
-        var commandId: UInt32 = 0
-        var commandCount = 0
-
         var coordinates: [Coordinate3D] = []
         var result: [[Coordinate3D]] = []
+        var discardCurrentRing = false
 
         var index = 0
         let geometryCount: Int = geometryIntegers.count
 
-        while index < geometryCount {
+        decoding: while index < geometryCount {
             let commandInteger: UInt32 = geometryIntegers[index]
             index += 1
 
-            commandId = commandInteger & 0x7
-            commandCount = Int(commandInteger >> 3)
+            let commandId = commandInteger & 0x7
+            let commandCount = Int(commandInteger >> 3)
 
-            // ClosePath has no parameter
-            if commandId == MVTDecoder.commandIdClosePath {
-                guard featureType != .point,
+            switch commandId {
+            case MVTDecoder.commandIdClosePath:
+                // ClosePath has no parameters and a count of exactly one.
+                guard featureType == .polygon,
                       commandCount == 1,
-                      coordinates.count > 1
-                else { break }
-
-                coordinates.append(coordinates[0])
-
-                continue
-            }
-
-            // Else: MoveTo or LineTo, with parameters
-            guard index + (commandCount * 2) <= geometryCount else { break }
-
-            coordinates.reserveCapacity(commandCount * 2)
-
-            for _ in 0 ..< commandCount {
-                defer { index += 2 }
-
-                let dx: UInt32 = geometryIntegers[index]
-                let dy: UInt32 = geometryIntegers[index + 1]
-
-                x += MVTDecoder.zigZagDecode(Int(dx))
-                y += MVTDecoder.zigZagDecode(Int(dy))
-
-                if commandId == MVTDecoder.commandIdMoveTo,
-                   coordinates.isNotEmpty
-                {
-                    result.append(coordinates)
-                    coordinates = []
-                    coordinates.reserveCapacity(commandCount * 2)
+                      coordinates.count > 2
+                else {
+                    // The closing command is malformed. For a polygon the
+                    // partial ring must not be emitted as if it were valid.
+                    discardCurrentRing = featureType == .polygon
+                    break decoding
                 }
 
-                coordinates.append(projectionFunction(x, y))
+                if coordinates.first != coordinates.last {
+                    coordinates.append(coordinates[0])
+                }
+
+            case MVTDecoder.commandIdMoveTo, MVTDecoder.commandIdLineTo:
+                guard commandCount > 0,
+                      index + (commandCount * 2) <= geometryCount
+                else { break decoding }
+
+                coordinates.reserveCapacity(commandCount * 2)
+
+                for _ in 0 ..< commandCount {
+                    defer { index += 2 }
+
+                    let dx = MVTDecoder.zigZagDecode(Int(geometryIntegers[index]))
+                    let dy = MVTDecoder.zigZagDecode(Int(geometryIntegers[index + 1]))
+
+                    let (newX, xOverflow) = x.addingReportingOverflow(dx)
+                    let (newY, yOverflow) = y.addingReportingOverflow(dy)
+                    guard !xOverflow, !yOverflow else { break decoding }
+
+                    x = newX
+                    y = newY
+
+                    if commandId == MVTDecoder.commandIdMoveTo,
+                       coordinates.isNotEmpty
+                    {
+                        result.append(coordinates)
+                        coordinates = []
+                        coordinates.reserveCapacity(commandCount * 2)
+                    }
+
+                    coordinates.append(projectionFunction(x, y))
+                }
+
+            default:
+                // Unknown command: the remainder of the geometry cannot be
+                // interpreted reliably.
+                break decoding
             }
         }
 
-        if coordinates.isNotEmpty {
+        if coordinates.isNotEmpty, !discardCurrentRing {
             result.append(coordinates)
         }
 

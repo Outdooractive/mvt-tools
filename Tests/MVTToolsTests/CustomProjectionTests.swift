@@ -65,7 +65,11 @@ struct CustomProjectionTests {
 
         // A point at the center of tile 1/1/1 (top-left quadrant of the world).
         var tile = try VectorTile(x: 1, y: 1, z: 1, projection: projection)
-        let center = tile.boundingBox.center
+        let boundingBox = tile.boundingBox
+        let center = Coordinate3D(
+            x: (boundingBox.southWest.x + boundingBox.northEast.x) / 2.0,
+            y: (boundingBox.southWest.y + boundingBox.northEast.y) / 2.0,
+            projection: boundingBox.projection)
         #expect(center.projection.srid == srid)
 
         tile.setFeatures([

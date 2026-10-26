@@ -121,8 +121,7 @@ public struct VectorTile: Sendable {
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/invalidCoordinate`` or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         x: Int,
         y: Int,
@@ -131,7 +130,7 @@ public struct VectorTile: Sendable {
         indexed sortOption: RTreeSortOption? = nil,
         logger: Logger? = nil
     ) throws {
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -174,8 +173,7 @@ public struct VectorTile: Sendable {
     ///   - projection: The spatial projection for the tile. Defaults to `.epsg4326`.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing. Defaults to `nil`.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/invalidCoordinate`` or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         tile: MapTile,
         projection: Projection = .epsg4326,
@@ -201,15 +199,14 @@ public struct VectorTile: Sendable {
     ///
     /// - Parameter layerNames: The layer names to extract into the new tile.
     /// - Returns: A new `VectorTile` containing only the specified layers.
-    /// - Throws: ``VectorTileError/invalidCoordinate`` or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public func extract(layerNames: [String]) throws -> VectorTile {
         var newTile = try VectorTile(x: x, y: y, z: z, projection: projection)
 
         for name in layerNames {
             newTile.layers[name] = layers[name]
         }
-        newTile.layerNames = Array(newTile.layers.keys)
+        newTile.layerNames = newTile.layers.keys.sorted()
 
         return newTile
     }
@@ -220,7 +217,7 @@ public struct VectorTile: Sendable {
 
 extension VectorTile {
 
-    /// Returns an array of GeoJson Features from the given layer.
+    /// Returns an array of GeoJSON Features from the given layer.
     ///
     /// - Parameter layerName: The name of the layer to fetch features from.
     /// - Returns: An array of `Feature` objects. Returns an empty array if the layer does not exist.
@@ -265,7 +262,7 @@ extension VectorTile {
         }
 
         layers[layerName] = newLayerContainer
-        layerNames = Array(layers.keys)
+        layerNames = layers.keys.sorted()
 
         return true
     }
@@ -314,7 +311,7 @@ extension VectorTile {
         }
 
         layers[layerName] = newLayerContainer
-        layerNames = Array(layers.keys)
+        layerNames = layers.keys.sorted()
 
         return true
     }
@@ -351,7 +348,7 @@ extension VectorTile {
         }
 
         layers[layerName] = newLayerContainer
-        layerNames = Array(layers.keys)
+        layerNames = layers.keys.sorted()
 
         return true
     }
@@ -363,7 +360,7 @@ extension VectorTile {
     @discardableResult
     public mutating func removeLayer(_ layerName: String) -> [Feature]? {
         let removedFeatures: LayerContainer? = layers.removeValue(forKey: layerName)
-        layerNames = Array(layers.keys)
+        layerNames = layers.keys.sorted()
         return removedFeatures?.features
     }
 

@@ -14,6 +14,8 @@
 
 MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together with a powerful command-line tool for working with vector tiles, GeoJSON, GPX, CSV, Shapefile, and GeoPackage files.
 
+See [CHANGELOG.md](CHANGELOG.md) for notable changes.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -55,6 +57,7 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
   - [mvt import](#mvt-import)
   - [mvt load](#mvt-load)
   - [mvt rezoom](#mvt-rezoom)
+- [Development](#development)
 - [Contributing](#contributing)
 - [TODOs and future improvements](#todos-and-future-improvements)
 - [License](#license)
@@ -62,12 +65,12 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
 
 ## Features
 
-- **Read & write** MapLibre/Mapbox Vector Tiles from/to disk, data objects or URLs (handles gzipped input).
-- **GeoJSON import/export** — convert between MVT and GeoJSON formats.
+- **Read & write** MVT (Mapbox Vector Tile 2.1, including version-1 layers) and MLT (MapLibre Tiles) from/to disk or `Data` (gzipped input is detected automatically).
+- **GeoJSON import/export** — convert between MVT/MLT and GeoJSON, including gzipped GeoJSON output/input.
 - **GPX import/export** — convert between MVT and GPX (GPS eXchange) formats; waypoints, routes and tracks are automatically split into separate layers.
 - **CSV import/export** — convert between MVT and CSV formats; a header row is required and geometry is never guessed. Works directly with Postgres/Postgis CSV exports (`COPY TO`)
 - **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
-- **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export with complete roundtrip fidelity via `"gpkg_layer"` metadata.
+- **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export, preserving layer information in the `"gpkg_layer"` property.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
 - **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
 - **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
@@ -78,13 +81,13 @@ MapLibre/Mapbox vector tiles (MVT/MLT) reader/writer library for Swift, together
 
 ## Requirements
 
-This package requires Swift 6.3 or higher (at least Xcode 15), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 15), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
+This package requires Swift 6.3 or higher (Xcode 26 or newer), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 15), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
 
 ## Installation with Swift Package Manager
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "2.1.0"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "3.0.0"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
@@ -93,7 +96,28 @@ targets: [
 ]
 ```
 
-This package uses the [gis-tools](https://github.com/Outdooractive/gis-tools) library, and is being used by the [mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library, please have a look at them as well.
+This package pins [gis-tools](https://github.com/Outdooractive/gis-tools) and the
+`gis-tools-*` format packages to `3.0.0-beta.5`. It is used by the
+[mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library; please have
+a look at that project as well.
+
+### Format traits
+
+MVT, MLT (behind `EnableMLT`), and GeoJSON are always available. The remaining
+coders are package traits:
+
+| Format | Trait |
+| --- | --- |
+| MLT | `EnableMLT` |
+| CSV | `EnableCSV` |
+| GPX | `EnableGPX` |
+| FIT | `EnableFIT` |
+| Shapefile | `EnableShapefile` |
+| GeoPackage | `EnableGeoPackage` |
+
+Enable every format in a build with `swift build --enable-all-traits` or
+`swift test --enable-all-traits`. In a consuming package, declare the trait on
+the product dependency or enable it from the command line.
 
 ## Usage
 
@@ -105,7 +129,7 @@ See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tool
 import MVTTools
 
 let mvtData = try Data(contentsOf: URL(fileURLWithPath: "14_8716_8015.vector.mvt"))
-let tile = VectorTile(data: mvtData, x: 8716, y: 8015, z: 14, indexed: .hilbert)!
+let tile = try VectorTile(mvtData: mvtData, x: 8716, y: 8015, z: 14, indexed: .hilbert)
 
 print(tile.isIndexed)               // true
 print(tile.layerNames.sorted())     // ["admin", "aeroway", "airport_label", …]
@@ -123,16 +147,16 @@ let results = tile.query(
 
 ```swift
 let geoJsonData = try Data(contentsOf: URL(fileURLWithPath: "features.geojson"))
-let tile = VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")!
+let tile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
 // The tile can now be exported as MVT
-let mvtData = tile.data()
+let mvtData = tile.mvtData()
 ```
 
 ### Write MVT
 
 ```swift
-var tile = VectorTile(x: 8716, y: 8015, z: 14)!
+var tile = try VectorTile(x: 8716, y: 8015, z: 14)
 
 var feature = Feature(Point(Coordinate3D(latitude: 3.870163, longitude: 11.518585)))
 feature.properties = [
@@ -147,24 +171,24 @@ let options = VectorTile.ExportOptions(
     bufferSize: .pixel(4),
     compression: .default,
     simplifyFeatures: .meters(1.0))
-let mvtData = tile.data(options: options)
+let mvtData = tile.mvtData(options: options)
 try mvtData?.write(to: URL(fileURLWithPath: "output.mvt"))
 
 // Or write directly
-tile.write(to: URL(fileURLWithPath: "output.mvt"), options: options)
+tile.writeMVT(to: URL(fileURLWithPath: "output.mvt"), options: options)
 ```
 
 ### Read GPX
 
 ```swift
 let gpxData = try Data(contentsOf: URL(fileURLWithPath: "track.gpx"))
-let tile = VectorTile(gpxData: gpxData)!
+let tile = try VectorTile(gpxData: gpxData)
 
 // Waypoints, routes and tracks are split into separate layers.
 print(tile.layerNames.sorted())   // ["rte", "trk", "wpt"]
 
 // Export as MVT
-let mvtData = tile.data()
+let mvtData = tile.mvtData()
 ```
 
 ### Write GPX
@@ -188,7 +212,9 @@ let tile = try VectorTile(csvData: csvData)
 print(tile.layerNames)   // ["Layer-0"]
 
 // With a non-default delimiter:
-let tile = try VectorTile(csvData: csvData, delimiter: ";")
+let tile = try VectorTile(
+    csvData: csvData,
+    readOptions: CSVReadOptions(delimiter: ";"))
 ```
 
 ### Write CSV
@@ -204,7 +230,7 @@ tile.writeCSV(to: URL(fileURLWithPath: "output.csv"))
 ### Read Shapefile
 
 ```swift
-let tile = VectorTile(shapefile: URL(fileURLWithPath: "roads.shp"))!
+let tile = try VectorTile(shapefile: URL(fileURLWithPath: "roads.shp"))
 
 // Layer name defaults to the filename.
 print(tile.layerNames)   // ["roads"]
@@ -283,8 +309,8 @@ tile.merge(anotherTile)
 ### Merge tiles
 
 ```swift
-let tile1 = VectorTile(data: mvtData1, x: 5, y: 13, z: 4)!
-let tile2 = VectorTile(data: mvtData2, x: 5, y: 13, z: 4)!
+let tile1 = try VectorTile(mvtData: mvtData1, x: 5, y: 13, z: 4)
+let tile2 = try VectorTile(mvtData: mvtData2, x: 5, y: 13, z: 4)
 tile1.merge(tile2)
 ```
 
@@ -295,18 +321,18 @@ tile1.merge(tile2)
 let names = VectorTile.layerNames(from: mvtData)  // ["road", "building", …]
 
 // Feature statistics
-if let info = tile.tileInfo() {
-    for layer in info {
-        print(layer.name,
-              layer.features,       // total feature count
-              layer.pointFeatures,  // point count
-              layer.linestringFeatures,
-              layer.polygonFeatures)
-    }
+for layer in tile.tileInfo() {
+    print(layer.name,
+          layer.features,       // total feature count
+          layer.pointFeatures,  // point count
+          layer.linestringFeatures,
+          layer.polygonFeatures)
 }
 
 // Static info (no VectorTile instance needed)
-let info = VectorTile.tileInfo(from: mvtData)
+if let info = VectorTile.tileInfo(from: mvtData) {
+    print(info.count)
+}
 ```
 
 ### Export options
@@ -613,7 +639,7 @@ mvt info https://demotiles.maplibre.org/tiles/2/2/1.pbf
 ```bash
 mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 
- Name               | area | class | group | layer | ldir | len | name | ...
+ Property           | area | class | group | layer | ldir | len | name | ...
 --------------------+------+-------+-------+-------+------+-----+------+-----
  airport_label      | 0    | 0     | 0     | 0     | 0    | 0   | 0    | ...
  area_label         | 55   | 55    | 0     | 0     | 0    | 0   | 55   | ...
@@ -625,8 +651,8 @@ mvt info Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 ```bash
 mvt info -p class Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
 
- Name  | cemetery | driveway | fence | hedge | hospital | industrial | ...
--------+----------+----------+-------+-------+----------+------------+-----
+ Property | cemetery | driveway | fence | hedge | hospital | industrial | ...
+----------+----------+----------+-------+-------+----------+------------+-----
  class | 4        | 36       | 3895  | 324   | 9        | 2          | ...
 ```
 
@@ -645,6 +671,13 @@ mvt query Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt "École"
 
 ```bash
 mvt query Tests/MVTToolsTests/TestData/14_8716_8015.geojson "3.87324,11.53731,1000"
+```
+
+For a negative latitude or longitude, separate the positional argument from the
+options with `--` so it is not parsed as an option:
+
+```bash
+mvt query path/to/tile.mvt -- "-33.86,151.2,1000"
 ```
 
 **Example 3**: Property query with comparisons.
@@ -714,7 +747,8 @@ mvt merge --output merged.gpkg data.geojson tracks.gpx points.csv roads.shp tile
 ---
 ### mvt export
 
-Alias for `merge` — write any supported input file as GeoJSON.
+Alias for `merge` — write any supported input file to GeoJSON (or any other
+output format selected by `--output`).
 
 ```bash
 mvt export --output dumped.geojson --pretty-print Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -734,7 +768,7 @@ mvt import --output combined.gpkg data.geojson tracks.gpx
 
 Download all tiles covering a bounding box from a tile URL template into a local directory. The URL template must contain `{x}` and `{y}` placeholders (case-insensitive). The zoom level is inferred from a numeric path segment in the URL, or can be supplied with `--zoom`.
 
-Tiles can be laid out in a flat directory (`z_x_y.ext`, the default) or a tree hierarchy (`z/x/y.ext` via `--layout tree`).
+Tiles can be laid out in a flat directory (`z_x_y.ext`, the default) or a tree hierarchy (`z/x/y.ext` via `--layout tree`). `--zoom` overrides a literal zoom in the URL template. Bounding boxes whose minimum longitude is greater than their maximum cross the antimeridian (for example `170,-10,-170,10`).
 
 ```bash
 # Simple download with flat layout
@@ -775,6 +809,45 @@ mvt rezoom --output out.mvt --drop-layer temporary source.mvt
 ```
 ---
 
+
+# Development
+
+```bash
+swift build                       # MVT, MLT (trait), GeoJSON, and the CLI
+swift build --enable-all-traits   # every format coder
+swift test                        # default trait set
+swift test --enable-all-traits    # all format coders
+```
+
+Coverage is measured with LLVM's `llvm-cov` and excludes test sources,
+generated protobuf code, and the C++ MLT bridge:
+
+```bash
+swift test --enable-all-traits --enable-code-coverage
+llvm-cov report .build/debug/MVTToolsTests.so .build/debug/MVTCLITests.so \
+    -instr-profile="$(find .build -name '*.profdata' -print -quit)" \
+    -ignore-filename-regex='(Tests/|\.build/|Dependencies/|CMLT/|VectorTile_Tile\.swift)'
+```
+
+### Documentation
+
+The DocC catalog is in `Sources/MVTTools/MVTTools.docc`. To validate it locally:
+
+```bash
+swift build --target MVTTools \
+    -Xswiftc -emit-symbol-graph \
+    -Xswiftc -emit-symbol-graph-dir \
+    -Xswiftc .build/symbol-graphs
+mkdir -p .build/mvttools-symbols
+cp .build/symbol-graphs/MVTTools.symbols.json .build/mvttools-symbols/
+docc convert Sources/MVTTools/MVTTools.docc \
+    --additional-symbol-graph-dir .build/mvttools-symbols \
+    --output-path .build/docs \
+    --warnings-as-errors
+```
+
+CI runs the macOS and Linux all-traits test suites, the coverage gate, and
+the DocC validation job.
 
 # Contributing
 

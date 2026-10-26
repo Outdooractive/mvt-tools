@@ -11,7 +11,7 @@ extension VectorTile {
     /// Create a vector tile from FIT data.
     ///
     /// The tile's coordinates are automatically derived from the FIT bounding box.
-    /// Track records are stored as a ``MultiLineString`` feature with per-point
+    /// Track records are stored as a `multi-line string` feature with per-point
     /// sensor data, lap boundaries, and session/activity metadata.
     ///
     /// - Parameters:
@@ -21,9 +21,7 @@ extension VectorTile {
     ///       When `nil`, features are imported as-is from the FIT data.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         fitData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
@@ -47,7 +45,7 @@ extension VectorTile {
         self.y = tile.y
         self.z = tile.z
 
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -105,7 +103,7 @@ extension VectorTile {
 
     /// Create a vector tile by reading it from `url`, which must be a FIT file.
     ///
-    /// Track records are stored as a ``MultiLineString`` feature with per-point
+    /// Track records are stored as a `multi-line string` feature with per-point
     /// sensor data, lap boundaries, and session/activity metadata.
     ///
     /// - Parameters:
@@ -115,10 +113,7 @@ extension VectorTile {
     ///       When `nil`, features are imported as-is from the FIT data.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfFIT url: URL,
         indexed sortOption: RTreeSortOption? = nil,

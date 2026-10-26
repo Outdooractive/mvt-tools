@@ -22,9 +22,7 @@ extension VectorTile {
     ///       (`"gpx_type"` → `"wpt"`, `"rte"`, `"trk"`).
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         gpxData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
@@ -48,7 +46,7 @@ extension VectorTile {
         self.y = tile.y
         self.z = tile.z
 
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -96,10 +94,7 @@ extension VectorTile {
     ///       When `nil`, features are split by their GPX element type (`"gpx_type"`).
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfGPX url: URL,
         indexed sortOption: RTreeSortOption? = nil,

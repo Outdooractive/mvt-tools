@@ -39,7 +39,9 @@ extension CLI {
             try data.write(to: url, options: .atomic)
 
         case .mvt:
-            tile.writeMVT(to: url, options: options)
+            guard tile.writeMVT(to: url, options: options) else {
+                throw CLIError("Failed to write MVT")
+            }
 
         case .mlt:
             #if EnableMLT

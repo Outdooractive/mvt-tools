@@ -24,14 +24,13 @@ struct MLTRoundtripGeometryTests {
             Coordinate3D(latitude: 0.0, longitude: 0.0),
         ]])!, id: .int(3))
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: [
                 "points": VectorTile.LayerContainer(features: [point], boundingBox: nil),
                 "lines": VectorTile.LayerContainer(features: [line], boundingBox: nil),
                 "polygons": VectorTile.LayerContainer(features: [poly], boundingBox: nil),
             ],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .epsg4326)
         #expect(decoded.keys.count == 3)
         #expect(decoded["points"]?.features.count == 1)
@@ -49,10 +48,9 @@ struct MLTRoundtripGeometryTests {
             Coordinate3D(latitude: 7.0, longitude: 8.0),
         ]])!
         let feature = Feature(lines, id: .int(1))
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let result = try #require(decoded["test"]?.features.first?.geometry as? MultiLineString)
         #expect(result.coordinates.count == 2)
@@ -74,10 +72,9 @@ struct MLTRoundtripGeometryTests {
         ]
         let poly = try #require(Polygon([ring]))
         let feature = Feature(poly, id: .int(1))
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let result = try #require(decoded["test"]?.features.first?.geometry as? Polygon)
         #expect(result.rings.count == 1)
@@ -106,10 +103,9 @@ struct MLTRoundtripGeometryTests {
         ]
         let poly = try #require(Polygon([outer, inner]))
         let feature = Feature(poly, id: .int(1))
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let result = try #require(decoded["test"]?.features.first?.geometry as? Polygon)
         #expect(result.rings.count == 2)
@@ -133,10 +129,9 @@ struct MLTRoundtripGeometryTests {
         ]]))
         let mpoly = try #require(MultiPolygon([poly1, poly2]))
         let feature = Feature(mpoly, id: .int(1))
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let result = try #require(decoded["test"]?.features.first?.geometry as? MultiPolygon)
         #expect(result.coordinates.count == 2)
@@ -155,10 +150,9 @@ struct MLTRoundtripGeometryTests {
         let mp = try #require(MultiPoint(coords))
         let feature = Feature(mp, id: .int(1))
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -218,10 +212,9 @@ struct MLTRoundtripGeometryTests {
             features.append(Feature(try #require(MultiPolygon([small])), id: .int(i)))
         }
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: features, boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let layer = try #require(decoded["test"])
         #expect(layer.features.count == 25, "all 25 features decoded")
@@ -253,13 +246,12 @@ struct MLTRoundtripGeometryTests {
         let coord = Coordinate3D(latitude: 10.0, longitude: 20.0, altitude: 500.0, m: 123.0)
         let feature = Feature(Point(coord), properties: [:] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
-        let pt = try #require(feat.geometry.allCoordinates.first)
+        let pt = try #require(feat.geometry?.allCoordinates.first)
 
         #expect(pt.latitude == 10.0)
         #expect(pt.longitude == 20.0)

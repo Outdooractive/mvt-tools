@@ -14,11 +14,11 @@ enum MLTEncoder {
     /// simplification, and compression.
     ///
     /// - Parameters:
-    ///   - layers: A dictionary of layer names to their ``VectorTile.LayerContainer``.
+    ///   - layers: A dictionary of layer names to their `VectorTile.LayerContainer`.
     ///   - x: The tile column index.
     ///   - y: The tile row index.
     ///   - z: The tile zoom level.
-    ///   - projection: The source projection of the input coordinates (default: ``Projection/epsg4326``).
+    ///   - projection: The source projection of the input coordinates (default: `Projection.epsg4326`).
     ///   - options: Export options controlling buffer size, simplification, and compression.
     /// - Returns: The encoded MLT binary data, or `nil` on failure.
     static func encode(
@@ -65,40 +65,26 @@ enum MLTEncoder {
             simplifyDistance = meters
         }
 
-        if bufferSize != 0,
-           let boundingBoxToExpand = clipBoundingBox
-        {
-            let sqrt2 = 2.0.squareRoot()
-            let diagonal = Double(extent) * sqrt2
-            let bufferDiagonal = Double(bufferSize) * sqrt2
-            let factor = bufferDiagonal / diagonal
-
-            let diagonalLength = boundingBoxToExpand.southWest.distance(from: boundingBoxToExpand.northEast)
-            let distance = diagonalLength * factor
-
-            clipBoundingBox = boundingBoxToExpand.expanded(byDistance: distance)
+        if bufferSize != 0, let boundingBox = clipBoundingBox {
+            clipBoundingBox = VectorTile.expanded(boundingBox, byBufferSize: bufferSize)
         }
 
-        for (layerName, layerContainer) in layers {
+        for (layerName, layerContainer) in layers.sorted(by: { $0.key < $1.key }) {
             guard layerContainer.features.isNotEmpty else { continue }
 
-            let layerFeatures: [Feature] = if let clippedToBoundingBox = clipBoundingBox {
-                if simplifyDistance > 0.0 {
-                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox)?.simplified(tolerance: simplifyDistance) })
-                }
-                else {
-                    layerContainer.features.compactMap({ $0.clipped(to: clippedToBoundingBox) })
-                }
-            }
-            else {
-                layerContainer.features
-            }
+            let layerFeatures = VectorTile.processedFeatures(
+                layerContainer.features,
+                clipBoundingBox: clipBoundingBox,
+                simplifyDistance: simplifyDistance)
+                .filter({ $0.geometry != nil })
 
             guard layerFeatures.isNotEmpty else { continue }
 
             mlt_encoder_begin_layer(encoder, layerName, extent)
 
             for feature in layerFeatures {
+                guard let geometry = feature.geometry else { continue }
+
                 // MLT only supports numeric IDs; skip non-integer IDs.
                 let numericId = feature.id?.uint64Value
                 let hasId = numericId != nil
@@ -106,7 +92,7 @@ enum MLTEncoder {
 
                 // Map GISTools geometry type → MLT constant.
                 let geomType: Int32
-                switch feature.geometry.type {
+                switch geometry.type {
                 case .point: geomType = Int32(kMLTGeometryPoint)
                 case .multiPoint: geomType = Int32(kMLTGeometryMultiPoint)
                 case .lineString: geomType = Int32(kMLTGeometryLineString)
@@ -123,7 +109,7 @@ enum MLTEncoder {
                 var polygonRingCounts: [UInt32] = []
                 var projectedCoords: [(Int, Int)] = []
 
-                // MultiLineString parts are open lines — store every vertex as-is.
+                // Multi-line parts are open lines — store every vertex as-is.
                 let collectLine: ([Coordinate3D]) -> Void = { line in
                     let projected = line.map(projectionFunction)
                     partSizes.append(UInt32(projected.count))
@@ -166,13 +152,13 @@ enum MLTEncoder {
                     return result
                 }
 
-                switch feature.geometry.type {
+                switch geometry.type {
                 case .multiLineString:
-                    let mls = feature.geometry as! MultiLineString
+                    guard let mls = geometry as? MultiLineString else { continue }
                     for line in mls.coordinates { collectLine(line) }
 
                 case .polygon:
-                    let poly = feature.geometry as! Polygon
+                    guard let poly = geometry as? Polygon else { continue }
                     var rings = poly.rings.map { ring in
                         var coords = ring.coordinates
                         if coords.count > 1, coords.first == coords.last { coords.removeLast() }
@@ -186,7 +172,7 @@ enum MLTEncoder {
                     }
 
                 case .multiPolygon:
-                    let mpoly = feature.geometry as! MultiPolygon
+                    guard let mpoly = geometry as? MultiPolygon else { continue }
                     for poly in mpoly.coordinates {
                         var rings = poly.map { (ringCoords: [Coordinate3D]) -> [(Int, Int)] in
                             var coords = ringCoords
@@ -202,7 +188,7 @@ enum MLTEncoder {
                     }
 
                 default:
-                    projectedCoords = feature.geometry.allCoordinates.map(projectionFunction)
+                    projectedCoords = geometry.allCoordinates.map(projectionFunction)
                 }
 
                 var xs = projectedCoords.map { Float($0.0) }
@@ -217,9 +203,9 @@ enum MLTEncoder {
                 var mltProps: [MLTProperty] = []
                 for (key, value) in feature.properties {
                     let (type, strValue): (Int32, String)
-                    if value is String {
+                    if let string = value as? String {
                         type = Int32(kMLTPropString)
-                        strValue = value as! String
+                        strValue = string
                     }
                     else if let i = value as? Int {
                         if i >= Int(Int32.min), i <= Int(Int32.max) {
@@ -228,6 +214,18 @@ enum MLTEncoder {
                         else {
                             type = Int32(kMLTPropInt64)
                         }
+                        strValue = String(i)
+                    }
+                    else if let i = value as? Int8 {
+                        type = Int32(kMLTPropInt)
+                        strValue = String(i)
+                    }
+                    else if let i = value as? Int16 {
+                        type = Int32(kMLTPropInt)
+                        strValue = String(i)
+                    }
+                    else if let i = value as? Int32 {
+                        type = Int32(kMLTPropInt)
                         strValue = String(i)
                     }
                     else if let i = value as? Int64 {
@@ -241,6 +239,27 @@ enum MLTEncoder {
                     }
                     else if let u = value as? UInt {
                         if u <= UInt(UInt32.max) {
+                            type = Int32(kMLTPropUInt)
+                        }
+                        else {
+                            type = Int32(kMLTPropUInt64)
+                        }
+                        strValue = String(u)
+                    }
+                    else if let u = value as? UInt8 {
+                        type = Int32(kMLTPropUInt)
+                        strValue = String(u)
+                    }
+                    else if let u = value as? UInt16 {
+                        type = Int32(kMLTPropUInt)
+                        strValue = String(u)
+                    }
+                    else if let u = value as? UInt32 {
+                        type = Int32(kMLTPropUInt)
+                        strValue = String(u)
+                    }
+                    else if let u = value as? UInt64 {
+                        if u <= UInt64(UInt32.max) {
                             type = Int32(kMLTPropUInt)
                         }
                         else {

@@ -217,7 +217,7 @@ struct MVTEncoderTests {
 
         let features = tile.features(for: "test")
         #expect(features.count == 1)
-        #expect(features[0].geometry as! Point == point.geometry as! Point)
+        #expect(try #require(features[0].geometry as? Point) == (point.geometry as? Point))
         #expect(features[0].id == .int(600))
 
         let tileData = try #require(tile.mvtData())
@@ -225,8 +225,8 @@ struct MVTEncoderTests {
 
         let decodedTileFeatures = decodedTile.features(for: "test")
         #expect(decodedTileFeatures.count == 1)
-        #expect(abs((decodedTileFeatures[0].geometry as! Point).coordinate.latitude - 25) < 0.1)
-        #expect(abs((decodedTileFeatures[0].geometry as! Point).coordinate.longitude - 25) < 0.1)
+        #expect(abs((try #require(decodedTileFeatures[0].geometry as? Point)).coordinate.latitude - 25) < 0.1)
+        #expect(abs((try #require(decodedTileFeatures[0].geometry as? Point)).coordinate.longitude - 25) < 0.1)
         #expect(decodedTileFeatures[0].id == .int(600))
     }
 
@@ -281,8 +281,9 @@ struct MVTEncoderTests {
     @Test
     func emptyLayersProducesValidData() throws {
         let tile = try VectorTile(x: 0, y: 0, z: 0)
-        let data = tile.mvtData()
-        #expect(data != nil)
+        let data = try #require(tile.mvtData())
+        let decoded = try VectorTile(mvtData: data, x: 0, y: 0, z: 0)
+        #expect(decoded.isEmpty)
     }
 
     /// Tests encoding with EPSG:3857 projection round-trips correctly.
@@ -309,20 +310,24 @@ struct MVTEncoderTests {
         let decoded = try VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let decodedFeatures = decoded.features(for: "test")
         #expect(decodedFeatures.count == 1)
-        #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.x - 100.0) < 1.0)
-        #expect(abs((decodedFeatures[0].geometry as! Point).coordinate.y - 200.0) < 1.0)
+        #expect(abs((try #require(decodedFeatures[0].geometry as? Point)).coordinate.x - 100.0) < 1.0)
+        #expect(abs((try #require(decodedFeatures[0].geometry as? Point)).coordinate.y - 200.0) < 1.0)
     }
 
     /// Tests encoding with EPSG:4978 projection produces valid data.
     @Test
     func encodeWithEpsg4978() throws {
         var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4978)
-        let point = Feature(Point(Coordinate3D(x: 0.0, y: 0.0, projection: .epsg4978)), id: .int(102))
+        let coordinate = Coordinate3D(latitude: 45.0, longitude: 0.0).projected(to: .epsg4978)
+        let point = Feature(Point(coordinate), id: .int(102))
         tile.appendFeatures([point], to: "test")
 
-        let data = tile.mvtData()
-        #expect(data != nil)
-        #expect(data?.isEmpty == false)
+        let data = try #require(tile.mvtData())
+        #expect(data.isEmpty == false)
+
+        let decoded = try VectorTile(mvtData: data, x: 0, y: 0, z: 0, projection: .epsg4978)
+        let decodedPoint = try #require(decoded.features(for: "test").first?.geometry as? Point)
+        #expect(decodedPoint.coordinate.projection == .epsg4978)
     }
 
 }

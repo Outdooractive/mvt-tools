@@ -468,15 +468,38 @@ int64_t mlt_feature_property_int(
                     if (found) { *found = true; }
                     return std::get<std::int64_t>(p);
                 }
+                // Unsigned integers are handled by mlt_feature_property_uint
+                // so that the Swift side can preserve their type.
+                // float/double are intentionally excluded — handled below.
+            }
+        }
+    }
+    if (found) { *found = false; }
+    return 0;
+} CATCH_BRIDGE_RET(0)}
+
+uint64_t mlt_feature_property_uint(
+    MLTTileHandle tile,
+    size_t layerIndex,
+    size_t featureIndex,
+    const char* key,
+    bool* found)
+{ try {
+    const auto& layers = static_cast<mlt::MapLibreTile*>(tile)->getLayers();
+    if (layerIndex < layers.size()) {
+        auto* col = findPropertyColumn(layers[layerIndex], key);
+        if (col) {
+            auto prop = col->getProperty(static_cast<uint32_t>(featureIndex));
+            if (prop.has_value()) {
+                auto& p = prop.value();
                 if (std::holds_alternative<std::uint32_t>(p)) {
                     if (found) { *found = true; }
-                    return static_cast<int64_t>(std::get<std::uint32_t>(p));
+                    return static_cast<uint64_t>(std::get<std::uint32_t>(p));
                 }
                 if (std::holds_alternative<std::uint64_t>(p)) {
                     if (found) { *found = true; }
-                    return static_cast<int64_t>(std::get<std::uint64_t>(p));
+                    return std::get<std::uint64_t>(p);
                 }
-                // float/double are intentionally excluded — handled below.
             }
         }
     }
@@ -753,7 +776,10 @@ void mlt_encoder_add_feature(
 { try {
     auto* state = static_cast<EncoderState*>(encoder);
     mlt::Encoder::Feature feat;
-    if (hasId) { feat.id = featureId; }
+    // The C++ Feature default-initializes `id` to 0, which would make every
+    // feature look like it has ID 0. Clear it explicitly when the Swift side
+    // has no representable numeric ID.
+    feat.id = hasId ? std::optional<std::uint64_t>(featureId) : std::nullopt;
     feat.geometry = geometryFromCoords(
         xs, ys, coordCount, geomType,
         partSizes, partCount,

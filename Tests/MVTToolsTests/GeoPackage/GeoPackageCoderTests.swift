@@ -27,6 +27,24 @@ struct VectorTileGeoPackageTests {
     }
 
     @Test
+    func geopackageContentsOfAlias() async throws {
+        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("gpkg_alias_\(UUID().uuidString).gpkg")
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
+
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)),
+        ], for: "alias")
+        try await tile.writeGeoPackage(to: tempUrl)
+
+        let imported = try await VectorTile(contentsOfGeoPackage: tempUrl, table: "alias")
+        #expect(imported.origin == .geopackage)
+        #expect(imported.layerNames == ["alias"])
+        #expect(imported.features(for: "alias").count == 1)
+    }
+
+    @Test
     func geopackageInitAll() async throws {
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("gpkg_\(UUID().uuidString).gpkg")
@@ -70,6 +88,65 @@ struct VectorTileGeoPackageTests {
         let tables = contents.filter { $0.dataType == "features" }.map(\.tableName)
         #expect(tables.contains("points"))
         #expect(tables.contains("lines"))
+    }
+
+    @Test
+    func geopackageImportMissingTableThrowsAndCanReopen() async throws {
+        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("gpkg_error_\(UUID().uuidString).gpkg")
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
+
+        var tile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        tile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)), id: .int(1)),
+        ], for: "valid")
+        try await tile.writeGeoPackage(to: tempUrl)
+
+        do {
+            _ = try await VectorTile(geopackage: tempUrl, table: "missing")
+            Issue.record("Expected missing GeoPackage table to throw")
+        }
+        catch {
+            // Expected.
+        }
+
+        // The failed import must not leave the GeoPackage locked or unusable.
+        var reopened = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        reopened.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 11.0, longitude: 21.0)), id: .int(2)),
+        ], for: "reopened")
+        try await reopened.writeGeoPackage(to: tempUrl)
+        let imported = try await VectorTile(geopackage: tempUrl, table: "reopened")
+        #expect(imported.features(for: "reopened").count == 1)
+    }
+
+    @Test
+    func geopackageWriteNestedPropertyThrowsAndCanReopen() async throws {
+        let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("gpkg_error_\(UUID().uuidString).gpkg")
+        defer { try? FileManager.default.removeItem(at: tempUrl) }
+
+        var badTile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        var badFeature = Feature(Point(Coordinate3D(latitude: 10.0, longitude: 20.0)))
+        badFeature.properties["nested"] = ["value": 1] as [String: Sendable]
+        badTile.setFeatures([badFeature], for: "bad")
+
+        do {
+            try await badTile.writeGeoPackage(to: tempUrl)
+            Issue.record("Expected nested GeoPackage property to throw")
+        }
+        catch {
+            // Expected.
+        }
+
+        // The failed export must not leave the GeoPackage locked or unusable.
+        var goodTile = try VectorTile(x: 0, y: 0, z: 0, projection: .epsg4326)
+        goodTile.setFeatures([
+            Feature(Point(Coordinate3D(latitude: 11.0, longitude: 21.0)), id: .int(2)),
+        ], for: "good")
+        try await goodTile.writeGeoPackage(to: tempUrl)
+        let imported = try await VectorTile(geopackage: tempUrl, table: "good")
+        #expect(imported.features(for: "good").count == 1)
     }
 
     @Test

@@ -128,7 +128,9 @@ struct XYZOptions: ParsableArguments {
 
         guard x >= 0 else { throw CLIError("x must be >= 0") }
         guard y >= 0 else { throw CLIError("y must be >= 0") }
-        guard z >= 0 else { throw CLIError("z must be >= 0") }
+        guard z >= 0, z < Int.bitWidth - 1 else {
+            throw CLIError("z must be >= 0 and less than \(Int.bitWidth - 1)")
+        }
 
         let maximumTileCoordinate = 1 << z
         if x >= maximumTileCoordinate { throw CLIError("x at zoom \(z) must be smaller than \(maximumTileCoordinate)") }

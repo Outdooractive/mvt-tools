@@ -50,7 +50,7 @@ struct MLTDecoderTests {
         boxes: [BoundingBox]
     ) {
         for feat in features {
-            for coord in feat.geometry.allCoordinates {
+            for coord in feat.geometry?.allCoordinates ?? [] {
                 let ok = boxes.contains { $0.contains(coord) }
                 #expect(ok)
             }
@@ -90,7 +90,8 @@ struct MLTDecoderTests {
 
         for (_, container) in decoded {
             let feat = try #require(container.features.first)
-            #expect(feat.geometry.type != .invalid)
+            let geometry = try #require(feat.geometry)
+            #expect(geometry.type != .invalid)
             #expect(feat.properties.isEmpty == false)
             Self.expectAllCoordsInBounds([feat], boxes: boxes)
         }
@@ -111,7 +112,7 @@ struct MLTDecoderTests {
         for (_, container) in decoded {
             for feat in container.features {
                 totalFeatures += 1
-                #expect(feat.geometry.type != .invalid)
+                #expect(feat.geometry != nil)
                 Self.expectAllCoordsInBounds([feat], boxes: boxes)
             }
         }

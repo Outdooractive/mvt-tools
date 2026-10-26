@@ -77,9 +77,10 @@ struct QueryCommandTests {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("q_\(UUID().uuidString).geojson")
         defer { try? FileManager.default.removeItem(at: outUrl) }
-        let output = try runCLI(args: ["query", "--output", outUrl.path, "--verbose", mvtPath, "road"])
+        let output = try runCLI(args: ["query", "--output", outUrl.path, "--verbose", mvtPath, ".class == 'motorway'"])
         #expect(output.contains("Found"))
-        try assertGeoJsonFile(at: outUrl)
+        let fc = try assertGeoJsonFile(at: outUrl)
+        #expect(fc.features.isEmpty == false)
     }
 
     @Test(.timeLimit(.minutes(1)))

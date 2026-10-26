@@ -17,10 +17,9 @@ struct MLTRoundtripPropertiesTests {
             "count": 50,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [original], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .epsg4326)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -35,19 +34,26 @@ struct MLTRoundtripPropertiesTests {
         let original = Feature(Point(coord), properties: [
             "s": "hello",
             "i": 42,
+            "i32": Int32(123),
+            "i64": Int64(9_000_000_000),
+            "u32": UInt32(456),
+            "u64": UInt64(9_000_000_000),
             "d": 3.14,
             "b": true,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [original], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .epsg4326)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .epsg4326))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .epsg4326)
         let feat = try #require(decoded["test"]?.features.first)
 
         #expect(feat.properties["s"] as? String == "hello")
         #expect(feat.properties["i"] as? Int64 == 42)
+        #expect(feat.properties["i32"] as? Int64 == 123)
+        #expect(feat.properties["i64"] as? Int64 == 9_000_000_000)
+        #expect(feat.properties["u32"] as? UInt64 == 456)
+        #expect(feat.properties["u64"] as? UInt64 == 9_000_000_000)
         #expect(feat.properties["d"] as? Double == 3.14)
         #expect(feat.properties["b"] as? Bool == true)
     }
@@ -64,10 +70,9 @@ struct MLTRoundtripPropertiesTests {
             "empty": "",
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -85,10 +90,9 @@ struct MLTRoundtripPropertiesTests {
             "key with spaces": "value2",
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -106,10 +110,9 @@ struct MLTRoundtripPropertiesTests {
             "bool": true,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -128,10 +131,9 @@ struct MLTRoundtripPropertiesTests {
         }
         let feature = Feature(Point(coord), properties: props)
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -149,10 +151,9 @@ struct MLTRoundtripPropertiesTests {
             "no": false,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -167,10 +168,9 @@ struct MLTRoundtripPropertiesTests {
             "neg": -42,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -182,10 +182,9 @@ struct MLTRoundtripPropertiesTests {
         let coord = Coordinate3D(latitude: 1.0, longitude: 2.0)
         let feature = Feature(Point(coord), properties: [:])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -210,10 +209,9 @@ struct MLTRoundtripPropertiesTests {
             "negative": -100,
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -242,10 +240,9 @@ struct MLTRoundtripPropertiesTests {
             "big": Int(largeValue),
         ] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [feature], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let feat = try #require(decoded["test"]?.features.first)
 
@@ -265,10 +262,9 @@ struct MLTRoundtripPropertiesTests {
         let f1 = Feature(Point(coord), properties: ["val": 42] as [String: Sendable])
         let f2 = Feature(Point(coord), properties: ["val": Int(Int64(Int32.max) + 1)] as [String: Sendable])
 
-        guard let data = MLTEncoder.encode(
+        let data = try #require(MLTEncoder.encode(
             layers: ["test": VectorTile.LayerContainer(features: [f1, f2], boundingBox: nil)],
-            x: 0, y: 0, z: 0, projection: .noSRID)
-        else { return }
+            x: 0, y: 0, z: 0, projection: .noSRID))
         let decoded = try MLTDecoder.decode(from: data, x: 0, y: 0, z: 0, projection: .noSRID)
         let features = try #require(decoded["test"]?.features)
 

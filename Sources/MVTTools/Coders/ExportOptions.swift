@@ -118,22 +118,69 @@ extension VectorTile {
 
         var clipBoundingBox: BoundingBox?
         if bufferSize != 0, projection.hasSRID {
-            clipBoundingBox = MapTile(x: x, y: y, z: z).boundingBox(projection: projection)
-            if let box = clipBoundingBox {
-                let sqrt2 = 2.0.squareRoot()
-                let diagonal = Double(VectorTile.ExportOptions.extent) * sqrt2
-                let bufferDiagonal = Double(bufferSize) * sqrt2
-                let factor = bufferDiagonal / diagonal
-                let diagonalLength = box.southWest.distance(from: box.northEast)
-                clipBoundingBox = box.expanded(byDistance: diagonalLength * factor)
-            }
+            clipBoundingBox = VectorTile.expanded(
+                MapTile(x: x, y: y, z: z).boundingBox(projection: projection),
+                byBufferSize: bufferSize)
         }
 
+        return VectorTile.processedFeatures(
+            features,
+            clipBoundingBox: clipBoundingBox,
+            simplifyDistance: simplifyDistance)
+    }
+
+    /// Expand a tile bounding box by a buffer measured in tile-extent units.
+    ///
+    /// One extent unit corresponds to one 4096th of the tile width, so a
+    /// buffer of `bufferSize` extent units is `bufferSize / 4096` of the tile
+    /// width. The previous implementation multiplied the box diagonal
+    /// (width × √2) by that fraction, which made every buffer roughly 41%
+    /// larger than requested.
+    ///
+    /// - Parameters:
+    ///   - boundingBox: The tile bounding box in the target projection.
+    ///   - bufferSize: The buffer size in tile-extent units.
+    /// - Returns: The expanded bounding box.
+    static func expanded(
+        _ boundingBox: BoundingBox,
+        byBufferSize bufferSize: Int
+    ) -> BoundingBox {
+        guard bufferSize > 0 else { return boundingBox }
+
+        // Use the tile's horizontal edge length in meters (or projection
+        // units). `expanded(byDistance:)` interprets the value in meters for
+        // geographic projections and native units for planar ones.
+        let tileWidth = boundingBox.southWest.distance(from: boundingBox.southEast)
+        let distance = (Double(bufferSize) / Double(VectorTile.ExportOptions.extent)) * tileWidth
+
+        return boundingBox.expanded(byDistance: distance)
+    }
+
+    /// Clip and optionally simplify a list of features.
+    ///
+    /// Features that lie completely inside `clipBoundingBox` are passed
+    /// through unchanged. This preserves their exact geometry type:
+    /// `Feature.clipped(to:)` always returns multi-geometries, so
+    /// clipping an already-contained `LineString` or `Polygon` would
+    /// silently promote it to `multi-line string` or `MultiPolygon`.
+    ///
+    /// - Parameters:
+    ///   - features: The features to process.
+    ///   - clipBoundingBox: The clipping box, or `nil` to skip clipping.
+    ///   - simplifyDistance: The simplification tolerance in projection
+    ///     units, or `0.0` to skip simplification.
+    /// - Returns: The processed features. Features outside the clip box are
+    ///   dropped.
+    static func processedFeatures(
+        _ features: [Feature],
+        clipBoundingBox: BoundingBox?,
+        simplifyDistance: CLLocationDistance = 0.0
+    ) -> [Feature] {
         guard clipBoundingBox != nil || simplifyDistance > 0.0 else { return features }
 
         return features.compactMap { feature in
             let clipped: Feature
-            if let clipBoundingBox {
+            if let clipBoundingBox, !feature.isFullyContained(in: clipBoundingBox) {
                 guard let c = feature.clipped(to: clipBoundingBox) else { return nil }
                 clipped = c
             }
@@ -145,6 +192,22 @@ extension VectorTile {
             }
             return clipped
         }
+    }
+
+}
+
+extension Feature {
+
+    /// A Boolean value indicating whether the feature's bounding box is
+    /// completely inside `box`.
+    ///
+    /// - Parameter box: The bounding box to test against.
+    /// - Returns: `true` when the feature has a geometry and its bounding box
+    ///   is contained in `box`.
+    func isFullyContained(in box: BoundingBox) -> Bool {
+        let coordinates = allCoordinates
+        guard coordinates.isNotEmpty else { return false }
+        return coordinates.allSatisfy({ box.contains($0) })
     }
 
 }

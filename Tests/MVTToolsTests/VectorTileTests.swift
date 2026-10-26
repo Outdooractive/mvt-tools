@@ -183,10 +183,10 @@ struct VectorTileTests {
         #expect(tile.features(for: "test").count == 2)
 
         tile.removeFeatures(fromLayer: "test", where: { feature in
-            feature.geometry.allCoordinates.first?.latitude == 10.0
+            feature.geometry?.allCoordinates.first?.latitude == 10.0
         })
         #expect(tile.features(for: "test").count == 1)
-        #expect(tile.features(for: "test").first?.geometry.allCoordinates.first?.latitude == 20.0)
+        #expect(tile.features(for: "test").first?.geometry?.allCoordinates.first?.latitude == 20.0)
     }
 
     /// Tests that invalid tile coordinates (negative x/y/z) throw.

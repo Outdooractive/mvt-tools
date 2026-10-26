@@ -31,6 +31,10 @@ extension CLI {
             degrees. Tiles are enumerated with a tile-cover algorithm which walks the \
             bounding box edges in tile space and handles antimeridian crossing.
 
+            Individual download failures do not abort the remaining downloads, but \
+            the command exits with a non-zero status after printing the summary when \
+            any tile could not be downloaded.
+
             Examples:
               mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles \\
                   https://example.com/tiles/14/{x}/{y}.pbf
@@ -178,15 +182,19 @@ extension CLI {
             else {
                 print("Loaded \(downloaded) tiles (\(skipped) skipped, \(failed) failed) into \(outputURL.path)")
             }
+
+            if failed > 0 {
+                throw CLIError("\(failed) tile download(s) failed")
+            }
         }
 
         // MARK: - Tile download
 
         /// Downloads a single tile and writes it to disk, updating progress.
         ///
-        /// Soft failures (HTTP non-2xx, network errors, missing files) are
-        /// silently skipped when `verbose` is false, and logged to stderr
-        /// when `verbose` is true.
+        /// Download failures (HTTP non-2xx, network errors, missing files) do
+        /// not abort the remaining downloads. They are logged to stderr when
+        /// `verbose` is true, and the command exits non-zero after its summary.
         private static func downloadTile(
             _ tile: MapTile,
             zoom: Int,
@@ -379,9 +387,8 @@ extension CLI {
             guard minLat >= -90.0, maxLat <= 90.0 else {
                 throw CLIError("Latitude must be in -90.0 ... 90.0 (got \(minLat) ... \(maxLat)).")
             }
-            guard minLon <= maxLon else {
-                throw CLIError("minLon (\(minLon)) must be <= maxLon (\(maxLon)).")
-            }
+            // A minimum longitude greater than the maximum describes a box
+            // that crosses the antimeridian (e.g. 170,-10,-170,10).
             guard minLat <= maxLat else {
                 throw CLIError("minLat (\(minLat)) must be <= maxLat (\(maxLat)).")
             }
@@ -391,19 +398,14 @@ extension CLI {
                 northEast: Coordinate3D(latitude: maxLat, longitude: maxLon))
         }
 
-        /// Resolves the zoom level by parsing a literal numeric segment from
-        /// the URL path, falling back to the `--zoom` option when none is
-        /// found.
+        /// Resolves the zoom level for a tile URL template.
         ///
-        /// Two forms are recognised:
-        ///   1. A standalone numeric path segment (e.g. `.../14/{x}/{y}.pbf`).
-        ///   2. A segment that contains `{x}`/`{y}` placeholders and starts
-        ///      with a numeric prefix (e.g. `14_{x}_{y}.pbf`). This form is
-        ///      only applied to segments with placeholders to avoid matching
-        ///      random numeric prefixes in directory names (e.g. `/var/folders/8j/...`).
-        ///
-        /// Placeholder segments like `{x}`, `{y}`, `{z}` are skipped. The
-        /// first matching segment with a value in `0 ... 30` is used.
+        /// An explicit `--zoom` value always takes precedence. Otherwise the
+        /// zoom is inferred from the tile template itself, preferring a
+        /// numeric prefix in the `{x}` segment (e.g. `14_{x}_{y}.pbf`) or the
+        /// directory immediately before `{x}` (e.g. `.../14/{x}/{y}.pbf`).
+        /// Standalone numeric path segments are used only as a last resort, so
+        /// version-like segments such as `/v2/` cannot override the tile zoom.
         ///
         /// - Parameters:
         ///   - urlString: The tile URL template.
@@ -414,49 +416,64 @@ extension CLI {
             from urlString: String,
             fallback: Int?
         ) throws -> Int {
-            // Try to find a literal numeric path segment, ignoring placeholders
-            if let url = URL(string: urlString) ?? URL(string: "file://" + urlString) {
-                let pathComponents = url.pathComponents.filter { component in
-                    !component.isEmpty
-                        && component != "/"
-                        && component.lowercased() != "{z}"
-                        && component.lowercased() != "{x}"
-                        && component.lowercased() != "{y}"
+            // An explicit --zoom always wins over a literal segment in the URL.
+            if let z = fallback {
+                guard z >= 0, z <= 30 else {
+                    throw CLIError("Zoom level must be in 0 ... 30 (got \(z)).")
                 }
-                for component in pathComponents {
-                    // Strip a trailing extension like "14.pbf"
-                    let candidate = component.split(separator: ".").first.map(String.init) ?? component
-                    let lowercased = candidate.lowercased()
-
-                    // Form 1: pure integer (e.g. "14")
-                    if let z = Int(candidate), z >= 0, z <= 30 {
-                        return z
-                    }
-
-                    // Form 2: leading numeric prefix like "14_{x}_{y}" —
-                    // only when the segment contains tile placeholders, to
-                    // avoid matching numeric prefixes in directory names
-                    // (e.g. "/var/folders/8j/...").
-                    let hasPlaceholder = lowercased.contains("{x}")
-                        || lowercased.contains("{y}")
-                        || lowercased.contains("{z}")
-                    if hasPlaceholder {
-                        let leadingDigits = String(candidate.prefix { $0.isWholeNumber })
-                        if let z = Int(leadingDigits), !leadingDigits.isEmpty, z >= 0, z <= 30 {
-                            return z
-                        }
-                    }
-                }
+                return z
             }
 
-            // Fall back to --zoom
-            guard let z = fallback else {
+            guard let url = URL(string: urlString) ?? URL(string: "file://" + urlString) else {
                 throw CLIError("Could not infer zoom level from the URL; please specify --zoom.")
             }
-            guard z >= 0, z <= 30 else {
-                throw CLIError("Zoom level must be in 0 ... 30 (got \(z)).")
+
+            let pathComponents = url.pathComponents.filter { component in
+                !component.isEmpty && component != "/"
             }
-            return z
+
+            let lowercasedComponents = pathComponents.map { $0.lowercased() }
+
+            // Prefer the tile template itself: a segment like `14_{x}_{y}`
+            // or the directory immediately before `{x}`.
+            if let xIndex = lowercasedComponents.firstIndex(where: { $0.contains("{x}") }) {
+                let component = pathComponents[xIndex]
+                let candidate = component.split(separator: ".").first.map(String.init) ?? component
+                let leadingDigits = String(candidate.prefix { $0.isWholeNumber })
+                if !leadingDigits.isEmpty, let z = Int(leadingDigits), z >= 0, z <= 30 {
+                    return z
+                }
+
+                if xIndex > 0, let z = Int(pathComponents[xIndex - 1]), z >= 0, z <= 30 {
+                    return z
+                }
+            }
+
+            // Fall back to any placeholder segment with a numeric prefix
+            // (e.g. `2_{x}_{y}.pbf`).
+            for (index, component) in pathComponents.enumerated() {
+                let lowercased = lowercasedComponents[index]
+                let hasPlaceholder = lowercased.contains("{x}")
+                    || lowercased.contains("{y}")
+                    || lowercased.contains("{z}")
+                guard hasPlaceholder else { continue }
+
+                let candidate = component.split(separator: ".").first.map(String.init) ?? component
+                let leadingDigits = String(candidate.prefix { $0.isWholeNumber })
+                if !leadingDigits.isEmpty, let z = Int(leadingDigits), z >= 0, z <= 30 {
+                    return z
+                }
+            }
+
+            // Last resort: a standalone numeric path segment.
+            for component in pathComponents {
+                let candidate = component.split(separator: ".").first.map(String.init) ?? component
+                if let z = Int(candidate), z >= 0, z <= 30 {
+                    return z
+                }
+            }
+
+            throw CLIError("Could not infer zoom level from the URL; please specify --zoom.")
         }
 
     }

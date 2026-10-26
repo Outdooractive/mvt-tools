@@ -21,9 +21,7 @@ extension VectorTile {
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         geoJsonData data: Data,
         indexed sortOption: RTreeSortOption? = nil,
@@ -31,6 +29,14 @@ extension VectorTile {
         layerAllowlist: [String]? = nil,
         logger: Logger? = nil
     ) throws {
+        // `toGeoJson(options:)` can gzip its output, so accept gzipped input
+        // here as well. Without this, a compressed GeoJSON exported by the
+        // CLI could not be read back by the CLI.
+        var data = data
+        if data.isGzipped {
+            data = (try? data.gunzipped()) ?? data
+        }
+
         guard let featureCollection = FeatureCollection(jsonData: data) else {
             throw VectorTileError.parseFailed(
                 format: "GeoJSON",
@@ -48,7 +54,7 @@ extension VectorTile {
         self.y = tile.y
         self.z = tile.z
 
-        guard x >= 0, y >= 0, z >= 0 else {
+        guard x >= 0, y >= 0, z >= 0, z < Int.bitWidth - 1 else {
             (logger ?? VectorTile.logger)?.warning("\(z)/\(x)/\(y): Invalid tile coordinate")
             throw VectorTileError.invalidCoordinate(x: x, y: y, z: z)
         }
@@ -94,10 +100,7 @@ extension VectorTile {
     ///       Defaults to `VectorTile.defaultLayerPropertyName`.
     ///   - layerAllowlist: An optional set of layer names to load. If `nil`, all layers are loaded.
     ///   - logger: An optional logger instance. Defaults to `nil`.
-    /// - Throws: ``VectorTileError/fileReadFailed``,
-    ///   ``VectorTileError/parseFailed``,
-    ///   ``VectorTileError/invalidCoordinate``, or
-    ///   ``VectorTileError/coordinateOutOfBounds``.
+    /// - Throws: VectorTileError.
     public init(
         contentsOfGeoJson url: URL,
         indexed sortOption: RTreeSortOption? = nil,
@@ -145,7 +148,7 @@ extension VectorTile {
     ) -> Data? {
         var allFeatures: [Feature] = []
 
-        for (layerName, layerContainer) in layers {
+        for (layerName, layerContainer) in layers.sorted(by: { $0.key < $1.key }) {
             if layerNames.isNotEmpty, !layerNames.contains(layerName) { continue }
 
             let layerFeatures = processFeatures(layerContainer.features, options: options)

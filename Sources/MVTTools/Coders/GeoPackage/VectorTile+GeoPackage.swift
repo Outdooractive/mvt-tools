@@ -15,12 +15,12 @@ extension VectorTile {
     /// they are split into separate layers accordingly and the property is stripped.
     ///
     /// - Parameters:
-    ///   - geopackage: The file URL of the GeoPackage database.
+    ///   - url: The file URL of the GeoPackage database.
     ///   - table: When non-nil, only this feature table is loaded into a single layer.
     ///     When `nil`, all feature tables are loaded, each as a separate layer.
     ///   - sortOption: An optional R-Tree sort option for spatial indexing.
     ///   - logger: An optional logger instance.
-    /// - Throws: ``GeoPackageError`` if the file cannot be read.
+    /// - Throws: `a GeoPackage error` if the file cannot be read.
     public init(
         geopackage url: URL,
         table: String? = nil,
@@ -28,59 +28,89 @@ extension VectorTile {
         logger: Logger? = nil
     ) async throws {
         let conn = try GeoPackageConnection(url: url)
+        do {
+            let (tile, entries) = try await Self.read(conn: conn, table: table)
 
-        let tile: MapTile
-        let entries: [(name: String, fc: FeatureCollection)]
+            self.x = tile.x
+            self.y = tile.y
+            self.z = tile.z
+            self.projection = .epsg4326
+            self.boundingBox = tile.boundingBox(projection: projection)
+            self.logger = logger
+            self.layers = [:]
+            self.layerNames = []
+            self.origin = .geopackage
 
+            for (name, fc) in entries {
+                distributeFeatures(fc, defaultLayer: name)
+            }
+            if let sortOption { createIndex(sortOption: sortOption) }
+
+            await conn.close()
+        }
+        catch {
+            await conn.close()
+            throw error
+        }
+    }
+
+    /// Reads the feature tables needed for a vector tile.
+    private static func read(
+        conn: GeoPackageConnection,
+        table: String?
+    ) async throws -> (MapTile, [(name: String, fc: FeatureCollection)]) {
         if let table {
-            let fc = try await FeatureCollection(geopackage: url, table: table)
+            let fc = FeatureCollection(try await conn.readFeatures(table: table))
             guard let box = fc.calculateBoundingBox() else {
-                await conn.close()
                 throw GeoPackageError.invalidGeoPackage(detail: "Empty feature collection")
             }
-            tile = MapTile(boundingBox: box)
-            entries = [(table, fc)]
+            return (MapTile(boundingBox: box), [(table, fc)])
         }
-        else {
-            let contents = try await conn.readContents()
-            var combinedBox: BoundingBox?
-            var result: [(name: String, fc: FeatureCollection)] = []
 
-            for entry in contents where entry.dataType == "features" {
-                let features = try await conn.readFeatures(table: entry.tableName)
-                let fc = FeatureCollection(features)
-                guard fc.features.isNotEmpty else { continue }
-                if let box = fc.calculateBoundingBox() {
-                    combinedBox = combinedBox.map { $0 + box } ?? box
-                }
-                result.append((entry.tableName, fc))
+        let contents = try await conn.readContents()
+        var combinedBox: BoundingBox?
+        var result: [(name: String, fc: FeatureCollection)] = []
+
+        for entry in contents where entry.dataType == "features" {
+            let features = try await conn.readFeatures(table: entry.tableName)
+            let fc = FeatureCollection(features)
+            guard fc.features.isNotEmpty else { continue }
+            if let box = fc.calculateBoundingBox() {
+                combinedBox = combinedBox.map { $0 + box } ?? box
             }
-
-            guard result.isNotEmpty else {
-                await conn.close()
-                throw GeoPackageError.invalidGeoPackage(detail: "No feature tables found in GeoPackage")
-            }
-
-            tile = MapTile(boundingBox: combinedBox ?? .world)
-            entries = result
+            result.append((entry.tableName, fc))
         }
 
-        self.x = tile.x
-        self.y = tile.y
-        self.z = tile.z
-        self.projection = .epsg4326
-        self.boundingBox = tile.boundingBox(projection: projection)
-        self.logger = logger
-        self.layers = [:]
-        self.layerNames = []
-        self.origin = .geopackage
-
-        for (name, fc) in entries {
-            distributeFeatures(fc, defaultLayer: name)
+        guard result.isNotEmpty else {
+            throw GeoPackageError.invalidGeoPackage(detail: "No feature tables found in GeoPackage")
         }
-        if let sortOption { createIndex(sortOption: sortOption) }
 
-        await conn.close()
+        return (MapTile(boundingBox: combinedBox ?? .world), result)
+    }
+
+    /// Create a vector tile from a GeoPackage file.
+    ///
+    /// This is a convenience alias for
+    /// ``VectorTile/init(geopackage:table:indexed:logger:)`` that matches the
+    /// `contentsOf…` naming used by the other format coders.
+    ///
+    /// - Parameters:
+    ///   - url: The file URL of the GeoPackage database.
+    ///   - table: When non-nil, only this feature table is loaded.
+    ///   - sortOption: An optional R-Tree sort option for spatial indexing.
+    ///   - logger: An optional logger instance.
+    /// - Throws: `GeoPackageError` if the file cannot be read.
+    public init(
+        contentsOfGeoPackage url: URL,
+        table: String? = nil,
+        indexed sortOption: RTreeSortOption? = nil,
+        logger: Logger? = nil
+    ) async throws {
+        try await self.init(
+            geopackage: url,
+            table: table,
+            indexed: sortOption,
+            logger: logger)
     }
 
     // MARK: - Export
@@ -94,7 +124,7 @@ extension VectorTile {
     ///     When `nil`, one table per layer is created.
     ///   - createSpatialIndex: Whether to create a spatial (rtree) index.
     ///   - options: Export options controlling simplification.
-    /// - Throws: ``GeoPackageError`` or file I/O errors.
+    /// - Throws: `a GeoPackage error` or file I/O errors.
     public func writeGeoPackage(
         to url: URL,
         table: String? = nil,
@@ -102,37 +132,50 @@ extension VectorTile {
         options: VectorTile.ExportOptions? = nil
     ) async throws {
         let conn = try GeoPackageConnection(url: url, skipValidation: true)
-        try await conn.createMetadata()
+        do {
+            try await conn.createMetadata()
 
-        if let table {
-            var allFeatures: [Feature] = []
-            for layerName in layerNames {
-                let features = processFeatures(self.features(for: layerName), options: options)
-                allFeatures.append(contentsOf: features.map { feature in
-                    var f = feature
-                    f.properties["gpkg_layer"] = layerName
-                    return f
-                })
-            }
-            guard allFeatures.isNotEmpty else { return }
-            let fc = FeatureCollection(allFeatures)
-            try await conn.write(features: fc, to: table, createSpatialIndex: createSpatialIndex)
-        }
-        else {
-            for layerName in layerNames {
-                let features = processFeatures(self.features(for: layerName), options: options)
-                guard features.isNotEmpty else { continue }
-                let tagged = features.map { feature -> Feature in
-                    var f = feature
-                    f.properties["gpkg_layer"] = layerName
-                    return f
+            if let table {
+                var allFeatures: [Feature] = []
+                for layerName in layerNames {
+                    let features = processFeatures(self.features(for: layerName), options: options)
+                    allFeatures.append(contentsOf: features.map { feature in
+                        var f = feature
+                        f.properties["gpkg_layer"] = layerName
+                        return f
+                    })
                 }
-                let fc = FeatureCollection(tagged)
-                try await conn.write(features: fc, to: layerName, createSpatialIndex: createSpatialIndex)
+                if allFeatures.isNotEmpty {
+                    let fc = FeatureCollection(allFeatures)
+                    try await conn.write(
+                        features: fc,
+                        to: table,
+                        createSpatialIndex: createSpatialIndex)
+                }
             }
-        }
+            else {
+                for layerName in layerNames {
+                    let features = processFeatures(self.features(for: layerName), options: options)
+                    guard features.isNotEmpty else { continue }
+                    let tagged = features.map { feature -> Feature in
+                        var f = feature
+                        f.properties["gpkg_layer"] = layerName
+                        return f
+                    }
+                    let fc = FeatureCollection(tagged)
+                    try await conn.write(
+                        features: fc,
+                        to: layerName,
+                        createSpatialIndex: createSpatialIndex)
+                }
+            }
 
-        await conn.close()
+            await conn.close()
+        }
+        catch {
+            await conn.close()
+            throw error
+        }
     }
 
     // MARK: - Private helpers

@@ -58,6 +58,21 @@ struct ProjectionHandlingTests {
             })
     }
 
+    /// Returns the geometric center of a tile's bounding box expressed in the
+    /// projection's native units.
+    ///
+    /// `BoundingBox.center` computes a geodesic midpoint, which for planar
+    /// custom projections with a wraparound extent can snap to a tile edge
+    /// instead of its interior. These tests specifically need a point in the
+    /// middle of the tile in projection units.
+    private static func centerInProjectionUnits(of tile: VectorTile) -> Coordinate3D {
+        let boundingBox = tile.boundingBox
+        return Coordinate3D(
+            x: (boundingBox.southWest.x + boundingBox.northEast.x) / 2.0,
+            y: (boundingBox.southWest.y + boundingBox.northEast.y) / 2.0,
+            projection: boundingBox.projection)
+    }
+
     // MARK: - Tile/layer bounding boxes
 
     /// Tests the tile bounding box for all built-in projections.
@@ -145,7 +160,7 @@ struct ProjectionHandlingTests {
         let projection = try #require(Projection(srid: srid))
 
         var tile = try VectorTile(x: 1, y: 1, z: 1, projection: projection)
-        let center = tile.boundingBox.center
+        let center = Self.centerInProjectionUnits(of: tile)
         #expect(center.projection.srid == srid)
 
         tile.setFeatures([Feature(Point(center))], for: "layer")
@@ -229,12 +244,14 @@ struct ProjectionHandlingTests {
         let projection = try #require(Projection(srid: srid))
 
         var tile = try VectorTile(x: 1, y: 1, z: 1, projection: projection)
-        let center = tile.boundingBox.center
+        let center = Self.centerInProjectionUnits(of: tile)
 
         let inside = Feature(Point(center), id: .int(1))
-        // x = +90_000 is outside tile 1/1/1's x range (0 ... 180_000).
+        // x = +180_000 is clearly outside tile 1/1/1's x range (0 ... 180_000);
+        // using the exact boundary would be ambiguous (a point on the edge is
+        // contained by the inclusive bounding box).
         let farAway = Feature(
-            Point(Coordinate3D(x: center.longitude + 90_000.0, y: center.latitude, projection: projection)),
+            Point(Coordinate3D(x: center.longitude + 180_000.0, y: center.latitude, projection: projection)),
             id: .int(2))
 
         tile.setFeatures([inside, farAway], for: "layer")
@@ -257,11 +274,11 @@ struct ProjectionHandlingTests {
         let projection = try #require(Projection(srid: srid))
 
         var tile = try VectorTile(x: 1, y: 1, z: 1, projection: projection)
-        let center = tile.boundingBox.center
+        let center = Self.centerInProjectionUnits(of: tile)
 
         let inside = Feature(Point(center), id: .int(1))
         let farAway = Feature(
-            Point(Coordinate3D(x: center.longitude + 90_000.0, y: center.latitude, projection: projection)),
+            Point(Coordinate3D(x: center.longitude + 180_000.0, y: center.latitude, projection: projection)),
             id: .int(2))
 
         tile.setFeatures([inside, farAway], for: "layer")
