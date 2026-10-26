@@ -60,5 +60,5 @@ stdout.
 ## Exit behaviour
 
 The CLI reports argument, format, and I/O errors with a non-zero exit code.
-`mvt load` treats individual download failures as soft failures and reports
-them in its summary; it does not abort the remaining downloads.
+`mvt load` reports individual tile download failures in its summary and exits
+non-zero if any download failed; the remaining downloads still complete.

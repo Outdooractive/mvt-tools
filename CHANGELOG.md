@@ -41,6 +41,8 @@ and this project adheres to semantic versioning.
 - `queryMany` applies `featureFilter` before collecting feature IDs.
 - Gzipped GeoJSON produced by `toGeoJson(options:)` can be read back by the
   GeoJSON importer and the CLI.
+- `mvt load` now returns a non-zero exit status when any tile download fails,
+  after printing its summary and completing the remaining downloads (#60).
 - `mvt load` honours `--zoom` over URL-inferred zooms, prioritizes the tile
   template over unrelated numeric path segments, and accepts antimeridian
   crossing bounding boxes.
@@ -57,8 +59,6 @@ and this project adheres to semantic versioning.
   model, command line, querying, import/export, MLT, and limitations articles.
 - `contentsOfGeoPackage` and `contentsOfShapefile` initializer aliases to match
   the `contentsOf…` naming used by the other format coders.
-- `mvt load --fail-on-error` returns a non-zero exit status when any tile
-  download fails (#60).
 - Regression tests for malformed/truncated geometry, zigzag boundaries,
   integer overflow, extent fallback, version-1 layers, duplicate layers,
   gzipped input, property type fidelity, polygon winding, clipping, buffer

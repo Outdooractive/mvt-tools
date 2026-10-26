@@ -31,8 +31,9 @@ extension CLI {
             degrees. Tiles are enumerated with a tile-cover algorithm which walks the \
             bounding box edges in tile space and handles antimeridian crossing.
 
-            Individual download failures are soft by default. Pass --fail-on-error to \
-            return a non-zero exit status if any tile cannot be downloaded.
+            Individual download failures do not abort the remaining downloads, but \
+            the command exits with a non-zero status after printing the summary when \
+            any tile could not be downloaded.
 
             Examples:
               mvt load --bbox "11.0,3.0,12.0,4.0" --output-dir ./tiles \\
@@ -72,11 +73,6 @@ extension CLI {
             help: "Maximum number of concurrent downloads (default: 8).")
         var concurrency: Int = 8
 
-        @Flag(
-            name: .customLong("fail-on-error"),
-            help: "Exit with a non-zero status when any tile download fails.")
-        var failOnError = false
-
         @OptionGroup
         var options: Options
 
@@ -93,8 +89,7 @@ extension CLI {
                 overwriteExisting: overwriteExisting,
                 concurrency: concurrency,
                 baseURL: baseURL,
-                verbose: options.verbose,
-                failOnError: failOnError)
+                verbose: options.verbose)
         }
 
         // MARK: - Execution
@@ -111,8 +106,7 @@ extension CLI {
             overwriteExisting: Bool,
             concurrency: Int,
             baseURL: String,
-            verbose: Bool,
-            failOnError: Bool = false
+            verbose: Bool
         ) async throws {
             // 1. Parse the bounding box
             let bbox = try parseBoundingBox(boundingBox)
@@ -189,7 +183,7 @@ extension CLI {
                 print("Loaded \(downloaded) tiles (\(skipped) skipped, \(failed) failed) into \(outputURL.path)")
             }
 
-            if failOnError, failed > 0 {
+            if failed > 0 {
                 throw CLIError("\(failed) tile download(s) failed")
             }
         }
@@ -198,9 +192,9 @@ extension CLI {
 
         /// Downloads a single tile and writes it to disk, updating progress.
         ///
-        /// Soft failures (HTTP non-2xx, network errors, missing files) are
-        /// silently skipped when `verbose` is false, and logged to stderr
-        /// when `verbose` is true.
+        /// Download failures (HTTP non-2xx, network errors, missing files) do
+        /// not abort the remaining downloads. They are logged to stderr when
+        /// `verbose` is true, and the command exits non-zero after its summary.
         private static func downloadTile(
             _ tile: MapTile,
             zoom: Int,
