@@ -1,25 +1,46 @@
 name: Release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'The git tag name to bump the formula to'
+        description: 'The git tag name to build and publish'
         required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag_name }}
+  cancel-in-progress: false
 
 jobs:
-  homebrew:
-    name: Do a CLI tool release build
+  build:
+    name: Build CLI release assets
     runs-on: macos-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
     steps:
+      - name: Resolve release tag
+        id: tag
+        run: echo "name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag_name }}
+
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag_name }}
+          ref: ${{ steps.tag.outputs.name }}
           submodules: recursive
+
       - name: Update the CLI version
         run: echo "public let cliVersion = \"${CLI_VERSION}\"" > Sources/MVTCLI/Version.swift
         env:
-          CLI_VERSION: ${{ inputs.tag_name }}
+          CLI_VERSION: ${{ steps.tag.outputs.name }}
+
       - name: Build the executable for release
         run: |
           # macos-latest is arm64, but we cross-compile for x86_64 too.
@@ -42,12 +63,64 @@ jobs:
           } > "$PC_DIR/sqlite3.pc"
           export PKG_CONFIG_PATH="$PC_DIR:${PKG_CONFIG_PATH:-}"
           swift build -c release --enable-all-traits --arch arm64 --arch x86_64 --product mvt
+
       - name: Compress the archive
         run: tar -czf mvt.tar.gz -C .build/apple/Products/Release mvt
+
+      - name: Compute archive checksum
+        id: checksum
+        run: echo "sha256=$(shasum -a 256 mvt.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
       - name: Create or update the release and upload the asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag_name }}
-          name: ${{ inputs.tag_name }}
+          tag_name: ${{ steps.tag.outputs.name }}
           files: mvt.tar.gz
           fail_on_unmatched_files: true
+          overwrite_files: true
+
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
+      sha256: ${{ steps.checksum.outputs.sha256 }}
+
+  homebrew:
+    name: Open Homebrew formula PR
+    needs: build
+    if: >-
+      ${{
+        !contains(needs.build.outputs.tag, '-') &&
+        (github.event_name != 'release' || !github.event.release.prerelease)
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check COMMITTER_TOKEN
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+        run: |
+          if [ -z "$COMMITTER_TOKEN" ]
+          then
+            echo "::error::The COMMITTER_TOKEN secret is missing. It needs write access to Outdooractive/homebrew-tap."
+            exit 1
+          fi
+
+      - name: Open Homebrew formula PR
+        uses: mislav/bump-homebrew-formula-action@v4.2
+        with:
+          formula-name: mvt-tools
+          formula-path: Formula/mvt-tools.rb
+          homebrew-tap: Outdooractive/homebrew-tap
+          base-branch: main
+          tag-name: ${{ needs.build.outputs.tag }}
+          download-url: https://github.com/Outdooractive/mvt-tools/releases/download/${{ needs.build.outputs.tag }}/mvt.tar.gz
+          download-sha256: ${{ needs.build.outputs.sha256 }}
+          create-pullrequest: true
+          create-branch: true
+          commit-message: |
+            mvt-tools {{version}}
+
+            Created by https://github.com/mislav/bump-homebrew-formula-action
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}

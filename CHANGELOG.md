@@ -58,6 +58,9 @@ and this project adheres to semantic versioning.
 
 ### Added
 
+- Published releases now build and upload the `mvt` archive automatically and
+  open a validated Homebrew formula pull request. Manual dispatch remains
+  available for backfills (#4).
 - Separate `--input-projection` (`-ip`) and `--output-projection` (`-op`)
   CLI options, plus a new `mvt reproject` command.
 - `VectorTile.projected(to:)` for real CRS transformations and
