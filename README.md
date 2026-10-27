@@ -39,6 +39,7 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
   - [Tile info](#tile-info)
   - [Export options](#export-options)
   - [Playground](#playground)
+- [Concurrency](#concurrency)
 - [Query language](#query-language)
   - [Value access](#value-access)
   - [Comparisons](#comparisons)
@@ -363,6 +364,14 @@ On macOS you can use a Swift Playground to inspect the MVTTools API such as `lay
 
 - Load a tile using MVTTools
 - Inspect the properties of the `VectorTile`
+
+## Concurrency
+
+`VectorTile` is a `Sendable` value type without internal locking. Copies can be
+read concurrently, but sharing and mutating one instance from multiple tasks
+requires synchronization. Use an actor that owns the tile, or a lock-backed
+wrapper for synchronous callers. See the DocC `Concurrency` article for
+examples and the list of mutating APIs.
 
 ## Query language
 

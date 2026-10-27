@@ -8,6 +8,9 @@ import Logging
 
 /// `VectorTile` holds the contents of one vector tile as GeoJSON.
 /// It can read and write data in [MVT format](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
+///
+/// `VectorTile` is a value type without internal locking. See <doc:Concurrency>
+/// when sharing a mutable tile across tasks.
 public struct VectorTile: Sendable {
 
     /// The default property name for the layer in exported GeoJSON Features.

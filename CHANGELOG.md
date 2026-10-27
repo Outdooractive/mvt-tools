@@ -9,6 +9,9 @@ and this project adheres to semantic versioning.
 
 ### Changed
 
+- Documented that `VectorTile` is a value type without internal locking, with
+  guidance for actor- and lock-based synchronization of shared mutable tiles
+  (#5).
 - Updated `gis-tools`, `gis-tools-fit`, `gis-tools-geopackage`,
   `gis-tools-gpx`, and `gis-tools-shapefile` to `3.0.0-beta.5`, and
   `gis-tools-csv` to `3.0.0-beta.6`. `GzipSwift`, `swift-argument-parser`,

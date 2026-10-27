@@ -62,6 +62,11 @@ passed through unchanged to preserve their geometry type.
 
 ## Concurrency
 
-``VectorTile`` is a `Sendable` value type. Shared mutable state is limited to
-the optional global logger (``VectorTile/logger``) and the process-wide
-projection registry in `GISTools`.
+``VectorTile`` is a `Sendable` value type and does not contain internal locks.
+Concurrent reads of separate tile values are safe. Sharing and mutating a single
+tile instance from multiple tasks requires external synchronization, for
+example with an actor or a lock-backed wrapper. See <doc:Concurrency> for
+examples and the full list of mutating APIs.
+
+Shared mutable state is otherwise limited to the optional global logger
+(``VectorTile/logger``) and the process-wide projection registry in `GISTools`.
