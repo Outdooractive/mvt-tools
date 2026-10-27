@@ -1,10 +1,14 @@
 #!/bin/sh
 #
-# Trigger the "Homebrew" GitHub Actions workflow to build, upload, and bump
-# the Homebrew formula for the `mvt` command line tool.
+# Trigger the "Release" GitHub Actions workflow to build and upload the CLI
+# release archive, then open the Homebrew formula PR.
+#
+# Releases are normally handled automatically when a GitHub release is
+# published. This script exists for backfills and for re-running a failed
+# release without creating the release again.
 #
 # Usage:
-#   scripts/trigger-homebrew.sh [tag]
+#   scripts/trigger-release.sh [tag]
 #
 # Without an argument the most recent tag reachable from the local `main`
 # branch is used. The workflow always checks out the tag from the default
@@ -18,7 +22,7 @@
 set -eu
 
 REPOSITORY="Outdooractive/mvt-tools"
-WORKFLOW="homebrew.yml"
+WORKFLOW="release.yml"
 MAIN_BRANCH="main"
 
 if ! command -v gh >/dev/null 2>&1

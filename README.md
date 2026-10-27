@@ -924,6 +924,8 @@ docc convert Sources/MVTTools/MVTTools.docc \
 CI runs the macOS and Linux all-traits test suites, the coverage gate, and
 the DocC validation job.
 
+See [RELEASING.md](RELEASING.md) for the CLI release and Homebrew update flow.
+
 ## Contributing
 
 Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or [open a pull request](https://github.com/Outdooractive/mvt-tools/pulls).
