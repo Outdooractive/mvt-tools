@@ -529,7 +529,7 @@ let parser = QueryParser(string: ".highway in [\"primary\", \"secondary\"] and .
 let matches = parser.evaluate(on: someFeature)
 ```
 
-# Command line tool
+## Command line tool
 
 You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
@@ -820,9 +820,63 @@ mvt rezoom --output out.mvt --layer roads --layer buildings source.mvt
 mvt rezoom --output out.mvt --drop-layer temporary source.mvt
 ```
 ---
+### mvt reproject
+
+Reproject any supported input file into a target CRS.
+
+`--output-projection` (or `-op`) is required. `--input-projection` (or `-ip`) overrides the
+source CRS; this is useful for formats without CRS metadata, or when a file's embedded CRS
+is wrong. The output format is inferred from the `--output` file extension and can be forced
+with `--output-format`.
+
+```bash
+# Web Mercator tile -> WGS84 GeoJSON
+mvt reproject -ip 3857 -op 4326 --output out.geojson 14/8716/8015.mvt
+
+# WGS84 GeoJSON -> Web Mercator tile
+mvt reproject -ip 4326 -op 3857 --output out.mvt input.geojson
+
+# Reproject to ECEF and overwrite an existing file
+mvt reproject -op 4978 --output out.mvt --force-overwrite input.geojson
+```
+
+`mvt reproject` accepts the same layer filters (`--layer`, `--drop-layer`), simplification
+(`-oSm`, `-oSe`), buffering (`-oBp`, `-oBe`), compression (`-oC`), and CSV options
+(`--csv-*`) as `mvt merge`. Reprojecting a tile changes the CRS of the stored coordinates,
+not the tile coordinate itself.
+
+---
+### Projections
+
+Built-in CRSs are EPSG:4326 (WGS84, latitude/longitude), EPSG:3857 (Web Mercator),
+EPSG:4978 (ECEF), and `noSRID` (raw tile coordinates). Custom projections registered with
+GISTools are supported as well.
+
+`dump`, `query`, `merge`, `import`, `export`, `rezoom`, and `reproject` accept separate
+input and output CRS options:
+
+| Option | Short | Description |
+| --- | --- | --- |
+| `--input-projection` | `-ip` | Input CRS: `auto` (default), an SRID, `EPSG:n`, `noSRID`, or a registered WKT string |
+| `--output-projection` | `-op` | Output CRS: `auto` (default), an SRID, `EPSG:n`, `noSRID`, or a registered WKT string |
+
+MVT/MLT, CSV, GeoJSON, GPX, and FIT are read as EPSG:4326; Shapefile and GeoPackage use
+their embedded CRS. `--input-projection` overrides that default by reinterpreting the raw
+coordinates — for GeoJSON and CSV in the selected CRS (not reprojected from EPSG:4326), and
+for Shapefile/GeoPackage to replace wrong or missing metadata. GPX and FIT reject an input
+projection other than EPSG:4326. Use `--output-projection` (or `mvt reproject`) for an
+actual coordinate transformation.
+
+Programmatically, `VectorTile.projected(to:)` transforms the coordinates into another CRS,
+while `VectorTile.retagged(to:)` only relabels them:
+
+```swift
+let mercator = try tile.projected(to: .epsg3857)
+let raw = try tile.retagged(to: .noSRID)
+```
 
 
-# Development
+## Development
 
 ```bash
 swift build                       # MVT, MLT (trait), GeoJSON, and the CLI
@@ -861,7 +915,7 @@ docc convert Sources/MVTTools/MVTTools.docc \
 CI runs the macOS and Linux all-traits test suites, the coverage gate, and
 the DocC validation job.
 
-# Contributing
+## Contributing
 
 Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or [open a pull request](https://github.com/Outdooractive/mvt-tools/pulls).
 
@@ -871,14 +925,14 @@ Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or [
 brew install protobuf swift-protobuf swiftlint
 ```
 
-# TODOs and future improvements
+## TODOs and future improvements
 
 - Locking (when updating/deleting features, indexing)
 
-# License
+## License
 
 MIT
 
-# Authors
+## Authors
 
 Thomas Rasch, Outdooractive
