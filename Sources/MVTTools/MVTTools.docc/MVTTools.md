@@ -47,3 +47,4 @@ same library code.
 ### Behaviour and caveats
 
 - <doc:Limitations>
+- <doc:Concurrency>
