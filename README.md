@@ -887,54 +887,15 @@ let raw = try tile.retagged(to: .noSRID)
 
 ## Development
 
-```bash
-swift build                       # MVT, MLT (trait), GeoJSON, and the CLI
-swift build --enable-all-traits   # every format coder
-swift test                        # default trait set
-swift test --enable-all-traits    # all format coders
-```
-
-Coverage is measured with LLVM's `llvm-cov` and excludes test sources,
-generated protobuf code, and the C++ MLT bridge:
-
-```bash
-swift test --enable-all-traits --enable-code-coverage
-llvm-cov report .build/debug/MVTToolsTests.so .build/debug/MVTCLITests.so \
-    -instr-profile="$(find .build -name '*.profdata' -print -quit)" \
-    -ignore-filename-regex='(Tests/|\.build/|Dependencies/|CMLT/|VectorTile_Tile\.swift)'
-```
-
-### Documentation
-
-The DocC catalog is in `Sources/MVTTools/MVTTools.docc`. To validate it locally:
-
-```bash
-swift build --target MVTTools \
-    -Xswiftc -emit-symbol-graph \
-    -Xswiftc -emit-symbol-graph-dir \
-    -Xswiftc .build/symbol-graphs
-mkdir -p .build/mvttools-symbols
-cp .build/symbol-graphs/MVTTools.symbols.json .build/mvttools-symbols/
-docc convert Sources/MVTTools/MVTTools.docc \
-    --additional-symbol-graph-dir .build/mvttools-symbols \
-    --output-path .build/docs \
-    --warnings-as-errors
-```
-
-CI runs the macOS and Linux all-traits test suites, the coverage gate, and
-the DocC validation job.
-
-See [RELEASING.md](RELEASING.md) for the CLI release and Homebrew update flow.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for local setup, build, test, coverage
+and documentation instructions.
 
 ## Contributing
 
-Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or [open a pull request](https://github.com/Outdooractive/mvt-tools/pulls).
+Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or
+[open a pull request](https://github.com/Outdooractive/mvt-tools/pulls).
 
-### Dependencies (for development)
-
-```
-brew install protobuf swift-protobuf swiftlint
-```
+See [DEVELOPMENT.md](DEVELOPMENT.md) for local build and test setup.
 
 ## TODOs and future improvements
 

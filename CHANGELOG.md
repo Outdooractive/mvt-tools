@@ -9,6 +9,8 @@ and this project adheres to semantic versioning.
 
 ### Changed
 
+- Moved development setup, build, test, coverage and DocC instructions from
+  `README.md` to `DEVELOPMENT.md`.
 - Documented that `VectorTile` is a value type without internal locking, with
   guidance for actor- and lock-based synchronization of shared mutable tiles
   (#5).
