@@ -753,6 +753,334 @@ package enum MLTEncoderCore {
         } ?? plain
     }
 
+    fileprivate static func encodedUInt64Stream(
+        values: [UInt64],
+        physical: MLTPhysicalStreamType,
+        logical: MLTLogicalStreamType
+    ) -> MLTEncodedStream {
+        var plainWriter = MLTByteWriter()
+        for value in values {
+            plainWriter.writeVarint64(value)
+        }
+        let plain = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: plainWriter.count),
+            payload: plainWriter.bytes)
+
+        var deltaWriter = MLTByteWriter()
+        var previous: UInt64 = 0
+        for value in values {
+            deltaWriter.writeVarint64(MLTZigZag.encode(Int64(bitPattern: value &- previous)))
+            previous = value
+        }
+        let delta = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: deltaWriter.count),
+            payload: deltaWriter.bytes)
+
+        let runs = buildRuns64(values)
+        guard !runs.isEmpty else {
+            return plain
+        }
+
+        var rleWriter = MLTByteWriter()
+        for run in runs {
+            rleWriter.writeVarint64(UInt64(run.length))
+        }
+        for run in runs {
+            rleWriter.writeVarint64(run.value)
+        }
+        let rle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .rle,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: rleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: rleWriter.bytes)
+
+        var deltaRleWriter = MLTByteWriter()
+        for run in runs {
+            deltaRleWriter.writeVarint64(UInt64(run.length))
+        }
+        var previousRunValue: UInt64 = 0
+        for run in runs {
+            let deltaValue = run.value &- previousRunValue
+            deltaRleWriter.writeVarint64(MLTZigZag.encode(Int64(bitPattern: deltaValue)))
+            previousRunValue = run.value
+        }
+        let deltaRle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .rle,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: deltaRleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: deltaRleWriter.bytes)
+
+        return [plain, delta, rle, deltaRle].min {
+            $0.encodedSize < $1.encodedSize
+        } ?? plain
+    }
+
+    fileprivate static func encodedInt32Stream(
+        values: [Int32],
+        physical: MLTPhysicalStreamType,
+        logical: MLTLogicalStreamType
+    ) -> MLTEncodedStream {
+        var plainWriter = MLTByteWriter()
+        for value in values {
+            plainWriter.writeVarint32(MLTZigZag.encode(value))
+        }
+        let plain = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: plainWriter.count),
+            payload: plainWriter.bytes)
+
+        var deltaWriter = MLTByteWriter()
+        var previous: Int32 = 0
+        for value in values {
+            deltaWriter.writeVarint32(MLTZigZag.encode(value &- previous))
+            previous = value
+        }
+        let delta = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: deltaWriter.count),
+            payload: deltaWriter.bytes)
+
+        let runs = buildRuns32(values)
+        guard !runs.isEmpty else {
+            return plain
+        }
+
+        var rleWriter = MLTByteWriter()
+        for run in runs {
+            rleWriter.writeVarint32(UInt32(run.length))
+        }
+        for run in runs {
+            rleWriter.writeVarint32(MLTZigZag.encode(run.value))
+        }
+        let rle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .rle,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: rleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: rleWriter.bytes)
+
+        var deltaRleWriter = MLTByteWriter()
+        for run in runs {
+            deltaRleWriter.writeVarint32(UInt32(run.length))
+        }
+        var previousRunValue: Int32 = 0
+        for run in runs {
+            deltaRleWriter.writeVarint32(MLTZigZag.encode(run.value &- previousRunValue))
+            previousRunValue = run.value
+        }
+        let deltaRle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .rle,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: deltaRleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: deltaRleWriter.bytes)
+
+        return [plain, delta, rle, deltaRle].min {
+            $0.encodedSize < $1.encodedSize
+        } ?? plain
+    }
+
+    fileprivate static func encodedInt64Stream(
+        values: [Int64],
+        physical: MLTPhysicalStreamType,
+        logical: MLTLogicalStreamType
+    ) -> MLTEncodedStream {
+        var plainWriter = MLTByteWriter()
+        for value in values {
+            plainWriter.writeVarint64(MLTZigZag.encode(value))
+        }
+        let plain = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: plainWriter.count),
+            payload: plainWriter.bytes)
+
+        var deltaWriter = MLTByteWriter()
+        var previous: Int64 = 0
+        for value in values {
+            deltaWriter.writeVarint64(MLTZigZag.encode(value &- previous))
+            previous = value
+        }
+        let delta = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: values.count,
+                byteLength: deltaWriter.count),
+            payload: deltaWriter.bytes)
+
+        let runs = buildRuns64(values)
+        guard !runs.isEmpty else {
+            return plain
+        }
+
+        var rleWriter = MLTByteWriter()
+        for run in runs {
+            rleWriter.writeVarint64(UInt64(run.length))
+        }
+        for run in runs {
+            rleWriter.writeVarint64(MLTZigZag.encode(run.value))
+        }
+        let rle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .rle,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: rleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: rleWriter.bytes)
+
+        var deltaRleWriter = MLTByteWriter()
+        for run in runs {
+            deltaRleWriter.writeVarint64(UInt64(run.length))
+        }
+        var previousRunValue: Int64 = 0
+        for run in runs {
+            deltaRleWriter.writeVarint64(MLTZigZag.encode(run.value &- previousRunValue))
+            previousRunValue = run.value
+        }
+        let deltaRle = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .delta,
+                logicalTechnique2: .rle,
+                physicalTechnique: .varint,
+                numValues: runs.count * 2,
+                byteLength: deltaRleWriter.count,
+                runs: runs.count,
+                numRleValues: values.count),
+            payload: deltaRleWriter.bytes)
+
+        return [plain, delta, rle, deltaRle].min {
+            $0.encodedSize < $1.encodedSize
+        } ?? plain
+    }
+
+    private struct UInt64Run {
+        var length: Int
+        var value: UInt64
+    }
+
+    private static func buildRuns64(_ values: [UInt64]) -> [UInt64Run] {
+        var runs: [UInt64Run] = []
+        var index = 0
+        while index < values.count {
+            let value = values[index]
+            var end = index + 1
+            while end < values.count, values[end] == value {
+                end += 1
+            }
+            runs.append(UInt64Run(length: end - index, value: value))
+            index = end
+        }
+        return runs
+    }
+
+    private struct Int32Run {
+        var length: Int
+        var value: Int32
+    }
+
+    private static func buildRuns32(_ values: [Int32]) -> [Int32Run] {
+        var runs: [Int32Run] = []
+        var index = 0
+        while index < values.count {
+            let value = values[index]
+            var end = index + 1
+            while end < values.count, values[end] == value {
+                end += 1
+            }
+            runs.append(Int32Run(length: end - index, value: value))
+            index = end
+        }
+        return runs
+    }
+
+    private struct Int64Run {
+        var length: Int
+        var value: Int64
+    }
+
+    private static func buildRuns64(_ values: [Int64]) -> [Int64Run] {
+        var runs: [Int64Run] = []
+        var index = 0
+        while index < values.count {
+            let value = values[index]
+            var end = index + 1
+            while end < values.count, values[end] == value {
+                end += 1
+            }
+            runs.append(Int64Run(length: end - index, value: value))
+            index = end
+        }
+        return runs
+    }
+
     private struct UInt32Run {
         var length: UInt32
         var value: UInt32
@@ -891,24 +1219,19 @@ private enum MLTEncodedColumn {
                     featureCount: featureCount,
                     to: &writer)
             }
-            var payload = MLTByteWriter()
-            for value in values.compactMap({ $0 }) {
-                if longID {
-                    payload.writeVarint64(value)
-                }
-                else {
-                    payload.writeVarint32(UInt32(truncatingIfNeeded: value))
-                }
+            let denseIDs = values.compactMap { $0 }
+            if longID {
+                MLTEncoderCore.encodedUInt64Stream(
+                    values: denseIDs,
+                    physical: .data,
+                    logical: .dictionary(.none)).write(to: &writer)
             }
-            let metadata = MLTStreamMetadata(
-                physicalStreamType: .data,
-                logicalStreamType: .dictionary(.none),
-                logicalTechnique1: .none,
-                logicalTechnique2: .none,
-                physicalTechnique: .varint,
-                numValues: values.compactMap({ $0 }).count,
-                byteLength: payload.count)
-            MLTEncodedStream(metadata: metadata, payload: payload.bytes).write(to: &writer)
+            else {
+                MLTEncoderCore.encodedUInt32Stream(
+                    values: denseIDs.map { UInt32(truncatingIfNeeded: $0) },
+                    physical: .data,
+                    logical: .dictionary(.none)).write(to: &writer)
+            }
 
         case let .geometry(streams):
             writer.writeVarint32(UInt32(streams.count))
@@ -1090,29 +1413,33 @@ private enum MLTEncodedColumn {
                     byteLength: encoded.count)
                 MLTEncodedStream(metadata: metadata, payload: encoded).write(to: &writer)
 
-            case .int32, .int64:
-                var payload = MLTByteWriter()
-                let isLong = type == .int64
+            case .int32:
+                var values: [Int32] = []
+                values.reserveCapacity(dense.count)
                 for value in dense {
                     guard case let .int(int) = value else {
                         throw MLTError.invalidData("Unexpected value type in integer column")
                     }
-                    if isLong {
-                        payload.writeVarint64(MLTZigZag.encode(int))
-                    }
-                    else {
-                        payload.writeVarint32(MLTZigZag.encode(Int32(truncatingIfNeeded: int)))
-                    }
+                    values.append(Int32(truncatingIfNeeded: int))
                 }
-                let metadata = MLTStreamMetadata(
-                    physicalStreamType: .data,
-                    logicalStreamType: .dictionary(.none),
-                    logicalTechnique1: .none,
-                    logicalTechnique2: .none,
-                    physicalTechnique: .varint,
-                    numValues: dense.count,
-                    byteLength: payload.count)
-                MLTEncodedStream(metadata: metadata, payload: payload.bytes).write(to: &writer)
+                MLTEncoderCore.encodedInt32Stream(
+                    values: values,
+                    physical: .data,
+                    logical: .dictionary(.none)).write(to: &writer)
+
+            case .int64:
+                var values: [Int64] = []
+                values.reserveCapacity(dense.count)
+                for value in dense {
+                    guard case let .int(int) = value else {
+                        throw MLTError.invalidData("Unexpected value type in integer column")
+                    }
+                    values.append(int)
+                }
+                MLTEncoderCore.encodedInt64Stream(
+                    values: values,
+                    physical: .data,
+                    logical: .dictionary(.none)).write(to: &writer)
 
             case .uint32:
                 var values: [UInt32] = []
@@ -1129,22 +1456,18 @@ private enum MLTEncodedColumn {
                     logical: .dictionary(.none)).write(to: &writer)
 
             case .uint64:
-                var payload = MLTByteWriter()
+                var values: [UInt64] = []
+                values.reserveCapacity(dense.count)
                 for value in dense {
                     guard case let .uint(uint) = value else {
                         throw MLTError.invalidData("Unexpected value type in unsigned column")
                     }
-                    payload.writeVarint64(uint)
+                    values.append(uint)
                 }
-                let metadata = MLTStreamMetadata(
-                    physicalStreamType: .data,
-                    logicalStreamType: .dictionary(.none),
-                    logicalTechnique1: .none,
-                    logicalTechnique2: .none,
-                    physicalTechnique: .varint,
-                    numValues: dense.count,
-                    byteLength: payload.count)
-                MLTEncodedStream(metadata: metadata, payload: payload.bytes).write(to: &writer)
+                MLTEncoderCore.encodedUInt64Stream(
+                    values: values,
+                    physical: .data,
+                    logical: .dictionary(.none)).write(to: &writer)
 
             case .float, .double:
                 var payload = MLTByteWriter()

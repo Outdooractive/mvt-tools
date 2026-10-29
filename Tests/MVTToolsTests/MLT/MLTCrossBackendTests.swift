@@ -158,6 +158,9 @@ struct MLTCrossBackendTests {
                     "name": "Name \(index % 4)",
                     "name_de": "Name DE \(index % 3)",
                     "name_en": "Name EN \(index % 5)",
+                    "rank32": Int32(index % 5),
+                    "rank64": Int64(index % 7),
+                    "count64": UInt64(index % 3),
                 ] as [String: Sendable])
         }
 
