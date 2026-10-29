@@ -55,10 +55,16 @@ struct MLTEncoderOptionsCommandTests {
         #expect(defaultResult.output.contains("MLT encoder:"))
         #expect(defaultResult.output.contains("fsst"))
 
+        #expect(!defaultResult.output.contains("vertex-dictionaries"))
+
         let noFSSTResult = try exportMLT(["--mlt-no-fsst"], verbose: true)
         defer { try? FileManager.default.removeItem(at: noFSSTResult.url) }
         #expect(noFSSTResult.output.contains("MLT encoder:"))
         #expect(!noFSSTResult.output.contains("fsst"))
+
+        let vertexResult = try exportMLT(["--mlt-vertex-dictionaries"], verbose: true)
+        defer { try? FileManager.default.removeItem(at: vertexResult.url) }
+        #expect(vertexResult.output.contains("vertex-dictionaries"))
     }
 
     @Test(.timeLimit(.minutes(1)))

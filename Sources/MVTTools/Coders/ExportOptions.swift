@@ -38,10 +38,10 @@ extension VectorTile {
         /// size or performance problems. Disabling an option can increase the
         /// encoded tile size but never changes the decoded content.
         ///
-        /// The defaults mirror the C++ encoder's `EncoderConfig`: dictionaries,
-        /// shared dictionaries, FSST and vertex dictionaries are enabled,
-        /// FastPFOR is disabled. They only affect the pure Swift encoder; the
-        /// optional C++ backend uses its own configuration.
+        /// The defaults are conservative: string and shared dictionaries plus
+        /// FSST are enabled, FastPFOR and vertex dictionaries are disabled.
+        /// They only affect the pure Swift encoder; the optional C++ backend
+        /// uses its own configuration.
         public struct MLTEncodingOptions: Sendable, Equatable {
 
             /// Use single and shared string dictionaries.
@@ -61,7 +61,12 @@ extension VectorTile {
             /// delta or RLE layouts for typical tile data.
             public var useFastPFOR: Bool
 
-            /// Use Hilbert/Morton vertex dictionaries for repeated vertices.
+            /// Use Hilbert/Morton vertex dictionaries for repeated vertices
+            /// (default: disabled).
+            ///
+            /// Disabled by default: on real-world tiles the dictionaries rarely
+            /// reduce the gzip-compressed size, while building and testing them
+            /// costs a noticeable share of encode time.
             public var useVertexDictionaries: Bool
 
             /// Use delta/RLE/delta-RLE integer stream encodings.
@@ -73,7 +78,7 @@ extension VectorTile {
                 useSharedStringDictionaries: Bool = true,
                 useFSST: Bool = true,
                 useFastPFOR: Bool = false,
-                useVertexDictionaries: Bool = true,
+                useVertexDictionaries: Bool = false,
                 useIntegerDeltaRLE: Bool = true
             ) {
                 self.useStringDictionaries = useStringDictionaries

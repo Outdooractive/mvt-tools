@@ -25,8 +25,9 @@ swift run -c release --traits EnableMLT mlt-benchmark <tile> <x> <y> <z> 20 --no
 ```
 
 Available flags: `--plain`, `--no-fsst`, `--fastpfor`, `--no-fastpfor`,
-`--no-dictionaries`, `--no-shared-dictionaries`, `--no-vertex-dictionaries`,
-`--no-integer-delta-rle`. Encoder defaults mirror the C++ backend:
-FastPFOR is off unless `--fastpfor` is passed.
+`--no-dictionaries`, `--no-shared-dictionaries`, `--vertex-dictionaries`,
+`--no-vertex-dictionaries`, `--no-integer-delta-rle`. FastPFOR and vertex
+dictionaries are opt-in features, so they are off unless their flags are
+passed.
 
 See [RESULTS.md](RESULTS.md) for a recent release-mode benchmark run.

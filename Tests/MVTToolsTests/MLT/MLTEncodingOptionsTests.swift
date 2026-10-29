@@ -59,13 +59,13 @@ struct MLTEncodingOptionsTests {
     }
 
     @Test
-    func defaultOptionsMatchCXXEncoderConfig() {
+    func defaultOptionsUseConservativeFeatureSet() {
         let options = VectorTile.ExportOptions()
         #expect(options.mlt.useStringDictionaries)
         #expect(options.mlt.useSharedStringDictionaries)
         #expect(options.mlt.useFSST)
         #expect(options.mlt.useFastPFOR == false)
-        #expect(options.mlt.useVertexDictionaries)
+        #expect(options.mlt.useVertexDictionaries == false)
         #expect(options.mlt.useIntegerDeltaRLE)
     }
 
@@ -77,6 +77,45 @@ struct MLTEncodingOptionsTests {
             Feature(
                 Point(Coordinate3D(x: Double(index), y: 0.0, projection: .noSRID)),
                 properties: ["rank": Int64(1_000_000_000 + index * 7919)] as [String: Sendable])
+        }
+
+        let layers = ["test": VectorTile.LayerContainer(features: features, boundingBox: nil)]
+        let defaultData = try #require(MLTEncoder.encode(
+            layers: layers,
+            x: 0, y: 0, z: 0,
+            projection: .noSRID,
+            options: VectorTile.ExportOptions()))
+        let data = try #require(MLTEncoder.encode(
+            layers: layers,
+            x: 0, y: 0, z: 0,
+            projection: .noSRID,
+            options: options))
+        let defaultLayer = try #require(try MLTDecoder.decode(
+            from: defaultData,
+            x: 0, y: 0, z: 0,
+            projection: .noSRID)["test"])
+        let layer = try #require(try MLTDecoder.decode(
+            from: data,
+            x: 0, y: 0, z: 0,
+            projection: .noSRID)["test"])
+        #expect(layer.features == defaultLayer.features)
+        #expect(data.count <= defaultData.count)
+    }
+
+    @Test
+    func enablingVertexDictionariesStillRoundTrips() throws {
+        let options = VectorTile.ExportOptions(
+            mlt: VectorTile.ExportOptions.MLTEncodingOptions(useVertexDictionaries: true))
+        let ring = [
+            Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
+            Coordinate3D(x: 100.0, y: 0.0, projection: .noSRID),
+            Coordinate3D(x: 100.0, y: 100.0, projection: .noSRID),
+            Coordinate3D(x: 0.0, y: 100.0, projection: .noSRID),
+            Coordinate3D(x: 0.0, y: 0.0, projection: .noSRID),
+        ]
+        let polygon = try #require(Polygon([ring]))
+        let features = (0 ..< 500).map { index in
+            Feature(polygon, properties: ["rank": Int32(index)] as [String: Sendable])
         }
 
         let layers = ["test": VectorTile.LayerContainer(features: features, boundingBox: nil)]
@@ -145,7 +184,6 @@ struct MLTEncodingOptionsTests {
             ("stringDictionaries", .init(useStringDictionaries: false)),
             ("sharedStringDictionaries", .init(useSharedStringDictionaries: false)),
             ("FSST", .init(useFSST: false)),
-            ("vertexDictionaries", .init(useVertexDictionaries: false)),
             ("integerDeltaRLE", .init(useIntegerDeltaRLE: false)),
             ("plain", .plain),
         ]

@@ -37,12 +37,15 @@ and this project adheres to semantic versioning.
   size, including shared dictionaries across related string columns.
 - Added `ExportOptions.mlt` feature switches for string dictionaries, shared
   dictionaries, FSST, FastPFOR, vertex dictionaries and delta/RLE integer
-  streams, plus a conservative `.plain` preset. The defaults mirror the C++
-  `EncoderConfig` (FastPFOR is disabled by default).
+  streams, plus a conservative `.plain` preset. FastPFOR and vertex
+  dictionaries are disabled by default: on 118 real-world OMT tiles the vertex
+  dictionaries save 0.19% raw size in total (median 0.12% where they win, no
+  reliable gzip benefit) while costing a noticeable share of encode time.
 - Added `--mlt-plain`, `--mlt-no-dictionaries`, `--mlt-no-shared-dictionaries`,
-  `--mlt-no-fsst`, `--mlt-fastpfor`, `--mlt-no-vertex-dictionaries` and
-  `--mlt-no-integer-delta-rle` to `merge`, `export`, `import`, `rezoom` and
-  `reproject`. `--verbose` prints the effective MLT encoder features.
+  `--mlt-no-fsst`, `--mlt-fastpfor`, `--mlt-vertex-dictionaries`,
+  `--mlt-no-vertex-dictionaries` and `--mlt-no-integer-delta-rle` to `merge`,
+  `export`, `import`, `rezoom` and `reproject`. `--verbose` prints the effective
+  MLT encoder features.
 
 ### Changed
 

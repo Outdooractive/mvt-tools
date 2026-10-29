@@ -15,7 +15,7 @@ package struct MLTEncoderOptions: Sendable, Equatable {
         useSharedStringDictionaries: Bool = true,
         useFSST: Bool = true,
         useFastPFOR: Bool = false,
-        useVertexDictionaries: Bool = true,
+        useVertexDictionaries: Bool = false,
         useIntegerDeltaRLE: Bool = true
     ) {
         self.useStringDictionaries = useStringDictionaries

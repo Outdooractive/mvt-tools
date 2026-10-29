@@ -7,8 +7,8 @@ struct MLTBenchmark {
 
     private static let usageMessage = """
         usage: mlt-benchmark <tile.mvt|tile.pbf|tile.mlt> <x> <y> <z> [iterations] \
-        [--plain|--no-fsst|--fastpfor|--no-dictionaries|--no-vertex-dictionaries|\
-        --no-shared-dictionaries|--no-integer-delta-rle]
+        [--plain|--no-fsst|--fastpfor|--no-dictionaries|--vertex-dictionaries|\
+        --no-vertex-dictionaries|--no-shared-dictionaries|--no-integer-delta-rle]
         """
 
     private enum BenchmarkError: Error, CustomStringConvertible {
@@ -73,6 +73,8 @@ struct MLTBenchmark {
                 mltOptions.useSharedStringDictionaries = false
             case "--no-shared-dictionaries":
                 mltOptions.useSharedStringDictionaries = false
+            case "--vertex-dictionaries":
+                mltOptions.useVertexDictionaries = true
             case "--no-vertex-dictionaries":
                 mltOptions.useVertexDictionaries = false
             case "--no-integer-delta-rle":

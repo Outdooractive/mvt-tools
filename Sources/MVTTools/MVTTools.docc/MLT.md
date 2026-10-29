@@ -107,16 +107,18 @@ not wanted.
 
 ```swift
 var options = VectorTile.ExportOptions()
-options.mlt.useFSST = false
-options.mlt.useVertexDictionaries = false
+options.mlt.useVertexDictionaries = true
+options.mlt.useFastPFOR = true
 
 let data = tile.mltData(options: options)
 ```
 
-The defaults mirror the C++ encoder's `EncoderConfig`: string and shared
-dictionaries, FSST and vertex dictionaries are enabled, FastPFOR is disabled.
-That is the tradeoff the C++ backend ships with; enable FastPFOR explicitly when
-a tile has large 32-bit integer streams.
+The defaults are conservative: string and shared dictionaries plus FSST are
+enabled, FastPFOR and vertex dictionaries are disabled. Vertex dictionaries
+rarely reduce the gzip-compressed size of real-world tiles, while building and
+testing both candidates costs a noticeable share of encode time; enable them
+for layers with many repeated vertices. Enable FastPFOR when a tile has large
+32-bit integer streams.
 
 The available switches are:
 
@@ -126,7 +128,7 @@ The available switches are:
 | `useSharedStringDictionaries` | `true` | Group related string columns into a shared dictionary. |
 | `useFSST` | `true` | FSST compression of string dictionaries. |
 | `useFastPFOR` | `false` | FastPFOR for large 32-bit integer streams. |
-| `useVertexDictionaries` | `true` | Hilbert/Morton vertex dictionaries for repeated vertices. |
+| `useVertexDictionaries` | `false` | Hilbert/Morton vertex dictionaries for repeated vertices. |
 | `useIntegerDeltaRLE` | `true` | Delta, RLE and delta-RLE integer streams. |
 
 `VectorTile.ExportOptions.MLTEncodingOptions.plain` disables all optional
@@ -135,10 +137,10 @@ encodings for the most conservative, deterministic output. `useFSST` requires
 `useStringDictionaries` as well.
 
 Disabling a switch only trades encoded size for encode time or compatibility; it
-never changes the decoded content. For example, `useVertexDictionaries = false`
-skips the Hilbert/Morton candidate construction, which is measurable on layers
-with few repeated vertices, and `useFSST = false` skips FSST training, which
-costs time even when no profitable symbol table exists.
+never changes the decoded content. For example, `useFSST = false` skips FSST
+training, which costs time even when no profitable symbol table exists, and
+`useVertexDictionaries = false` (the default) skips the Hilbert/Morton candidate
+construction unless a layer has enough repeated vertices to benefit.
 
 The switches apply to the pure Swift encoder. The optional C++ backend uses its
 own configuration.

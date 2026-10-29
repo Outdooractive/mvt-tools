@@ -6,9 +6,8 @@ extension CLI {
     /// Options that toggle optional MLT encoder features.
     ///
     /// They only affect MLT output produced by the pure Swift encoder. The
-    /// defaults match the library defaults, which mirror the C++ backend:
-    /// string and shared dictionaries, FSST and vertex dictionaries are
-    /// enabled, FastPFOR is disabled.
+    /// defaults match the library defaults: string and shared dictionaries plus
+    /// FSST are enabled, FastPFOR and vertex dictionaries are disabled.
     struct MLTEncoderOptions: ParsableArguments {
 
         @Flag(
@@ -35,6 +34,11 @@ extension CLI {
             name: .customLong("mlt-fastpfor"),
             help: "Enable FastPFOR for large 32-bit integer streams in MLT output.")
         var fastPFOR = false
+
+        @Flag(
+            name: .customLong("mlt-vertex-dictionaries"),
+            help: "Enable Hilbert/Morton vertex dictionaries in MLT output.")
+        var vertexDictionaries = false
 
         @Flag(
             name: .customLong("mlt-no-vertex-dictionaries"),
@@ -66,6 +70,9 @@ extension CLI {
             }
             if fastPFOR {
                 options.mlt.useFastPFOR = true
+            }
+            if vertexDictionaries {
+                options.mlt.useVertexDictionaries = true
             }
             if noVertexDictionaries {
                 options.mlt.useVertexDictionaries = false
