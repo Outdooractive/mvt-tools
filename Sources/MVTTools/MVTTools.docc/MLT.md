@@ -84,7 +84,7 @@ try tile.writeMLT(to: outputURL, options: options)
 
 The pure Swift encoder writes a conservative, deterministic subset:
 
-- plain varints for integer and length streams,
+- plain, delta, RLE or delta-RLE varints for integer and length streams, choosing the smallest,
 - componentwise-delta varints for vertices,
 - plain, single-dictionary or shared-dictionary strings, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
