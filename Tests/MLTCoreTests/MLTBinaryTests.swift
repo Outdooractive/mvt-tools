@@ -83,6 +83,13 @@ struct MLTBinaryTests {
             [1, 2, 3],
             [7, 7, 7],
             Array(repeating: 0, count: 200),
+            Array(repeating: 3, count: 131),
+            Array(repeating: 3, count: 132),
+            Array(repeating: 3, count: 133),
+            Array(repeating: 5, count: 261),
+            Array(repeating: 5, count: 262),
+            Array(repeating: 5, count: 263),
+            Array(repeating: 7, count: 260) + [1, 2],
             Array(repeating: 255, count: 3) + [1, 2] + Array(repeating: 9, count: 130),
             (0 ... 255).map(UInt8.init),
         ]

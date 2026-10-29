@@ -49,6 +49,43 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func plainEncoderOptionsRoundTrip() throws {
+        let features = (0 ..< 300).map { index -> MLTEncodableFeature in
+            let x = Int32(index % 10)
+            let y = Int32(index / 10)
+            let ring = [
+                MLTTileCoordinate(x: x, y: y),
+                MLTTileCoordinate(x: x + 5, y: y),
+                MLTTileCoordinate(x: x + 5, y: y + 5),
+                MLTTileCoordinate(x: x, y: y + 5),
+                MLTTileCoordinate(x: x, y: y),
+            ]
+            let properties: [String: any Sendable] = [
+                "name": "common_prefix_\(index)_with_a_suffix",
+                "value": UInt32(1_000_000 + index),
+            ]
+            return MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .polygon([ring]),
+                properties: properties)
+        }
+
+        let layers = [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ]
+        let data = try MLTEncoderCore.encode(layers: layers, options: .plain)
+        let decoded = try MLTDecoderCore.decode(data)
+        guard let layer = decoded.first else {
+            Issue.record("Missing decoded layer")
+            return
+        }
+        #expect(layer.featureCount == features.count)
+        #expect(layer.properties["name"]?.count == features.count)
+        #expect(layer.properties["value"]?.count == features.count)
+    }
+
+    @Test
     func sharedStringFSSTRoundTrip() throws {
         let features = (0 ..< 200).map { index -> MLTEncodableFeature in
             let properties: [String: any Sendable] = [

@@ -47,6 +47,9 @@ extension CLI {
             help: "Simplify output features using meters. Overrides 'simplify-extents'.")
         var simplifyMeters: Int?
 
+        @OptionGroup
+        var mltEncoderOptions: CLI.MLTEncoderOptions
+
         @Flag(
             name: .shortAndLong,
             help: "Force overwrite an existing 'output' file.")
@@ -333,6 +336,8 @@ extension CLI.MergeOptions {
             exportOptions.simplifyFeatures = .extent(simplifyExtents)
         }
 
+        mergeOptions.mltEncoderOptions.apply(to: &exportOptions)
+
         if cliOptions.verbose {
             print("Output options:")
             if case .geoJson = resolvedOutputFormat, outputUrl == nil {
@@ -342,6 +347,9 @@ extension CLI.MergeOptions {
             print("  - Buffer size: \(exportOptions.bufferSize)")
             print("  - Compression: \(exportOptions.compression)")
             print("  - Simplification: \(exportOptions.simplifyFeatures)")
+            if case .mlt = resolvedOutputFormat {
+                print("  - MLT encoder: \(mergeOptions.mltEncoderOptions.summary(for: exportOptions.mlt))")
+            }
         }
 
         if let outputUrl {

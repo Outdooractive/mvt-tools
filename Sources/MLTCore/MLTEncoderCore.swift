@@ -40,7 +40,10 @@ package struct MLTEncodableLayer {
 /// Encodes neutral MLT layers into a tag `0x01` tile.
 package enum MLTEncoderCore {
 
-    package static func encode(layers: [MLTEncodableLayer]) throws -> Data {
+    package static func encode(
+        layers: [MLTEncodableLayer],
+        options: MLTEncoderOptions = .init()
+    ) throws -> Data {
         var tileWriter = MLTByteWriter()
 
         for layer in layers.sorted(by: { $0.name < $1.name }) {
@@ -51,7 +54,8 @@ package enum MLTEncoderCore {
             let body = try encodeLayer(
                 name: layer.name,
                 extent: layer.extent,
-                features: layer.features)
+                features: layer.features,
+                options: options)
             MLTTileFraming.writeBlock(
                 tag: MLTTileFraming.tag0x01,
                 payload: body,
@@ -66,11 +70,12 @@ package enum MLTEncoderCore {
     private static func encodeLayer(
         name: String,
         extent: Int,
-        features: [MLTEncodableFeature]
+        features: [MLTEncodableFeature],
+        options: MLTEncoderOptions
     ) throws -> [UInt8] {
-        let idColumn = makeIDColumn(features: features)
-        let geometryColumn = try makeGeometryColumn(features: features)
-        let propertyColumns = try makePropertyColumns(features: features)
+        let idColumn = makeIDColumn(features: features, options: options)
+        let geometryColumn = try makeGeometryColumn(features: features, options: options)
+        let propertyColumns = try makePropertyColumns(features: features, options: options)
 
         var columns: [MLTEncodedColumn] = []
         if let idColumn {
@@ -88,7 +93,7 @@ package enum MLTEncoderCore {
         try table.encode(to: &body)
 
         for column in columns {
-            try column.writeStreams(to: &body)
+            try column.writeStreams(to: &body, options: options)
         }
 
         return body.bytes
@@ -96,7 +101,10 @@ package enum MLTEncoderCore {
 
     // MARK: - ID column
 
-    private static func makeIDColumn(features: [MLTEncodableFeature]) -> MLTEncodedColumn? {
+    private static func makeIDColumn(
+        features: [MLTEncodableFeature],
+        options: MLTEncoderOptions
+    ) -> MLTEncodedColumn? {
         let hasAny = features.contains { $0.hasNumericID }
         guard hasAny else { return nil }
 
@@ -114,7 +122,8 @@ package enum MLTEncoderCore {
     // MARK: - Geometry column
 
     private static func makeGeometryColumn(
-        features: [MLTEncodableFeature]
+        features: [MLTEncodableFeature],
+        options: MLTEncoderOptions
     ) throws -> MLTEncodedColumn {
         let hasPolygons = features.contains {
             if case .polygon = $0.geometry { return true }
@@ -189,27 +198,32 @@ package enum MLTEncoderCore {
         streams.append(encodedUInt32Stream(
             values: types,
             physical: .data,
-            logical: .dictionary(.none)))
+            logical: .dictionary(.none),
+            options: options))
 
         if !numGeometries.isEmpty {
             streams.append(encodedUInt32Stream(
                 values: numGeometries,
                 physical: .length,
-                logical: .length(.geometries)))
+                logical: .length(.geometries),
+                options: options))
         }
         if !numParts.isEmpty {
             streams.append(encodedUInt32Stream(
                 values: numParts,
                 physical: .length,
-                logical: .length(.parts)))
+                logical: .length(.parts),
+                options: options))
         }
         if !numRings.isEmpty {
             streams.append(encodedUInt32Stream(
                 values: numRings,
                 physical: .length,
-                logical: .length(.rings)))
+                logical: .length(.rings),
+                options: options))
         }
 
+        let plainPayload = encodeVertices(vertices)
         let plainVertex = MLTEncodedStream(
             metadata: MLTStreamMetadata(
                 physicalStreamType: .data,
@@ -218,19 +232,22 @@ package enum MLTEncoderCore {
                 logicalTechnique2: .none,
                 physicalTechnique: .varint,
                 numValues: vertices.count * 2,
-                byteLength: encodeVertices(vertices).count),
-            payload: encodeVertices(vertices))
+                byteLength: plainPayload.count),
+            payload: plainPayload)
 
-        let candidates: [VertexDictionary?] = [
-            makeHilbertVertexDictionary(vertices),
-            makeMortonVertexDictionary(vertices),
-        ]
-        let dictionary = candidates
-            .compactMap { $0 }
-            .min { lhs, rhs in
-                lhs.offset.encodedSize + lhs.data.encodedSize
-                    < rhs.offset.encodedSize + rhs.data.encodedSize
-            }
+        var candidates: [VertexDictionary] = []
+        if options.useVertexDictionaries,
+           let indexMap = VertexIndexMap(vertices)
+        {
+            candidates.append(contentsOf: [
+                makeHilbertVertexDictionary(indexMap),
+                makeMortonVertexDictionary(indexMap),
+            ].compactMap { $0 })
+        }
+        let dictionary = candidates.min { lhs, rhs in
+            lhs.offset.encodedSize + lhs.data.encodedSize
+                < rhs.offset.encodedSize + rhs.data.encodedSize
+        }
 
         if let dictionary,
            dictionary.offset.encodedSize + dictionary.data.encodedSize < plainVertex.encodedSize
@@ -250,31 +267,48 @@ package enum MLTEncoderCore {
         var data: MLTEncodedStream
     }
 
-    private static func makeMortonVertexDictionary(
-        _ vertices: [MLTTileCoordinate]
-    ) -> VertexDictionary? {
-        guard vertices.count > 1 else { return nil }
+    /// Unique vertices plus the index of every vertex occurrence.
+    ///
+    /// Built once per geometry column and shared by the Hilbert and Morton
+    /// dictionary candidates.
+    private struct VertexIndexMap {
+        var uniqueVertices: [MLTTileCoordinate]
+        var offsets: [UInt32]
 
-        var indexByVertex: [MLTTileCoordinate: UInt32] = [:]
-        var uniqueVertices: [MLTTileCoordinate] = []
-        var offsets: [UInt32] = []
-        offsets.reserveCapacity(vertices.count)
+        init?(_ vertices: [MLTTileCoordinate]) {
+            guard vertices.count > 1 else { return nil }
 
-        for vertex in vertices {
-            if let index = indexByVertex[vertex] {
-                offsets.append(index)
+            var indexByVertex: [MLTTileCoordinate: UInt32] = [:]
+            var uniqueVertices: [MLTTileCoordinate] = []
+            var offsets: [UInt32] = []
+            offsets.reserveCapacity(vertices.count)
+
+            for vertex in vertices {
+                if let index = indexByVertex[vertex] {
+                    offsets.append(index)
+                }
+                else {
+                    let index = UInt32(uniqueVertices.count)
+                    indexByVertex[vertex] = index
+                    uniqueVertices.append(vertex)
+                    offsets.append(index)
+                }
             }
-            else {
-                let index = UInt32(uniqueVertices.count)
-                indexByVertex[vertex] = index
-                uniqueVertices.append(vertex)
-                offsets.append(index)
-            }
+
+            guard uniqueVertices.count < vertices.count else { return nil }
+
+            self.uniqueVertices = uniqueVertices
+            self.offsets = offsets
         }
+    }
 
-        guard uniqueVertices.count < vertices.count,
-              let settings = MLTMortonEncoder.settings(for: uniqueVertices)
-        else {
+    private static func makeMortonVertexDictionary(
+        _ indexMap: VertexIndexMap
+    ) -> VertexDictionary? {
+        let uniqueVertices = indexMap.uniqueVertices
+        let offsets = indexMap.offsets
+
+        guard let settings = MLTMortonEncoder.settings(for: uniqueVertices) else {
             return nil
         }
 
@@ -336,30 +370,10 @@ package enum MLTEncoderCore {
     }
 
     private static func makeHilbertVertexDictionary(
-        _ vertices: [MLTTileCoordinate]
+        _ indexMap: VertexIndexMap
     ) -> VertexDictionary? {
-        guard vertices.count > 1 else { return nil }
-
-        var indexByVertex: [MLTTileCoordinate: UInt32] = [:]
-        var uniqueVertices: [MLTTileCoordinate] = []
-        var offsets: [UInt32] = []
-        offsets.reserveCapacity(vertices.count)
-
-        for vertex in vertices {
-            if let index = indexByVertex[vertex] {
-                offsets.append(index)
-            }
-            else {
-                let index = UInt32(uniqueVertices.count)
-                indexByVertex[vertex] = index
-                uniqueVertices.append(vertex)
-                offsets.append(index)
-            }
-        }
-
-        guard uniqueVertices.count < vertices.count else {
-            return nil
-        }
+        let uniqueVertices = indexMap.uniqueVertices
+        let offsets = indexMap.offsets
 
         let minX = uniqueVertices.map(\.x).min() ?? 0
         let minY = uniqueVertices.map(\.y).min() ?? 0
@@ -368,14 +382,15 @@ package enum MLTEncoderCore {
         let range = max(Int64(maxX) - Int64(minX), Int64(maxY) - Int64(minY))
         let bits = MLTHilbert.bits(for: range)
 
+        let codes = uniqueVertices.map {
+            MLTHilbert.index(x: $0.x, y: $0.y, minX: minX, minY: minY, bits: bits)
+        }
         let sorted = uniqueVertices.indices.sorted { lhsIndex, rhsIndex in
+            if codes[lhsIndex] != codes[rhsIndex] {
+                return codes[lhsIndex] < codes[rhsIndex]
+            }
             let lhs = uniqueVertices[lhsIndex]
             let rhs = uniqueVertices[rhsIndex]
-            let lhsCode = MLTHilbert.index(
-                x: lhs.x, y: lhs.y, minX: minX, minY: minY, bits: bits)
-            let rhsCode = MLTHilbert.index(
-                x: rhs.x, y: rhs.y, minX: minX, minY: minY, bits: bits)
-            if lhsCode != rhsCode { return lhsCode < rhsCode }
             if lhs.x != rhs.x { return lhs.x < rhs.x }
             return lhs.y < rhs.y
         }
@@ -435,7 +450,8 @@ package enum MLTEncoderCore {
     // MARK: - Property columns
 
     private static func makePropertyColumns(
-        features: [MLTEncodableFeature]
+        features: [MLTEncodableFeature],
+        options: MLTEncoderOptions
     ) throws -> [MLTEncodedColumn] {
         var keys = Set<String>()
         for feature in features {
@@ -452,7 +468,10 @@ package enum MLTEncoderCore {
         let stringKeys = inferredTypes
             .filter { $0.value == .string }
             .map(\.key)
-        let groups = sharedStringGroups(stringKeys)
+        var groups: [SharedStringGroup] = []
+        if options.useStringDictionaries, options.useSharedStringDictionaries {
+            groups = sharedStringGroups(stringKeys)
+        }
         var groupedKeys = Set<String>()
         var columns: [MLTEncodedColumn] = []
 
@@ -462,7 +481,8 @@ package enum MLTEncoderCore {
                 try makeSharedStringColumn(
                     root: group.root,
                     keys: group.keys,
-                    features: features))
+                    features: features,
+                    options: options))
         }
 
         for key in inferredTypes.keys.sorted() where !groupedKeys.contains(key) {
@@ -472,7 +492,8 @@ package enum MLTEncoderCore {
                     name: key,
                     type: inferredTypes[key] ?? .string,
                     values: values,
-                    featureCount: features.count))
+                    featureCount: features.count,
+                    options: options))
         }
 
         return columns
@@ -504,7 +525,8 @@ package enum MLTEncoderCore {
     private static func makeSharedStringColumn(
         root: String,
         keys: [String],
-        features: [MLTEncodableFeature]
+        features: [MLTEncodableFeature],
+        options: MLTEncoderOptions
     ) throws -> MLTEncodedColumn {
         let children = keys.map { key -> MLTSharedStringChild in
             let suffix = key == root ? "" : String(key.dropFirst(root.count))
@@ -526,7 +548,7 @@ package enum MLTEncoderCore {
         var candidates: [MLTSharedStringEncoding] = [
             .plain(dictionary: dictionary.dictionary, offsets: dictionary.offsets),
         ]
-        if let fsst = MLTFSSTEncoder.encode(dictionary.dictionary) {
+        if options.useFSST, let fsst = MLTFSSTEncoder.encode(dictionary.dictionary) {
             candidates.append(.fsst(
                 dictionary: dictionary.dictionary,
                 offsets: dictionary.offsets,
@@ -540,12 +562,14 @@ package enum MLTEncoderCore {
                 root: root,
                 children: children,
                 featureCount: features.count,
-                encoding: lhs)
+                encoding: lhs,
+                options: options)
                 < sharedStringColumnSize(
                     root: root,
                     children: children,
                     featureCount: features.count,
-                    encoding: rhs)
+                    encoding: rhs,
+                    options: options)
         } ?? candidates[0]
 
         return .sharedStringProperty(
@@ -589,7 +613,8 @@ package enum MLTEncoderCore {
         root: String,
         children: [MLTSharedStringChild],
         featureCount: Int,
-        encoding: MLTSharedStringEncoding
+        encoding: MLTSharedStringEncoding,
+        options: MLTEncoderOptions
     ) -> Int {
         let column = MLTEncodedColumn.sharedStringProperty(
             rootName: root,
@@ -598,7 +623,7 @@ package enum MLTEncoderCore {
             encoding: encoding)
         var writer = MLTByteWriter()
         do {
-            try column.writeStreams(to: &writer)
+            try column.writeStreams(to: &writer, options: options)
         }
         catch {
             return Int.max
@@ -726,7 +751,8 @@ package enum MLTEncoderCore {
         name: String,
         type: MLTScalarType,
         values: [(any Sendable)?],
-        featureCount: Int
+        featureCount: Int,
+        options: MLTEncoderOptions
     ) throws -> MLTEncodedColumn {
         let nullable = values.contains { $0 == nil }
         var encoded: [MLTEncodedValue?] = []
@@ -743,32 +769,53 @@ package enum MLTEncoderCore {
                     return try stringColumn(
                         name: name,
                         values: values,
-                        featureCount: featureCount)
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.bool(bool))
             case .int32:
                 guard let int = int64Value(value, allowUnsigned: true) else {
-                    return try stringColumn(name: name, values: values, featureCount: featureCount)
+                    return try stringColumn(
+                        name: name,
+                        values: values,
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.int(int))
             case .int64:
                 guard let int = int64Value(value, allowUnsigned: true) else {
-                    return try stringColumn(name: name, values: values, featureCount: featureCount)
+                    return try stringColumn(
+                        name: name,
+                        values: values,
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.int(int))
             case .uint32, .uint64:
                 guard let uint = uint64Value(value) else {
-                    return try stringColumn(name: name, values: values, featureCount: featureCount)
+                    return try stringColumn(
+                        name: name,
+                        values: values,
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.uint(uint))
             case .float, .double:
                 guard let double = doubleValue(value) else {
-                    return try stringColumn(name: name, values: values, featureCount: featureCount)
+                    return try stringColumn(
+                        name: name,
+                        values: values,
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.double(double))
             case .int8, .uint8:
                 guard let int = int64Value(value, allowUnsigned: true) else {
-                    return try stringColumn(name: name, values: values, featureCount: featureCount)
+                    return try stringColumn(
+                        name: name,
+                        values: values,
+                        featureCount: featureCount,
+                        options: options)
                 }
                 encoded.append(.int(int))
             case .string:
@@ -780,7 +827,8 @@ package enum MLTEncoderCore {
             return try makeStringColumn(
                 name: name,
                 values: encoded,
-                featureCount: featureCount)
+                featureCount: featureCount,
+                options: options)
         }
 
         return .property(
@@ -794,18 +842,21 @@ package enum MLTEncoderCore {
     private static func stringColumn(
         name: String,
         values: [(any Sendable)?],
-        featureCount: Int
+        featureCount: Int,
+        options: MLTEncoderOptions
     ) throws -> MLTEncodedColumn {
         try makeStringColumn(
             name: name,
             values: values.map { $0.map { MLTEncodedValue.string(stringValue($0)) } },
-            featureCount: featureCount)
+            featureCount: featureCount,
+            options: options)
     }
 
     private static func makeStringColumn(
         name: String,
         values: [MLTEncodedValue?],
-        featureCount: Int
+        featureCount: Int,
+        options: MLTEncoderOptions
     ) throws -> MLTEncodedColumn {
         let denseStrings = values.compactMap { value -> String? in
             if case let .string(string) = value { return string }
@@ -813,22 +864,25 @@ package enum MLTEncoderCore {
         }
         let nullable = values.contains { $0 == nil }
 
-        let dictionary = buildStringDictionary(denseStrings)
         var candidates: [MLTStringEncoding] = [.plain]
-        if dictionary.dictionary.count < denseStrings.count {
-            candidates.append(.dictionary(
-                dictionary: dictionary.dictionary,
-                offsets: dictionary.offsets))
-        }
-        if denseStrings.count > 1,
-           let fsst = MLTFSSTEncoder.encode(dictionary.dictionary)
-        {
-            candidates.append(.fsst(
-                dictionary: dictionary.dictionary,
-                offsets: dictionary.offsets,
-                symbols: fsst.symbols,
-                symbolLengths: fsst.symbolLengths,
-                compressedData: fsst.compressedData))
+        if options.useStringDictionaries {
+            let dictionary = buildStringDictionary(denseStrings)
+            if dictionary.dictionary.count < denseStrings.count {
+                candidates.append(.dictionary(
+                    dictionary: dictionary.dictionary,
+                    offsets: dictionary.offsets))
+            }
+            if options.useFSST,
+               denseStrings.count > 1,
+               let fsst = MLTFSSTEncoder.encode(dictionary.dictionary)
+            {
+                candidates.append(.fsst(
+                    dictionary: dictionary.dictionary,
+                    offsets: dictionary.offsets,
+                    symbols: fsst.symbols,
+                    symbolLengths: fsst.symbolLengths,
+                    compressedData: fsst.compressedData))
+            }
         }
 
         let encoding = candidates.min { lhs, rhs in
@@ -836,12 +890,14 @@ package enum MLTEncoderCore {
                 lhs,
                 values: values,
                 nullable: nullable,
-                featureCount: featureCount)
+                featureCount: featureCount,
+                options: options)
                 < stringColumnSize(
                     rhs,
                     values: values,
                     nullable: nullable,
-                    featureCount: featureCount)
+                    featureCount: featureCount,
+                    options: options)
         } ?? .plain
 
         return .stringProperty(
@@ -856,7 +912,8 @@ package enum MLTEncoderCore {
         _ encoding: MLTStringEncoding,
         values: [MLTEncodedValue?],
         nullable: Bool,
-        featureCount: Int
+        featureCount: Int,
+        options: MLTEncoderOptions
     ) -> Int {
         let column = MLTEncodedColumn.stringProperty(
             name: "",
@@ -866,7 +923,7 @@ package enum MLTEncoderCore {
             encoding: encoding)
         var writer = MLTByteWriter()
         do {
-            try column.writeStreams(to: &writer)
+            try column.writeStreams(to: &writer, options: options)
         }
         catch {
             return Int.max
@@ -959,7 +1016,8 @@ package enum MLTEncoderCore {
     fileprivate static func encodedUInt32Stream(
         values: [UInt32],
         physical: MLTPhysicalStreamType,
-        logical: MLTLogicalStreamType
+        logical: MLTLogicalStreamType,
+        options: MLTEncoderOptions = .init()
     ) -> MLTEncodedStream {
         var plainWriter = MLTByteWriter()
         for value in values {
@@ -975,6 +1033,10 @@ package enum MLTEncoderCore {
                 numValues: values.count,
                 byteLength: plainWriter.count),
             payload: plainWriter.bytes)
+
+        if !options.useIntegerDeltaRLE, !options.useFastPFOR {
+            return plain
+        }
 
         var deltaWriter = MLTByteWriter()
         var previous: UInt32 = 0
@@ -1041,8 +1103,12 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        var candidates = [plain, delta, rle, deltaRle]
-        if let fastPFOR = fastPFORStream(values: values, physical: physical, logical: logical) {
+        var candidates = [plain]
+        if options.useIntegerDeltaRLE {
+            candidates.append(contentsOf: [delta, rle, deltaRle])
+        }
+        if options.useFastPFOR,
+           let fastPFOR = fastPFORStream(values: values, physical: physical, logical: logical) {
             candidates.append(fastPFOR)
         }
 
@@ -1074,7 +1140,8 @@ package enum MLTEncoderCore {
     fileprivate static func encodedUInt64Stream(
         values: [UInt64],
         physical: MLTPhysicalStreamType,
-        logical: MLTLogicalStreamType
+        logical: MLTLogicalStreamType,
+        options: MLTEncoderOptions = .init()
     ) -> MLTEncodedStream {
         var plainWriter = MLTByteWriter()
         for value in values {
@@ -1090,6 +1157,10 @@ package enum MLTEncoderCore {
                 numValues: values.count,
                 byteLength: plainWriter.count),
             payload: plainWriter.bytes)
+
+        if !options.useIntegerDeltaRLE {
+            return plain
+        }
 
         var deltaWriter = MLTByteWriter()
         var previous: UInt64 = 0
@@ -1156,7 +1227,10 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        return [plain, delta, rle, deltaRle].min {
+        let candidates = options.useIntegerDeltaRLE
+            ? [plain, delta, rle, deltaRle]
+            : [plain]
+        return candidates.min {
             $0.encodedSize < $1.encodedSize
         } ?? plain
     }
@@ -1164,7 +1238,8 @@ package enum MLTEncoderCore {
     fileprivate static func encodedInt32Stream(
         values: [Int32],
         physical: MLTPhysicalStreamType,
-        logical: MLTLogicalStreamType
+        logical: MLTLogicalStreamType,
+        options: MLTEncoderOptions = .init()
     ) -> MLTEncodedStream {
         var plainWriter = MLTByteWriter()
         for value in values {
@@ -1180,6 +1255,10 @@ package enum MLTEncoderCore {
                 numValues: values.count,
                 byteLength: plainWriter.count),
             payload: plainWriter.bytes)
+
+        if !options.useIntegerDeltaRLE, !options.useFastPFOR {
+            return plain
+        }
 
         var deltaWriter = MLTByteWriter()
         var previous: Int32 = 0
@@ -1245,11 +1324,15 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        var candidates = [plain, delta, rle, deltaRle]
-        if let fastPFOR = fastPFORStream(
-            values: values.map { MLTZigZag.encode($0) },
-            physical: physical,
-            logical: logical)
+        var candidates = [plain]
+        if options.useIntegerDeltaRLE {
+            candidates.append(contentsOf: [delta, rle, deltaRle])
+        }
+        if options.useFastPFOR,
+           let fastPFOR = fastPFORStream(
+               values: values.map { MLTZigZag.encode($0) },
+               physical: physical,
+               logical: logical)
         {
             candidates.append(fastPFOR)
         }
@@ -1262,7 +1345,8 @@ package enum MLTEncoderCore {
     fileprivate static func encodedInt64Stream(
         values: [Int64],
         physical: MLTPhysicalStreamType,
-        logical: MLTLogicalStreamType
+        logical: MLTLogicalStreamType,
+        options: MLTEncoderOptions = .init()
     ) -> MLTEncodedStream {
         var plainWriter = MLTByteWriter()
         for value in values {
@@ -1278,6 +1362,10 @@ package enum MLTEncoderCore {
                 numValues: values.count,
                 byteLength: plainWriter.count),
             payload: plainWriter.bytes)
+
+        if !options.useIntegerDeltaRLE {
+            return plain
+        }
 
         var deltaWriter = MLTByteWriter()
         var previous: Int64 = 0
@@ -1343,7 +1431,10 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        return [plain, delta, rle, deltaRle].min {
+        let candidates = options.useIntegerDeltaRLE
+            ? [plain, delta, rle, deltaRle]
+            : [plain]
+        return candidates.min {
             $0.encodedSize < $1.encodedSize
         } ?? plain
     }
@@ -1564,7 +1655,7 @@ private enum MLTEncodedColumn {
         }
     }
 
-    func writeStreams(to writer: inout MLTByteWriter) throws {
+    func writeStreams(to writer: inout MLTByteWriter, options: MLTEncoderOptions) throws {
         switch self {
         case let .id(nullable, longID, values, featureCount):
             if nullable {
@@ -1578,13 +1669,15 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt64Stream(
                     values: denseIDs,
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
             }
             else {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: denseIDs.map { UInt32(truncatingIfNeeded: $0) },
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
             }
 
         case let .geometry(streams):
@@ -1609,7 +1702,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: dictionaryLengths,
                     physical: .length,
-                    logical: .length(.dictionary)).write(to: &writer)
+                    logical: .length(.dictionary),
+                    options: options).write(to: &writer)
                 let metadata = MLTStreamMetadata(
                     physicalStreamType: .data,
                     logicalStreamType: .dictionary(.shared),
@@ -1625,6 +1719,7 @@ private enum MLTEncodedColumn {
                         child,
                         offsets: offsets[index],
                         featureCount: featureCount,
+                        options: options,
                         to: &writer)
                 }
 
@@ -1637,7 +1732,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: symbolLengths,
                     physical: .length,
-                    logical: .length(.symbol)).write(to: &writer)
+                    logical: .length(.symbol),
+                    options: options).write(to: &writer)
 
                 let symbolMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1652,7 +1748,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: dictionaryLengths,
                     physical: .length,
-                    logical: .length(.dictionary)).write(to: &writer)
+                    logical: .length(.dictionary),
+                    options: options).write(to: &writer)
 
                 let corpusMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1671,6 +1768,7 @@ private enum MLTEncodedColumn {
                         child,
                         offsets: offsets[index],
                         featureCount: featureCount,
+                        options: options,
                         to: &writer)
                 }
             }
@@ -1704,7 +1802,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: lengths,
                     physical: .length,
-                    logical: .length(.varBinary)).write(to: &writer)
+                    logical: .length(.varBinary),
+                    options: options).write(to: &writer)
 
                 let dataMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1730,12 +1829,14 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: dictionaryLengths,
                     physical: .length,
-                    logical: .length(.dictionary)).write(to: &writer)
+                    logical: .length(.dictionary),
+                    options: options).write(to: &writer)
 
                 MLTEncoderCore.encodedUInt32Stream(
                     values: offsets,
                     physical: .offset,
-                    logical: .offset(.string)).write(to: &writer)
+                    logical: .offset(.string),
+                    options: options).write(to: &writer)
 
                 let dictionaryDataMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1758,12 +1859,14 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: symbolLengths,
                     physical: .length,
-                    logical: .length(.symbol)).write(to: &writer)
+                    logical: .length(.symbol),
+                    options: options).write(to: &writer)
 
                 MLTEncoderCore.encodedUInt32Stream(
                     values: offsets,
                     physical: .offset,
-                    logical: .offset(.string)).write(to: &writer)
+                    logical: .offset(.string),
+                    options: options).write(to: &writer)
 
                 let symbolMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1780,7 +1883,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: dictionaryLengths,
                     physical: .length,
-                    logical: .length(.dictionary)).write(to: &writer)
+                    logical: .length(.dictionary),
+                    options: options).write(to: &writer)
 
                 let corpusMetadata = MLTStreamMetadata(
                     physicalStreamType: .data,
@@ -1834,7 +1938,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedInt32Stream(
                     values: values,
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
 
             case .int64:
                 var values: [Int64] = []
@@ -1848,7 +1953,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedInt64Stream(
                     values: values,
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
 
             case .uint32:
                 var values: [UInt32] = []
@@ -1862,7 +1968,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt32Stream(
                     values: values,
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
 
             case .uint64:
                 var values: [UInt64] = []
@@ -1876,7 +1983,8 @@ private enum MLTEncodedColumn {
                 MLTEncoderCore.encodedUInt64Stream(
                     values: values,
                     physical: .data,
-                    logical: .dictionary(.none)).write(to: &writer)
+                    logical: .dictionary(.none),
+                    options: options).write(to: &writer)
 
             case .float, .double:
                 var payload = MLTByteWriter()
@@ -1915,6 +2023,7 @@ private enum MLTEncodedColumn {
         _ child: MLTSharedStringChild,
         offsets: [UInt32],
         featureCount: Int,
+        options: MLTEncoderOptions,
         to writer: inout MLTByteWriter
     ) throws {
         let dense = child.values.compactMap { $0 }
@@ -1931,7 +2040,8 @@ private enum MLTEncodedColumn {
         MLTEncoderCore.encodedUInt32Stream(
             values: offsets,
             physical: .offset,
-            logical: .offset(.string)).write(to: &writer)
+            logical: .offset(.string),
+            options: options).write(to: &writer)
     }
 
     private static func writePresentStream(
