@@ -19,8 +19,10 @@ struct MLTCorpusTests {
     }
 
     @Test
-    func decodesUpstreamCorpus() throws {
-        guard FileManager.default.fileExists(atPath: Self.corpusRoot.path) else {
+    func decodesUpstreamCorpusWhenRequested() throws {
+        guard ProcessInfo.processInfo.environment["MLT_FULL_CORPUS"] == "1",
+              FileManager.default.fileExists(atPath: Self.corpusRoot.path)
+        else {
             return
         }
 

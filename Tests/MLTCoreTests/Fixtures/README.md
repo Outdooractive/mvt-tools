@@ -16,5 +16,13 @@ do not need the `maplibre-tile-spec` submodule.
 The upstream code and test data are dual-licensed under the MIT and Apache
 License 2.0. See the upstream repository for the full license texts.
 
-The complete upstream `0x01` corpus is still exercised by
-`MLTCorpusTests` when the submodule is present.
+The complete upstream `0x01` corpus is exercised by `MLTCorpusTests` when
+the submodule is present and `MLT_FULL_CORPUS=1` is set:
+
+```bash
+MLT_FULL_CORPUS=1 swift test --traits EnableMLT --filter MLTCorpusTests
+```
+
+`MLTFixureManifestTests` verifies the curated fixtures against
+`manifest.json`, including FNV-1a checksums, byte sizes, layer names and
+feature counts.

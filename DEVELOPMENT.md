@@ -31,6 +31,7 @@ swift build --enable-all-traits   # every format coder
 swift test                        # default trait set
 swift test --traits EnableMLT     # pure Swift MLT
 swift test --traits EnableMLTCXX  # C++ MLT backend + cross-backend tests
+MLT_FULL_CORPUS=1 swift test --traits EnableMLT --filter MLTCorpusTests
 swift test --enable-all-traits    # all format coders
 ```
 
