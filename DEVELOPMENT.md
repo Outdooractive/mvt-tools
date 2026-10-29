@@ -61,8 +61,18 @@ docc convert Sources/MVTTools/MVTTools.docc \
     --warnings-as-errors
 ```
 
-CI runs the macOS and Linux all-traits test suites, the coverage gate, and
-the DocC validation job.
+CI runs the macOS and Linux all-traits test suites, pure Swift and C++ MLT
+jobs, the coverage gate, an AddressSanitizer job, and the DocC validation job.
+
+## Benchmarks
+
+Measure MLT decode/encode time and output size with the benchmark executable:
+
+```bash
+swift run --traits EnableMLT mlt-benchmark \
+    Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt \
+    8716 8015 14 20
+```
 
 ## Releasing
 

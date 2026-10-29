@@ -21,6 +21,8 @@ and this project adheres to semantic versioning.
   metadata unit tests, and truncated/mutated-input robustness tests.
 - Updated the `maplibre-tile-spec` submodule to the current `main` revision
   (`71f20ee8`) for the optional C++ backend and conformance fixtures.
+- Added an `mlt-benchmark` executable for MLT decode/encode timing and size
+  measurements, plus an AddressSanitizer CI job for the pure Swift codec.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
   removed in the next major release.
 - The pure Swift MLT encoder now chooses single dictionary encoding for string
