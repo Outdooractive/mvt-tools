@@ -221,7 +221,18 @@ package enum MLTEncoderCore {
                 byteLength: encodeVertices(vertices).count),
             payload: encodeVertices(vertices))
 
-        if let dictionary = makeVertexDictionary(vertices),
+        let candidates: [VertexDictionary?] = [
+            makeHilbertVertexDictionary(vertices),
+            makeMortonVertexDictionary(vertices),
+        ]
+        let dictionary = candidates
+            .compactMap { $0 }
+            .min { lhs, rhs in
+                lhs.offset.encodedSize + lhs.data.encodedSize
+                    < rhs.offset.encodedSize + rhs.data.encodedSize
+            }
+
+        if let dictionary,
            dictionary.offset.encodedSize + dictionary.data.encodedSize < plainVertex.encodedSize
         {
             streams.append(dictionary.offset)
@@ -239,7 +250,92 @@ package enum MLTEncoderCore {
         var data: MLTEncodedStream
     }
 
-    private static func makeVertexDictionary(
+    private static func makeMortonVertexDictionary(
+        _ vertices: [MLTTileCoordinate]
+    ) -> VertexDictionary? {
+        guard vertices.count > 1 else { return nil }
+
+        var indexByVertex: [MLTTileCoordinate: UInt32] = [:]
+        var uniqueVertices: [MLTTileCoordinate] = []
+        var offsets: [UInt32] = []
+        offsets.reserveCapacity(vertices.count)
+
+        for vertex in vertices {
+            if let index = indexByVertex[vertex] {
+                offsets.append(index)
+            }
+            else {
+                let index = UInt32(uniqueVertices.count)
+                indexByVertex[vertex] = index
+                uniqueVertices.append(vertex)
+                offsets.append(index)
+            }
+        }
+
+        guard uniqueVertices.count < vertices.count,
+              let settings = MLTMortonEncoder.settings(for: uniqueVertices)
+        else {
+            return nil
+        }
+
+        let codes = uniqueVertices.map {
+            MLTMortonEncoder.code(x: $0.x, y: $0.y, settings: settings)
+        }
+        let sorted = uniqueVertices.indices.sorted { lhsIndex, rhsIndex in
+            let lhsCode = codes[lhsIndex]
+            let rhsCode = codes[rhsIndex]
+            if lhsCode != rhsCode { return lhsCode < rhsCode }
+            let lhs = uniqueVertices[lhsIndex]
+            let rhs = uniqueVertices[rhsIndex]
+            if lhs.x != rhs.x { return lhs.x < rhs.x }
+            return lhs.y < rhs.y
+        }
+
+        var oldToNew = [UInt32](repeating: 0, count: uniqueVertices.count)
+        for (newIndex, oldIndex) in sorted.enumerated() {
+            oldToNew[oldIndex] = UInt32(newIndex)
+        }
+        let sortedCodes = sorted.map { codes[$0] }
+        let sortedOffsets = offsets.map { oldToNew[Int($0)] }
+
+        var vertexPayload = MLTByteWriter()
+        var previousCode: UInt32 = 0
+        for code in sortedCodes {
+            vertexPayload.writeVarint32(code &- previousCode)
+            previousCode = code
+        }
+        let data = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: .data,
+                logicalStreamType: .dictionary(.morton),
+                logicalTechnique1: .morton,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: sortedCodes.count,
+                byteLength: vertexPayload.count,
+                mortonNumBits: settings.bits,
+                mortonCoordinateShift: Int(settings.coordinateShift)),
+            payload: vertexPayload.bytes)
+
+        var offsetWriter = MLTByteWriter()
+        for offset in sortedOffsets {
+            offsetWriter.writeVarint32(offset)
+        }
+        let offset = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: .offset,
+                logicalStreamType: .offset(.vertex),
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: sortedOffsets.count,
+                byteLength: offsetWriter.count),
+            payload: offsetWriter.bytes)
+
+        return VertexDictionary(offset: offset, data: data)
+    }
+
+    private static func makeHilbertVertexDictionary(
         _ vertices: [MLTTileCoordinate]
     ) -> VertexDictionary? {
         guard vertices.count > 1 else { return nil }
