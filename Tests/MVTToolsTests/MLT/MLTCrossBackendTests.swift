@@ -164,12 +164,28 @@ struct MLTCrossBackendTests {
                 ] as [String: Sendable])
         }
 
+        let sharedVertexPolygon = Polygon([[
+            Coordinate3D(x: 1000.0, y: 1000.0, projection: .noSRID),
+            Coordinate3D(x: 1100.0, y: 1000.0, projection: .noSRID),
+            Coordinate3D(x: 1100.0, y: 1100.0, projection: .noSRID),
+            Coordinate3D(x: 1000.0, y: 1100.0, projection: .noSRID),
+            Coordinate3D(x: 1000.0, y: 1000.0, projection: .noSRID),
+        ]])!
+        let sharedVertexFeatures = (0 ..< 50).map { index in
+            Feature(
+                sharedVertexPolygon,
+                properties: ["rank": Int32(index)] as [String: Sendable])
+        }
+
         return [
             "mixed": VectorTile.LayerContainer(
                 features: [point, line, polygon, multiPolygon, noID],
                 boundingBox: nil),
             "dictionary": VectorTile.LayerContainer(
                 features: dictionaryFeatures,
+                boundingBox: nil),
+            "shared_vertices": VectorTile.LayerContainer(
+                features: sharedVertexFeatures,
                 boundingBox: nil),
         ]
     }

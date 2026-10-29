@@ -23,6 +23,8 @@ and this project adheres to semantic versioning.
   (`71f20ee8`) for the optional C++ backend and conformance fixtures.
 - Added an `mlt-benchmark` executable for MLT decode/encode timing and size
   measurements, plus an AddressSanitizer CI job for the pure Swift codec.
+- The pure Swift MLT encoder now uses a Hilbert-sorted vertex dictionary when
+  repeated vertices make it smaller than the plain componentwise-delta buffer.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
   removed in the next major release.
 - The pure Swift MLT encoder now chooses single dictionary encoding for string
