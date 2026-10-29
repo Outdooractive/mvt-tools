@@ -84,7 +84,7 @@ try tile.writeMLT(to: outputURL, options: options)
 
 The pure Swift encoder writes a conservative, deterministic subset:
 
-- plain, delta, RLE or delta-RLE varints for integer and length streams, choosing the smallest,
+- plain, delta, RLE, delta-RLE or bit-packed FastPFOR for integer and length streams, choosing the smallest,
 - componentwise-delta varints for vertices, with an optional Hilbert-sorted or Morton vertex dictionary when smaller,
 - plain, single-dictionary or shared-dictionary strings, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
@@ -96,8 +96,8 @@ sees exterior rings and holes correctly, and stores rings without the
 redundant closing vertex. Its output is validated against both the pure Swift
 and C++ decoders.
 
-FSST and FastPFOR remain decoder-only for now. Hilbert and Morton vertex
-dictionaries are used when they reduce the encoded size. They can be added as encoder optimizations later without
+FSST remains decoder-only for now. Hilbert and Morton vertex dictionaries are
+used when they reduce the encoded size. They can be added as encoder optimizations later without
 changing the public API.
 
 ## Backend differences

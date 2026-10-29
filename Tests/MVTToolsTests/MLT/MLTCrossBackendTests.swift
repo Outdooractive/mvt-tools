@@ -177,6 +177,22 @@ struct MLTCrossBackendTests {
                 properties: ["rank": Int32(index)] as [String: Sendable])
         }
 
+        let fastPFORFeatures = (0 ..< 512).map { index -> Feature in
+            let x = Double((index % 32) * 20)
+            let y = Double((index / 32) * 20)
+            let square = Polygon([[
+                Coordinate3D(x: x, y: y, projection: .noSRID),
+                Coordinate3D(x: x + 10, y: y, projection: .noSRID),
+                Coordinate3D(x: x + 10, y: y + 10, projection: .noSRID),
+                Coordinate3D(x: x, y: y + 10, projection: .noSRID),
+                Coordinate3D(x: x, y: y, projection: .noSRID),
+            ]])!
+            let value = UInt32(1_000_000_000) &+ UInt32(truncatingIfNeeded: index &* 2_654_435_761)
+            return Feature(
+                square,
+                properties: ["value": value] as [String: Sendable])
+        }
+
         return [
             "mixed": VectorTile.LayerContainer(
                 features: [point, line, polygon, multiPolygon, noID],
@@ -186,6 +202,9 @@ struct MLTCrossBackendTests {
                 boundingBox: nil),
             "shared_vertices": VectorTile.LayerContainer(
                 features: sharedVertexFeatures,
+                boundingBox: nil),
+            "fastpfor": VectorTile.LayerContainer(
+                features: fastPFORFeatures,
                 boundingBox: nil),
         ]
     }
