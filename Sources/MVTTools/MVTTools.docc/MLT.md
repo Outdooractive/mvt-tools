@@ -109,8 +109,9 @@ encodings, trading size for predictability and interoperability.
 
 ## Known limitations
 
-- Only the tag `0x01` tile format is decoded; tag `0x02` and external tileset
-  metadata are not supported yet.
+- Only the tag `0x01` tile format is decoded. MLT v2 (`0x02`) is still
+  experimental and is rejected with an unsupported-feature error; v2 support is
+  a separate follow-up. External tileset metadata is not supported.
 - String feature IDs and altitude are not preserved.
 - Experimental MLT types (nested structs beyond shared string dictionaries,
   vertex-scoped properties, RangeMap, tessellation, `GEOMETRY_Z`, 128-bit
