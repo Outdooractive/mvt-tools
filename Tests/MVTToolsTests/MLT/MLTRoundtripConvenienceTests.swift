@@ -113,6 +113,7 @@ struct MLTRoundtripConvenienceTests {
 
     // MARK: - Cross-format roundtrip (MVT ↔ MLT)
 
+    #if EnableMVT
     @Test
     func mvtToMltRoundtrip() throws {
         let mvtData = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -144,7 +145,9 @@ struct MLTRoundtripConvenienceTests {
         #expect(mvt2Tile.origin == .mvt)
         #expect(mvt2Tile.layers.isEmpty == false)
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func mltToMvtRoundtrip() throws {
         let point = Feature(Point(Coordinate3D(latitude: 48.8566, longitude: 2.3522)), id: .int(1))
@@ -181,6 +184,7 @@ struct MLTRoundtripConvenienceTests {
                     "Layer '\(name)' feature count mismatch")
         }
     }
+    #endif
 
 }
 

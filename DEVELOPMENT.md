@@ -24,15 +24,23 @@ a C++ toolchain.
 ## Build and test
 
 ```bash
-swift build                       # MVT, GeoJSON, and the CLI
+swift build                       # GeoJSON and the CLI
+swift build --traits EnableMVT    # MVT import/export
 swift build --traits EnableMLT    # pure Swift MLT (no C++ interop)
 swift build --traits EnableMLTCXX # optional C++ MLT backend
 swift build --enable-all-traits   # every format coder
-swift test                        # default trait set
+swift test                        # default trait set (GeoJSON only)
 swift test --traits EnableMLT     # pure Swift MLT
 swift test --traits EnableMLTCXX  # C++ MLT backend + cross-backend tests
 MLT_FULL_CORPUS=1 swift test --traits EnableMLT --filter MLTCorpusTests
 swift test --enable-all-traits    # all format coders
+```
+
+Building with a subset of traits makes SwiftPM prune the trait-only packages
+from `Package.resolved`. Run `git checkout -- Package.resolved` afterwards, or
+build with `--enable-all-traits`, unless you intend to change dependencies.
+
+```bash
 ```
 
 ## Coverage
@@ -41,7 +49,7 @@ Coverage is measured with LLVM's `llvm-cov` and excludes test sources,
 generated protobuf code, and the C++ MLT bridge:
 
 ```bash
-swift test --traits EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
+swift test --traits EnableMVT,EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
 python3 scripts/coverage.py --minimum 90
 ```
 

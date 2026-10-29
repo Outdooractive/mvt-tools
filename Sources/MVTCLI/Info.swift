@@ -59,12 +59,14 @@ extension CLI {
 
             // Fast path: tileInfo works directly on MVT data
             var layers: [VectorTile.LayerInfo]?
+            #if EnableMVT
             if case .mvt = format,
                let info = try VectorTile.tileInfo(at: url)
             {
                 layers = info
             }
-            else {
+            #endif
+            if layers == nil {
                 let tile = try await format.loadTile(
                     from: url,
                     csvReadOptions: csvOptions.options,

@@ -2,7 +2,7 @@ import Foundation
 import MVTTools
 import Testing
 
-#if EnableMLT && !EnableMLTCXX
+#if EnableMVT && EnableMLT && !EnableMLTCXX
 struct MLTEncoderOptionsCommandTests {
 
     private func exportMLT(

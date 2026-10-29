@@ -1,3 +1,4 @@
+#if EnableMVT
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
@@ -635,3 +636,4 @@ struct MVTRobustnessTests {
     }
 
 }
+#endif

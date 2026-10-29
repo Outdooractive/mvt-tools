@@ -7,13 +7,16 @@ struct MergeCommandTests {
 
     // MARK: Output to stdout
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeMvtFiles() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["merge", mvtPath, mvtPath])
         #expect(output.contains("\"type\":\"FeatureCollection\""))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeMvtAndGeoJson() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -21,9 +24,11 @@ struct MergeCommandTests {
         let output = try runCLI(args: ["merge", mvtPath, geojsonPath])
         #expect(output.contains("\"type\":\"FeatureCollection\""))
     }
+    #endif
 
     // MARK: Output formats
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeToMvt() throws {
         let input = try generateSmallGeoJson()
@@ -32,6 +37,7 @@ struct MergeCommandTests {
         _ = try runCLI(args: ["merge", "--output", outUrl.path, "--force-overwrite", "-x", "0", "-y", "0", "-z", "0", input.path])
         try assertMvtFile(at: outUrl)
     }
+    #endif
 
     #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
@@ -104,19 +110,23 @@ struct MergeCommandTests {
 
     // MARK: Parameters
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeWithLayerFilter() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["merge", "--layer", "road", mvtPath, mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeWithDropLayer() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["merge", "--drop-layer", "water", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func mergeWithPrettyPrint() throws {

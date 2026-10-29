@@ -126,6 +126,7 @@ struct ProjectionHandlingTests {
     /// anchor point inside tile 1/1/1 (latitude -40, longitude 90) must
     /// decode to (approximately) the same coordinate in the tile's
     /// projection.
+    #if EnableMVT
     @Test(arguments: [Projection.epsg4326, .epsg3857, .epsg4978])
     func mvtRoundTripBuiltIns(projection: Projection) throws {
         let anchor = Coordinate3D(latitude: -40.0, longitude: 90.0).projected(to: projection)
@@ -151,8 +152,10 @@ struct ProjectionHandlingTests {
         #expect(abs(decodedPoint.coordinate.latitude - anchor.latitude) < tolerance)
         #expect(abs(decodedPoint.coordinate.longitude - anchor.longitude) < tolerance)
     }
+    #endif
 
     /// MVT round trip in a custom registered projection.
+    #if EnableMVT
     @Test
     func mvtRoundTripCustomProjection() throws {
         let srid = Self.nextSrid()
@@ -177,12 +180,14 @@ struct ProjectionHandlingTests {
         #expect(abs(decodedPoint.coordinate.latitude - center.latitude) < 21.0)
         #expect(abs(decodedPoint.coordinate.longitude - center.longitude) < 44.0)
     }
+    #endif
 
     /// Tests that decoding MVT data written with EPSG:4326 into a custom
     /// projection expresses the same geographic location in the custom
     /// projection's coordinate space (tile-local integers are
     /// projection-independent; the decoded coordinates carry the requested
     /// projection's units).
+    #if EnableMVT
     @Test
     func mvtDataFromOtherProjectionDecodesIntoProjectionUnits() throws {
         let srid = Self.nextSrid()
@@ -205,6 +210,7 @@ struct ProjectionHandlingTests {
         #expect(abs(point.coordinate.latitude - -30_000.0) < 21.0)
         #expect(abs(point.coordinate.longitude - 90_000.0) < 44.0)
     }
+    #endif
 
     // MARK: - Encoder clipping
 
@@ -212,6 +218,7 @@ struct ProjectionHandlingTests {
     /// projection for the built-ins: features inside the tile survive, a
     /// feature in another tile (no wraparound between the quadrants) is
     /// clipped away.
+    #if EnableMVT
     @Test(arguments: [Projection.epsg4326, .epsg3857, .epsg4978])
     func encoderClipBoxBuiltIns(projection: Projection) throws {
         var tile = try VectorTile(x: 1, y: 1, z: 1, projection: projection)
@@ -234,9 +241,11 @@ struct ProjectionHandlingTests {
         let ids = decoded.features(for: "layer").compactMap(\.id)
         #expect(ids == [.int(1)])
     }
+    #endif
 
     /// Tests that the encoder clip box works for a custom registered
     /// projection (clipping against the custom projection's tile bounds).
+    #if EnableMVT
     @Test
     func encoderClipBoxCustomProjection() throws {
         let srid = Self.nextSrid()
@@ -261,6 +270,7 @@ struct ProjectionHandlingTests {
         let ids = decoded.features(for: "layer").compactMap(\.id)
         #expect(ids == [.int(1)])
     }
+    #endif
 
     // MARK: - Export options clipping
 

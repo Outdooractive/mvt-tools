@@ -4,12 +4,12 @@ Which formats are built in, and how package traits gate them.
 
 ## Availability
 
-Core MVT, GeoJSON, and MLT support is part of the `MVTTools` target. The
-remaining format coders are optional package traits:
+GeoJSON is always available. MVT and the remaining format coders are package
+traits:
 
 | Format | Trait | Import | Export |
 | --- | --- | --- | --- |
-| MVT | built in | `VectorTile(mvtData:...)` | `mvtData(options:)`, `writeMVT(to:options:)` |
+| MVT | `EnableMVT` | `VectorTile(mvtData:...)` | `mvtData(options:)`, `writeMVT(to:options:)` |
 | MLT | `EnableMLT` (pure Swift) | `VectorTile(mltData:...)` | `mltData(options:)`, `writeMLT(to:options:)` |
 | MLT (C++) | `EnableMLTCXX` | `VectorTile(mltData:...)` | `mltData(options:)`, `writeMLT(to:options:)` |
 | GeoJSON | built in | `VectorTile(geoJsonData:...)` | `toGeoJson(...)`, `writeGeoJson(to:...)` |
@@ -26,6 +26,7 @@ Enable traits from the command line:
 
 ```bash
 swift test --enable-all-traits
+swift test --traits EnableMVT   # Mapbox Vector Tiles
 swift test --traits EnableMLT   # pure Swift MLT, no C++ interop
 swift test --traits EnableMLTCXX # C++ MLT backend
 ```

@@ -128,7 +128,7 @@ jobs:
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
       - name: Run tests with coverage
-        run: swift test --traits EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
+        run: swift test --traits EnableMVT,EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
       - name: Ensure Python
         run: command -v python3 >/dev/null || (apt-get update && apt-get install -y python3)
       - name: Report library coverage

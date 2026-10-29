@@ -31,6 +31,7 @@ extension VectorTile {
         public let version: Int?
     }
 
+#if EnableMVT
     /// Decode a raw MVT `Data` value and return the names of every layer it contains.
     ///
     /// - Parameter data: The raw MVT (Mapbox Vector Tile) data to decode.
@@ -57,6 +58,8 @@ extension VectorTile {
         }
         return layerNames(from: data)
     }
+
+#endif
 
     /// Gather summary information about the features in each layer of this tile.
     ///
@@ -107,6 +110,7 @@ extension VectorTile {
         return result.sorted(by: { $0.name < $1.name })
     }
 
+#if EnableMVT
     /// Decode a raw MVT `Data` value and gather summary information about each of its layers.
     ///
     /// Unlike the instance version of this method, the static variant works directly on raw data
@@ -184,5 +188,7 @@ extension VectorTile {
         }
         return tileInfo(from: data)
     }
+
+#endif
 
 }

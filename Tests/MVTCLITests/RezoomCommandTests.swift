@@ -1,3 +1,4 @@
+#if EnableMVT
 import Foundation
 import GISTools
 import MVTTools
@@ -150,3 +151,4 @@ struct RezoomCommandTests {
     }
 
 }
+#endif

@@ -66,6 +66,7 @@ Dependencies:
 ```bash
 swift build           # build library + CLI
 swift test            # run all tests (Swift Testing)
+swift test --enable-all-traits  # every format coder, including the optional C++ MLT backend
 ```
 
 ## Swift instructions

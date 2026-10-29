@@ -260,6 +260,7 @@ func generateSmallMlt(coord: Int = 0) throws -> URL {
 }
 #endif
 
+#if EnableMVT
 func generateSmallMvt(coord: Int = 0) throws -> URL {
     let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_\(UUID().uuidString).mvt")
     var tile = try VectorTile(x: coord, y: coord, z: 0, projection: .epsg4326)
@@ -270,6 +271,7 @@ func generateSmallMvt(coord: Int = 0) throws -> URL {
     try data.write(to: url)
     return url
 }
+#endif
 
 @discardableResult
 func assertGeoJsonFile(at url: URL) throws -> FeatureCollection {
@@ -278,7 +280,11 @@ func assertGeoJsonFile(at url: URL) throws -> FeatureCollection {
     return try #require(FeatureCollection(jsonData: data))
 }
 
-func assertMvtFile(at url: URL) throws {
+func assertNonEmptyFile(at url: URL) throws {
     let data = try Data(contentsOf: url)
     #expect(!data.isEmpty)
+}
+
+func assertMvtFile(at url: URL) throws {
+    try assertNonEmptyFile(at: url)
 }

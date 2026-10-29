@@ -11,6 +11,7 @@ struct VectorTileTests {
 
     /// Tests loading a real MVT tile from disk, verifying layer names match expected values,
     /// then exporting to GeoJSON and performing a spatial query.
+    #if EnableMVT
     @Test
     func loadMvt() throws {
         let tileLayerNames: [String] = ["landuse", "waterway", "water", "aeroway", "barrier_line", "building", "landuse_overlay", "tunnel", "road", "bridge", "admin", "country_label_line", "country_label", "marine_label", "state_label", "place_label", "water_label", "area_label", "rail_station_label", "airport_label", "road_label", "waterway_label", "building_label"].sorted()
@@ -30,9 +31,11 @@ struct VectorTileTests {
         let resultLayerNames: [String] = Set(result.map({ $0.layerName })).sorted()
         #expect(resultLayerNames == ["barrier_line", "building", "building_label", "landuse", "road", "road_label"])
     }
+    #endif
 
     /// Tests creating a tile with a point feature, setting properties (including arrays and dictionaries),
     /// encoding to MVT data, and verifying it produces valid output.
+    #if EnableMVT
     @Test
     func writeMvt() throws {
         var tile = try VectorTile(x: 8716, y: 8015, z: 14)
@@ -51,9 +54,11 @@ struct VectorTileTests {
         tile.setFeatures([feature], for: "test")
         let _ = try #require(tile.mvtData())
     }
+    #endif
 
     /// Tests that `tileInfo(from:)` returns layer metadata for a real MVT tile,
     /// with the expected number of layers.
+    #if EnableMVT
     @Test
     func tileInfo() throws {
         let tileName = "14_8716_8015.vector.mvt"
@@ -63,6 +68,7 @@ struct VectorTileTests {
         let layers = try #require(VectorTile.tileInfo(from: mvt))
         #expect(layers.count == 23)
     }
+    #endif
 
     /// Tests merging two tiles with the same coordinate, verifying features
     /// from both source tiles appear in the result.
@@ -96,6 +102,7 @@ struct VectorTileTests {
 
     /// Tests that a feature with a large integer ID (64-bit) survives
     /// encode-decode round trip without precision loss.
+    #if EnableMVT
     @Test
     func encodeDecodeBigInt() throws {
         let feature = try #require(Feature(jsonData: TestData.dataFromFile(name: "bigint_id.geojson")))
@@ -111,8 +118,10 @@ struct VectorTileTests {
 
         #expect(feature.id == feature2.id)
     }
+    #endif
 
     /// Tests that `extract(layerNames:)` creates a new tile containing only the specified layers.
+    #if EnableMVT
     @Test
     func extractLayers() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -124,6 +133,7 @@ struct VectorTileTests {
         #expect(extracted.hasLayer("building"))
         #expect(extracted.hasLayer("water") == false)
     }
+    #endif
 
     /// Tests that `clear()` removes all layers and features from a tile.
     @Test
@@ -230,6 +240,7 @@ struct VectorTileTests {
     }
 
     /// Tests writing tile data to a file and reading it back.
+    #if EnableMVT
     @Test
     func writeMvtToFile() throws {
         let tempUrl = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -246,20 +257,25 @@ struct VectorTileTests {
         let readTile = try VectorTile(contentsOfMVT: tempUrl, x: 0, y: 0, z: 0)
         #expect(readTile.features(for: "test").count == 1)
     }
+    #endif
 
     /// Tests that `layerNames(from:)` returns nil for invalid data.
+    #if EnableMVT
     @Test
     func layerNamesFromInvalidData() {
         let invalidData = Data([0x00, 0x01, 0x02])
         #expect(VectorTile.layerNames(from: invalidData) == nil)
     }
+    #endif
 
     /// Tests that `layerNames(from:)` returns an empty array for empty protobuf data.
+    #if EnableMVT
     @Test
     func layerNamesFromEmptyData() throws {
         let names = VectorTile.layerNames(from: Data())
         #expect(names?.isEmpty == true)
     }
+    #endif
 
     /// Tests that the tile is created with the correct projection
     /// and coordinates from the MapTile convenience initializer.
