@@ -941,9 +941,34 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        return [plain, delta, rle, deltaRle].min {
+        var candidates = [plain, delta, rle, deltaRle]
+        if let fastPFOR = fastPFORStream(values: values, physical: physical, logical: logical) {
+            candidates.append(fastPFOR)
+        }
+
+        return candidates.min {
             $0.encodedSize < $1.encodedSize
         } ?? plain
+    }
+
+    private static func fastPFORStream(
+        values: [UInt32],
+        physical: MLTPhysicalStreamType,
+        logical: MLTLogicalStreamType
+    ) -> MLTEncodedStream? {
+        guard let payload = MLTFastPFOREncoder.encode(values) else {
+            return nil
+        }
+        return MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: physical,
+                logicalStreamType: logical,
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .fastPFOR,
+                numValues: values.count,
+                byteLength: payload.count),
+            payload: payload)
     }
 
     fileprivate static func encodedUInt64Stream(
@@ -1120,7 +1145,16 @@ package enum MLTEncoderCore {
                 numRleValues: values.count),
             payload: deltaRleWriter.bytes)
 
-        return [plain, delta, rle, deltaRle].min {
+        var candidates = [plain, delta, rle, deltaRle]
+        if let fastPFOR = fastPFORStream(
+            values: values.map { MLTZigZag.encode($0) },
+            physical: physical,
+            logical: logical)
+        {
+            candidates.append(fastPFOR)
+        }
+
+        return candidates.min {
             $0.encodedSize < $1.encodedSize
         } ?? plain
     }

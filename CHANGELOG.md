@@ -26,6 +26,8 @@ and this project adheres to semantic versioning.
 - The pure Swift MLT encoder now uses a Hilbert-sorted or Morton vertex
   dictionary when repeated vertices make it smaller than the plain
   componentwise-delta buffer.
+- Large 32-bit integer streams can use a bit-packed FastPFOR encoding when it
+  is smaller than the plain, delta, RLE or delta-RLE layouts.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
   removed in the next major release.
 - The pure Swift MLT encoder now chooses single dictionary encoding for string
