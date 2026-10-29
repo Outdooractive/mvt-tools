@@ -23,8 +23,10 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
 - [Installation with Swift Package Manager](#installation-with-swift-package-manager)
 - [Usage](#usage)
   - [Read MVT](#read-mvt)
+  - [Read MLT](#read-mlt)
   - [Read GeoJSON](#read-geojson)
   - [Write MVT](#write-mvt)
+  - [Write MLT](#write-mlt)
   - [Read GPX](#read-gpx)
   - [Write GPX](#write-gpx)
   - [Read CSV](#read-csv)
@@ -75,6 +77,7 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
 - **Shapefile import/export** — convert between MVT and ESRI Shapefile format; supports single-file and per-layer directory export with mixed-geometry detection.
 - **GeoPackage import/export** — convert between MVT and OGC GeoPackage format; supports single-table and per-layer export, preserving layer information in the `"gpkg_layer"` property.
 - **Export options** — gzip compression, buffering (pixels or extents), geometry simplification (meters or extents).
+- **Configurable MLT encoder** — string and shared dictionaries, FSST, FastPFOR, Hilbert/Morton vertex dictionaries and delta/RLE integer streams can be toggled per export (`ExportOptions.mlt`). The defaults favour encode speed over the last few percent of size, and `MLTEncodingOptions.plain` disables all optional encodings.
 - **Projections** — EPSG:4326 (WGS84), EPSG:3857 (Web Mercator), EPSG:4978 (ECEF), `noSRID` (raw tile coordinates).
 - **Spatial queries** — R-Tree indexed or linear scan; bounding-box search, center+radius proximity (`near`), bounding-box containment (`within`), bounding-box intersection (`intersects`).
 - **Property queries** — powerful RPN-based query DSL with comparisons, string operators, regex, set membership, boolean logic, and existence checks.
@@ -152,6 +155,19 @@ let results = tile.query(
     tolerance: 100.0)
 ```
 
+### Read MLT
+
+MLT support is behind the `EnableMLT` package trait. The decoder is pure Swift
+and reads the tag `0x01` format, including gzipped input, dictionaries, FSST,
+FastPFOR and Hilbert/Morton vertex streams:
+
+```swift
+let mltData = try Data(contentsOf: URL(fileURLWithPath: "14_8716_8015.mlt"))
+let tile = try VectorTile(mltData: mltData, x: 8716, y: 8015, z: 14, indexed: .hilbert)
+
+print(tile.layerNames.sorted())
+```
+
 ### Read GeoJSON
 
 ```swift
@@ -186,6 +202,32 @@ try mvtData?.write(to: URL(fileURLWithPath: "output.mvt"))
 // Or write directly
 tile.writeMVT(to: URL(fileURLWithPath: "output.mvt"), options: options)
 ```
+
+### Write MLT
+
+```swift
+var tile = try VectorTile(x: 8716, y: 8015, z: 14)
+let feature = Feature(
+    Point(Coordinate3D(latitude: 3.870163, longitude: 11.518585)),
+    properties: ["name": "Test"])
+tile.setFeatures([feature], for: "my_layer")
+
+// Defaults: string/shared dictionaries, FSST and delta/RLE are enabled;
+// FastPFOR and vertex dictionaries are opt-in.
+var options = VectorTile.ExportOptions(compression: .default)
+options.mlt.useVertexDictionaries = true
+options.mlt.useFastPFOR = true
+
+let mltData = tile.mltData(options: options)
+try mltData?.write(to: URL(fileURLWithPath: "output.mlt"))
+
+// Or write directly
+tile.writeMLT(to: URL(fileURLWithPath: "output.mlt"), options: options)
+```
+
+See the [MLT guide](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools/mlt)
+for the supported streams, encoder feature switches and experimental-feature
+policy. The optional `EnableMLTCXX` trait provides the deprecated C++ backend.
 
 ### Read GPX
 
