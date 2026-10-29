@@ -60,6 +60,9 @@ extension CLI {
             help: "Simplify output features using meters.")
         var simplifyMeters: Int?
 
+        @OptionGroup
+        var mltEncoderOptions: CLI.MLTEncoderOptions
+
         @Flag(
             name: .shortAndLong,
             help: "Overwrite an existing output file.")
@@ -208,6 +211,8 @@ extension CLI {
             else if let simplifyExtents, simplifyExtents > 0 {
                 exportOptions.simplifyFeatures = .extent(simplifyExtents)
             }
+
+            mltEncoderOptions.apply(to: &exportOptions)
 
             try await CLI.writeTile(
                 tile,

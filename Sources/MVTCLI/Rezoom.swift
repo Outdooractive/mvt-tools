@@ -87,6 +87,9 @@ extension CLI {
             help: "Simplify output features using meters. Overrides 'simplify-extents'.")
         var simplifyMeters: Int?
 
+        @OptionGroup
+        var mltEncoderOptions: CLI.MLTEncoderOptions
+
         @Flag(
             name: .shortAndLong,
             help: "Force overwrite an existing 'output' file.")
@@ -306,12 +309,17 @@ extension CLI {
                 exportOptions.simplifyFeatures = .extent(simplifyExtents)
             }
 
+            mltEncoderOptions.apply(to: &exportOptions)
+
             if options.verbose {
                 print("Output options:")
                 print("  - File format: \(resolvedOutputFormat)")
                 print("  - Buffer size: \(exportOptions.bufferSize)")
                 print("  - Compression: \(exportOptions.compression)")
                 print("  - Simplification: \(exportOptions.simplifyFeatures)")
+                if case .mlt = resolvedOutputFormat {
+                    print("  - MLT encoder: \(mltEncoderOptions.summary(for: exportOptions.mlt))")
+                }
             }
 
             // 7. Write output

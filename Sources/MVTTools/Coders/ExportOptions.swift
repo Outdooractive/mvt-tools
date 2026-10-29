@@ -32,6 +32,69 @@ extension VectorTile {
             case level(Int)
         }
 
+        /// MLT encoder feature switches.
+        ///
+        /// Disable individual optimizations when they cause interoperability,
+        /// size or performance problems. Disabling an option can increase the
+        /// encoded tile size but never changes the decoded content.
+        ///
+        /// The defaults mirror the C++ encoder's `EncoderConfig`: dictionaries,
+        /// shared dictionaries, FSST and vertex dictionaries are enabled,
+        /// FastPFOR is disabled. They only affect the pure Swift encoder; the
+        /// optional C++ backend uses its own configuration.
+        public struct MLTEncodingOptions: Sendable, Equatable {
+
+            /// Use single and shared string dictionaries.
+            public var useStringDictionaries: Bool
+
+            /// Group related string columns into a shared dictionary.
+            public var useSharedStringDictionaries: Bool
+
+            /// Compress string dictionaries with FSST.
+            ///
+            /// Only applies when ``useStringDictionaries`` is enabled.
+            public var useFSST: Bool
+
+            /// Use FastPFOR for large 32-bit integer streams (default: disabled).
+            ///
+            /// Disabled by default because bit-packing rarely beats the plain,
+            /// delta or RLE layouts for typical tile data.
+            public var useFastPFOR: Bool
+
+            /// Use Hilbert/Morton vertex dictionaries for repeated vertices.
+            public var useVertexDictionaries: Bool
+
+            /// Use delta/RLE/delta-RLE integer stream encodings.
+            public var useIntegerDeltaRLE: Bool
+
+            /// Creates MLT encoder options with the default optimization set.
+            public init(
+                useStringDictionaries: Bool = true,
+                useSharedStringDictionaries: Bool = true,
+                useFSST: Bool = true,
+                useFastPFOR: Bool = false,
+                useVertexDictionaries: Bool = true,
+                useIntegerDeltaRLE: Bool = true
+            ) {
+                self.useStringDictionaries = useStringDictionaries
+                self.useSharedStringDictionaries = useSharedStringDictionaries
+                self.useFSST = useFSST
+                self.useFastPFOR = useFastPFOR
+                self.useVertexDictionaries = useVertexDictionaries
+                self.useIntegerDeltaRLE = useIntegerDeltaRLE
+            }
+
+            /// Plain, deterministic encoding without optional optimizations.
+            public static let plain = MLTEncodingOptions(
+                useStringDictionaries: false,
+                useSharedStringDictionaries: false,
+                useFSST: false,
+                useFastPFOR: false,
+                useVertexDictionaries: false,
+                useIntegerDeltaRLE: false)
+
+        }
+
         /// Options for Feature simplification.
         public enum SimplifyFeaturesOptions {
             /// Don't simplify featutes.
@@ -59,20 +122,26 @@ extension VectorTile {
         /// Simplify features before encoding them (default: **no**).
         public var simplifyFeatures: SimplifyFeaturesOptions = .no
 
+        /// MLT-specific encoder feature switches.
+        public var mlt: MLTEncodingOptions = .init()
+
         /// Creates export options with the given buffer, compression, and simplification settings.
         ///
         /// - Parameters:
         ///   - bufferSize: The buffer size around the tile (default: `.no`).
         ///   - compression: The compression setting (default: `.no`).
         ///   - simplifyFeatures: The simplification setting (default: `.no`).
+        ///   - mlt: MLT encoder feature switches.
         public init(
             bufferSize: BufferSizeOptions = .no,
             compression: CompressionOptions = .no,
-            simplifyFeatures: SimplifyFeaturesOptions = .no
+            simplifyFeatures: SimplifyFeaturesOptions = .no,
+            mlt: MLTEncodingOptions = .init()
         ) {
             self.bufferSize = bufferSize
             self.compression = compression
             self.simplifyFeatures = simplifyFeatures
+            self.mlt = mlt
         }
 
     }

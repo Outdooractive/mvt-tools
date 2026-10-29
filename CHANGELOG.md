@@ -35,6 +35,26 @@ and this project adheres to semantic versioning.
   can use one-bit exception streams for outliers.
 - String dictionaries can use FSST compression when it reduces the encoded
   size, including shared dictionaries across related string columns.
+- Added `ExportOptions.mlt` feature switches for string dictionaries, shared
+  dictionaries, FSST, FastPFOR, vertex dictionaries and delta/RLE integer
+  streams, plus a conservative `.plain` preset. The defaults mirror the C++
+  `EncoderConfig` (FastPFOR is disabled by default).
+- Added `--mlt-plain`, `--mlt-no-dictionaries`, `--mlt-no-shared-dictionaries`,
+  `--mlt-no-fsst`, `--mlt-fastpfor`, `--mlt-no-vertex-dictionaries` and
+  `--mlt-no-integer-delta-rle` to `merge`, `export`, `import`, `rezoom` and
+  `reproject`. `--verbose` prints the effective MLT encoder features.
+
+### Changed
+
+- The pure Swift MLT encoder builds the vertex index map once per geometry
+  column and precomputes Hilbert codes for sorting, instead of hashing the
+  vertices for each dictionary candidate and recomputing codes in the
+  comparator. Default-mode encoding of the benchmark MVT tile is roughly 30%
+  faster with unchanged output.
+- FSST symbol training now uses allocation-free fixed-size substring keys
+  instead of one byte array per candidate. Encoding the benchmark MLT fixture
+  is about 35% faster with byte-identical output; FSST training remains the
+  dominant encoder cost on small tiles, which is why `useFSST` can be disabled.
 - MLT v2 (`0x02`) tiles are explicitly rejected with an unsupported-feature
   error instead of being silently treated as empty tiles.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
@@ -47,9 +67,6 @@ and this project adheres to semantic versioning.
   streams now choose between plain, delta, RLE and delta-RLE encodings based on
   the smallest encoded size. This includes `INT_32`, `INT_64`, `UINT_32` and
   `UINT_64` property columns.
-
-### Changed
-
 - Moved development setup, build, test, coverage and DocC instructions from
   `README.md` to `DEVELOPMENT.md`.
 - Documented that `VectorTile` is a value type without internal locking, with

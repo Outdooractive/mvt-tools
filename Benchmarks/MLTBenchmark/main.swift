@@ -5,6 +5,12 @@ import MVTTools
 @main
 struct MLTBenchmark {
 
+    private static let usageMessage = """
+        usage: mlt-benchmark <tile.mvt|tile.pbf|tile.mlt> <x> <y> <z> [iterations] \
+        [--plain|--no-fsst|--fastpfor|--no-dictionaries|--no-vertex-dictionaries|\
+        --no-shared-dictionaries|--no-integer-delta-rle]
+        """
+
     private enum BenchmarkError: Error, CustomStringConvertible {
         case usage
         case invalidCoordinate(String)
@@ -14,7 +20,7 @@ struct MLTBenchmark {
         var description: String {
             switch self {
             case .usage:
-                return "usage: mlt-benchmark <tile.mvt|tile.pbf|tile.mlt> <x> <y> <z> [iterations]"
+                return MLTBenchmark.usageMessage
             case let .invalidCoordinate(value):
                 return "invalid tile coordinate: \(value)"
             case let .invalidIterations(value):
@@ -41,12 +47,41 @@ struct MLTBenchmark {
         guard let z = Int(arguments[4]) else {
             throw BenchmarkError.invalidCoordinate(arguments[4])
         }
-        let iterations = arguments.count > 5
-            ? (Int(arguments[5]) ?? 10)
-            : 10
+        var argumentIndex = 5
+        var iterations = 10
+        if argumentIndex < arguments.count, let value = Int(arguments[argumentIndex]) {
+            iterations = value
+            argumentIndex += 1
+        }
         guard iterations > 0 else {
             throw BenchmarkError.invalidIterations(String(iterations))
         }
+
+        var mltOptions = VectorTile.ExportOptions.MLTEncodingOptions()
+        for argument in arguments.dropFirst(argumentIndex) {
+            switch argument {
+            case "--plain":
+                mltOptions = .plain
+            case "--no-fsst":
+                mltOptions.useFSST = false
+            case "--fastpfor":
+                mltOptions.useFastPFOR = true
+            case "--no-fastpfor":
+                mltOptions.useFastPFOR = false
+            case "--no-dictionaries":
+                mltOptions.useStringDictionaries = false
+                mltOptions.useSharedStringDictionaries = false
+            case "--no-shared-dictionaries":
+                mltOptions.useSharedStringDictionaries = false
+            case "--no-vertex-dictionaries":
+                mltOptions.useVertexDictionaries = false
+            case "--no-integer-delta-rle":
+                mltOptions.useIntegerDeltaRLE = false
+            default:
+                throw BenchmarkError.usage
+            }
+        }
+        let exportOptions = VectorTile.ExportOptions(mlt: mltOptions)
 
         let data = try Data(contentsOf: url)
         let extensionName = url.pathExtension.lowercased()
@@ -71,7 +106,7 @@ struct MLTBenchmark {
         var encoded: Data?
         for _ in 0 ..< iterations {
             let start = Date()
-            encoded = tile.mltData()
+            encoded = tile.mltData(options: exportOptions)
             encodeSeconds += Date().timeIntervalSince(start)
         }
 

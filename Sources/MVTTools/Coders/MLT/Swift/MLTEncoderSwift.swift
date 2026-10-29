@@ -132,7 +132,15 @@ enum MLTEncoderSwift {
                 features: features))
         }
 
-        return try MLTEncoderCore.encode(layers: encodableLayers)
+        return try MLTEncoderCore.encode(
+            layers: encodableLayers,
+            options: MLTEncoderOptions(
+                useStringDictionaries: options.mlt.useStringDictionaries,
+                useSharedStringDictionaries: options.mlt.useSharedStringDictionaries,
+                useFSST: options.mlt.useFSST,
+                useFastPFOR: options.mlt.useFastPFOR,
+                useVertexDictionaries: options.mlt.useVertexDictionaries,
+                useIntegerDeltaRLE: options.mlt.useIntegerDeltaRLE))
     }
 
 }
