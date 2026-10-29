@@ -27,7 +27,8 @@ and this project adheres to semantic versioning.
   dictionary when repeated vertices make it smaller than the plain
   componentwise-delta buffer.
 - Large 32-bit integer streams can use a bit-packed FastPFOR encoding when it
-  is smaller than the plain, delta, RLE or delta-RLE layouts.
+  is smaller than the plain, delta, RLE or delta-RLE layouts. FastPFOR blocks
+  can use one-bit exception streams for outliers.
 - String dictionaries can use FSST compression when it reduces the encoded
   size, including shared dictionaries across related string columns.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
