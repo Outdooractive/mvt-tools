@@ -145,6 +145,21 @@ construction unless a layer has enough repeated vertices to benefit.
 The switches apply to the pure Swift encoder. The optional C++ backend uses its
 own configuration.
 
+The CLI exposes the same controls on `merge`, `export`, `import`, `rezoom` and
+`reproject`:
+
+```bash
+# Skip FSST training on a small tile
+mvt export input.mvt -O mlt -o out.mlt --mlt-disable fsst
+
+# Opt in to the expensive encodings, or start from the plain preset
+mvt export input.mvt -O mlt -o out.mlt --mlt-enable fastpfor,vertex-dictionaries
+mvt export input.mvt -O mlt -o out.mlt --mlt-plain --mlt-enable fsst
+```
+
+The feature lists are comma-separated and repeatable. `--verbose` prints the
+effective set.
+
 ## Backend differences
 
 The two backends are semantically compatible but not byte-identical. The C++

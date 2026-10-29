@@ -41,11 +41,11 @@ and this project adheres to semantic versioning.
   dictionaries are disabled by default: on 118 real-world OMT tiles the vertex
   dictionaries save 0.19% raw size in total (median 0.12% where they win, no
   reliable gzip benefit) while costing a noticeable share of encode time.
-- Added `--mlt-plain`, `--mlt-no-dictionaries`, `--mlt-no-shared-dictionaries`,
-  `--mlt-no-fsst`, `--mlt-fastpfor`, `--mlt-vertex-dictionaries`,
-  `--mlt-no-vertex-dictionaries` and `--mlt-no-integer-delta-rle` to `merge`,
-  `export`, `import`, `rezoom` and `reproject`. `--verbose` prints the effective
-  MLT encoder features.
+- Added `--mlt-plain`, `--mlt-enable <features>` and `--mlt-disable <features>`
+  to `merge`, `export`, `import`, `rezoom` and `reproject`. Feature lists are
+  comma-separated and repeatable; the names are `dictionaries`,
+  `shared-dictionaries`, `fsst`, `fastpfor`, `vertex-dictionaries` and
+  `integer-delta-rle`. `--verbose` prints the effective MLT encoder features.
 
 ### Changed
 

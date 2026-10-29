@@ -10,45 +10,68 @@ extension CLI {
     /// FSST are enabled, FastPFOR and vertex dictionaries are disabled.
     struct MLTEncoderOptions: ParsableArguments {
 
+        /// Names of the optional MLT encoder features.
+        enum Feature: String, CaseIterable, Sendable {
+            case dictionaries
+            case sharedDictionaries = "shared-dictionaries"
+            case fsst
+            case fastpfor
+            case vertexDictionaries = "vertex-dictionaries"
+            case integerDeltaRLE = "integer-delta-rle"
+        }
+
+        /// A comma-separated list of MLT encoder feature names.
+        struct FeatureList: ExpressibleByArgument {
+            var features: [Feature]
+
+            init?(argument: String) {
+                let names = argument
+                    .split(separator: ",")
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                guard !names.isEmpty else { return nil }
+
+                var features: [Feature] = []
+                for name in names {
+                    guard let feature = Feature(rawValue: name) else { return nil }
+                    features.append(feature)
+                }
+                self.features = features
+            }
+
+            static var allValueStrings: [String] {
+                Feature.allCases.map(\.rawValue)
+            }
+        }
+
         @Flag(
             name: .customLong("mlt-plain"),
             help: "Disable all optional MLT encoder features for plain, deterministic output.")
         var plain = false
 
-        @Flag(
-            name: .customLong("mlt-no-dictionaries"),
-            help: "Disable single and shared string dictionaries in MLT output.")
-        var noDictionaries = false
+        @Option(
+            name: .customLong("mlt-enable"),
+            help: ArgumentHelp(
+                "Enable MLT encoder features (comma-separated, repeatable).",
+                valueName: "features"))
+        var enable: [FeatureList] = []
 
-        @Flag(
-            name: .customLong("mlt-no-shared-dictionaries"),
-            help: "Disable shared string dictionaries in MLT output.")
-        var noSharedDictionaries = false
+        @Option(
+            name: .customLong("mlt-disable"),
+            help: ArgumentHelp(
+                "Disable MLT encoder features (comma-separated, repeatable).",
+                valueName: "features"))
+        var disable: [FeatureList] = []
 
-        @Flag(
-            name: .customLong("mlt-no-fsst"),
-            help: "Disable FSST compression of string dictionaries in MLT output.")
-        var noFSST = false
-
-        @Flag(
-            name: .customLong("mlt-fastpfor"),
-            help: "Enable FastPFOR for large 32-bit integer streams in MLT output.")
-        var fastPFOR = false
-
-        @Flag(
-            name: .customLong("mlt-vertex-dictionaries"),
-            help: "Enable Hilbert/Morton vertex dictionaries in MLT output.")
-        var vertexDictionaries = false
-
-        @Flag(
-            name: .customLong("mlt-no-vertex-dictionaries"),
-            help: "Disable Hilbert/Morton vertex dictionaries in MLT output.")
-        var noVertexDictionaries = false
-
-        @Flag(
-            name: .customLong("mlt-no-integer-delta-rle"),
-            help: "Disable delta, RLE and delta-RLE integer streams in MLT output.")
-        var noIntegerDeltaRLE = false
+        func validate() throws {
+            let enabled = Set(enable.flatMap(\.features))
+            let disabled = Set(disable.flatMap(\.features))
+            let conflicts = enabled.intersection(disabled)
+            guard conflicts.isEmpty else {
+                throw ValidationError(
+                    "Features cannot be both enabled and disabled: "
+                        + conflicts.map(\.rawValue).sorted().joined(separator: ", "))
+            }
+        }
 
         /// Applies the flags to the given export options.
         ///
@@ -58,27 +81,32 @@ extension CLI {
             if plain {
                 options.mlt = .plain
             }
-            if noDictionaries {
-                options.mlt.useStringDictionaries = false
-                options.mlt.useSharedStringDictionaries = false
+            for feature in enable.flatMap(\.features) {
+                set(feature, enabled: true, in: &options.mlt)
             }
-            if noSharedDictionaries {
-                options.mlt.useSharedStringDictionaries = false
+            for feature in disable.flatMap(\.features) {
+                set(feature, enabled: false, in: &options.mlt)
             }
-            if noFSST {
-                options.mlt.useFSST = false
-            }
-            if fastPFOR {
-                options.mlt.useFastPFOR = true
-            }
-            if vertexDictionaries {
-                options.mlt.useVertexDictionaries = true
-            }
-            if noVertexDictionaries {
-                options.mlt.useVertexDictionaries = false
-            }
-            if noIntegerDeltaRLE {
-                options.mlt.useIntegerDeltaRLE = false
+        }
+
+        private func set(
+            _ feature: Feature,
+            enabled: Bool,
+            in options: inout VectorTile.ExportOptions.MLTEncodingOptions
+        ) {
+            switch feature {
+            case .dictionaries:
+                options.useStringDictionaries = enabled
+            case .sharedDictionaries:
+                options.useSharedStringDictionaries = enabled
+            case .fsst:
+                options.useFSST = enabled
+            case .fastpfor:
+                options.useFastPFOR = enabled
+            case .vertexDictionaries:
+                options.useVertexDictionaries = enabled
+            case .integerDeltaRLE:
+                options.useIntegerDeltaRLE = enabled
             }
         }
 

@@ -28,6 +28,20 @@ struct MLTEncoderOptionsCommandTests {
         return (outUrl, output)
     }
 
+    private func exportArguments(_ mltOptions: [String]) -> [String] {
+        let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
+        let outUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mlt_options_\(UUID().uuidString).mlt")
+        return [
+            "export", mvtPath,
+            "-O", "mlt",
+            "-o", outUrl.path,
+            "-x", "8716", "-y", "8015", "-z", "14",
+            "-oC", "0",
+            "--force-overwrite",
+        ] + mltOptions
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func plainMLTOutputIsLargerThanDefault() throws {
         let defaultResult = try exportMLT()
@@ -54,28 +68,70 @@ struct MLTEncoderOptionsCommandTests {
         defer { try? FileManager.default.removeItem(at: defaultResult.url) }
         #expect(defaultResult.output.contains("MLT encoder:"))
         #expect(defaultResult.output.contains("fsst"))
-
         #expect(!defaultResult.output.contains("vertex-dictionaries"))
+        #expect(!defaultResult.output.contains("fastpfor"))
 
-        let noFSSTResult = try exportMLT(["--mlt-no-fsst"], verbose: true)
+        let noFSSTResult = try exportMLT(["--mlt-disable", "fsst"], verbose: true)
         defer { try? FileManager.default.removeItem(at: noFSSTResult.url) }
         #expect(noFSSTResult.output.contains("MLT encoder:"))
         #expect(!noFSSTResult.output.contains("fsst"))
 
-        let vertexResult = try exportMLT(["--mlt-vertex-dictionaries"], verbose: true)
+        let vertexResult = try exportMLT(["--mlt-enable", "vertex-dictionaries"], verbose: true)
         defer { try? FileManager.default.removeItem(at: vertexResult.url) }
         #expect(vertexResult.output.contains("vertex-dictionaries"))
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func disablingDictionariesStillProducesDecodableTiles() throws {
-        let result = try exportMLT(["--mlt-no-dictionaries", "--mlt-no-vertex-dictionaries"], verbose: true)
+    func commaSeparatedFeatureLists() throws {
+        let result = try exportMLT(["--mlt-disable", "dictionaries,fsst"], verbose: true)
         defer { try? FileManager.default.removeItem(at: result.url) }
         #expect(result.output.contains("MLT encoder: delta-rle"))
+
+        let enabled = try exportMLT(["--mlt-enable", "fastpfor,vertex-dictionaries"], verbose: true)
+        defer { try? FileManager.default.removeItem(at: enabled.url) }
+        #expect(enabled.output.contains("fastpfor"))
+        #expect(enabled.output.contains("vertex-dictionaries"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func repeatedFeatureLists() throws {
+        let result = try exportMLT(
+            ["--mlt-disable", "dictionaries", "--mlt-disable", "vertex-dictionaries"],
+            verbose: true)
+        defer { try? FileManager.default.removeItem(at: result.url) }
+        #expect(result.output.contains("MLT encoder: delta-rle"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func plainPresetCanBeExtended() throws {
+        let result = try exportMLT(["--mlt-plain", "--mlt-enable", "fastpfor"], verbose: true)
+        defer { try? FileManager.default.removeItem(at: result.url) }
+        #expect(result.output.contains("MLT encoder: fastpfor"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disablingFeaturesStillProducesDecodableTiles() throws {
+        let result = try exportMLT(["--mlt-disable", "dictionaries,vertex-dictionaries"])
+        defer { try? FileManager.default.removeItem(at: result.url) }
         let data = try Data(contentsOf: result.url)
         #expect(!data.isEmpty)
         let tile = try VectorTile(mltData: data, x: 8716, y: 8015, z: 14)
         #expect(!tile.layerNames.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func invalidFeatureIsRejected() throws {
+        let result = try runCLIWithStderr(args: exportArguments(["--mlt-disable", "nope"]))
+        #expect(result.exitCode != 0)
+        #expect(result.stderr.contains("nope"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func conflictingFeaturesAreRejected() throws {
+        let result = try runCLIWithStderr(
+            args: exportArguments(["--mlt-enable", "fsst", "--mlt-disable", "fsst"]))
+        #expect(result.exitCode != 0)
+        #expect(result.stderr.contains("both enabled and disabled"))
     }
 
 }
