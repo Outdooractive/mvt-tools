@@ -31,6 +31,8 @@ and this project adheres to semantic versioning.
   can use one-bit exception streams for outliers.
 - String dictionaries can use FSST compression when it reduces the encoded
   size, including shared dictionaries across related string columns.
+- MLT v2 (`0x02`) tiles are explicitly rejected with an unsupported-feature
+  error instead of being silently treated as empty tiles.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
   removed in the next major release.
 - The pure Swift MLT encoder now chooses single dictionary encoding for string
