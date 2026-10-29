@@ -815,28 +815,26 @@ uint8_t* mlt_encoder_finish(
     // first verifying round-trip decoding against the maplibre-gl-js WASM
     // decoder across a representative set of tiles.
     //
-    // The C++ MLT encoder's Morton/Hilbert dictionary vertex encoding
-    // corrupts ring vertex data on real PostGIS-sourced tiles: the decoded
-    // ring0 contains different vertices than what was encoded, flipping
-    // ring winding and breaking maplibre-gl-js's `classifyRings` (which keys
-    // exterior-vs-hole off the first ring's signed area), producing
-    // triangular fill artifacts. The topology streams (numRings/numParts/
-    // numGeometries) are NOT affected — AUTO encoding for topology is safe.
+    // At the pinned maplibre-tile-spec revision the C++ encoder applies the
+    // integer techniques (RLE, Delta, DeltaRle) to vertex streams, even though
+    // the stream metadata cannot express that the values are componentwise
+    // deltas. Java and the TS decoder read those headers as applying to the
+    // vertex values, so tiles where AUTO picks RLE decode differently outside
+    // the C++ decoder. Upstream fix:
+    // https://github.com/maplibre/maplibre-tile-spec/pull/1990
     //
-    // To force plain (zigzag-delta) vertex encoding, `enableMortonEncoding`
-    // is disabled and `geometryEncodingOption` is set to PLAIN. Both are
-    // required: the early-return plain branch in `encodeGeometryColumn` only
-    // triggers when `integerEncodingOption != AUTO && !enableMortonEncoding`.
-    // Topology encoding is left at AUTO (the default) for best compression.
-    // Do NOT re-enable Morton/Hilbert without a fix for the upstream C++
-    // encoder: https://github.com/maplibre/maplibre-tile-spec
+    // Until the pinned submodule contains that fix, force plain
+    // (zigzag-delta) vertex encoding: `enableMortonEncoding` is disabled and
+    // `geometryEncodingOption` is set to PLAIN. Both are required because the
+    // early-return plain branch in `encodeGeometryColumn` only triggers when
+    // `integerEncodingOption != AUTO && !enableMortonEncoding`. Topology
+    // encoding is left at AUTO for best compression.
     auto result = state->encoder.encode(state->layers, mlt::EncoderConfig::with([](auto& c) {
         c.useFsst = false;
         c.enableMortonEncoding = false;
         c.geometryEncodingOption = mlt::IntegerEncodingOption::PLAIN;
-        // Topology streams are safe with AUTO; only the vertex dictionary
-        // path is buggy. Explicitly set AUTO to avoid inheriting PLAIN from
-        // geometryEncodingOption, preserving topology compression.
+        // Topology streams are unrelated to the vertex encoding; set AUTO
+        // explicitly to avoid inheriting PLAIN from geometryEncodingOption.
         c.geometryTopologyEncodingOption = mlt::IntegerEncodingOption::AUTO;
     }));
     auto* buffer = static_cast<uint8_t*>(std::malloc(result.size()));
