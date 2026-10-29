@@ -10,7 +10,8 @@ remaining format coders are optional package traits:
 | Format | Trait | Import | Export |
 | --- | --- | --- | --- |
 | MVT | built in | `VectorTile(mvtData:...)` | `mvtData(options:)`, `writeMVT(to:options:)` |
-| MLT | `EnableMLT` | `VectorTile(mltData:...)` | `mltData(options:)`, `writeMLT(to:options:)` |
+| MLT | `EnableMLT` (pure Swift) | `VectorTile(mltData:...)` | `mltData(options:)`, `writeMLT(to:options:)` |
+| MLT (C++) | `EnableMLTCXX` | `VectorTile(mltData:...)` | `mltData(options:)`, `writeMLT(to:options:)` |
 | GeoJSON | built in | `VectorTile(geoJsonData:...)` | `toGeoJson(...)`, `writeGeoJson(to:...)` |
 | CSV | `EnableCSV` | `VectorTile(csvData:...)` | `toCsvData(...)`, `writeCSV(to:...)` |
 | GPX | `EnableGPX` | `VectorTile(gpxData:...)` | `toGpxData(...)`, `writeGPX(to:...)` |
@@ -25,6 +26,8 @@ Enable traits from the command line:
 
 ```bash
 swift test --enable-all-traits
+swift test --traits EnableMLT   # pure Swift MLT, no C++ interop
+swift test --traits EnableMLTCXX # C++ MLT backend
 ```
 
 Or select individual traits in a consuming package:

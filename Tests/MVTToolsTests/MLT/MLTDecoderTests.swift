@@ -4,20 +4,12 @@ import GISTools
 @testable import MVTTools
 import Testing
 
-/// Path to MLT test fixtures in the submodule.
+/// Path to the curated MLT test fixtures in this repository.
 /// File is at Tests/MVTToolsTests/MLT/MLTDecoderTests.swift.
 private var testFixturesDir: URL {
     URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .appendingPathComponent("Dependencies")
-        .appendingPathComponent("maplibre-tile-spec")
-        .appendingPathComponent("test")
-        .appendingPathComponent("expected")
-        .appendingPathComponent("tag0x01")
-        .appendingPathComponent("omt")
+        .appendingPathComponent("Fixtures")
 }
 
 struct MLTDecoderTests {

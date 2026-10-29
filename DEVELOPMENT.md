@@ -11,18 +11,26 @@ Install the development tools:
 brew install protobuf swift-protobuf swiftlint
 ```
 
-The MLT format uses a git submodule. After cloning, initialize it with:
+The optional C++ MLT backend uses a git submodule. After cloning, initialize it
+with:
 
 ```bash
 git submodule update --init --recursive
 ```
 
+The pure Swift MLT implementation (`EnableMLT`) does not need the submodule or
+a C++ toolchain.
+
 ## Build and test
 
 ```bash
-swift build                       # MVT, MLT (trait), GeoJSON, and the CLI
+swift build                       # MVT, GeoJSON, and the CLI
+swift build --traits EnableMLT    # pure Swift MLT (no C++ interop)
+swift build --traits EnableMLTCXX # optional C++ MLT backend
 swift build --enable-all-traits   # every format coder
 swift test                        # default trait set
+swift test --traits EnableMLT     # pure Swift MLT
+swift test --traits EnableMLTCXX  # C++ MLT backend + cross-backend tests
 swift test --enable-all-traits    # all format coders
 ```
 
@@ -32,10 +40,8 @@ Coverage is measured with LLVM's `llvm-cov` and excludes test sources,
 generated protobuf code, and the C++ MLT bridge:
 
 ```bash
-swift test --enable-all-traits --enable-code-coverage
-llvm-cov report .build/debug/MVTToolsTests.so .build/debug/MVTCLITests.so \
-    -instr-profile="$(find .build -name '*.profdata' -print -quit)" \
-    -ignore-filename-regex='(Tests/|\.build/|Dependencies/|CMLT/|VectorTile_Tile\.swift)'
+swift test --traits EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
+python3 scripts/coverage.py --minimum 90
 ```
 
 ## Documentation

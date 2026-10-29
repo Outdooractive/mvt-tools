@@ -106,21 +106,26 @@ a look at that project as well.
 
 ### Format traits
 
-MVT, MLT (behind `EnableMLT`), and GeoJSON are always available. The remaining
-coders are package traits:
+MVT and GeoJSON are always available. The remaining coders are package traits:
 
-| Format | Trait |
-| --- | --- |
-| MLT | `EnableMLT` |
-| CSV | `EnableCSV` |
-| GPX | `EnableGPX` |
-| FIT | `EnableFIT` |
-| Shapefile | `EnableShapefile` |
-| GeoPackage | `EnableGeoPackage` |
+| Format | Trait | Notes |
+| --- | --- | --- |
+| MLT | `EnableMLT` | Pure Swift decoder/encoder. No C++ toolchain or C++ interoperability required. |
+| MLT (C++ backend) | `EnableMLTCXX` | Optional. Implies `EnableMLT` and uses the upstream C++ bridge. |
+| CSV | `EnableCSV` | |
+| GPX | `EnableGPX` | |
+| FIT | `EnableFIT` | |
+| Shapefile | `EnableShapefile` | |
+| GeoPackage | `EnableGeoPackage` | |
 
 Enable every format in a build with `swift build --enable-all-traits` or
 `swift test --enable-all-traits`. In a consuming package, declare the trait on
-the product dependency or enable it from the command line.
+the product dependency or enable it from the command line. To use the pure
+Swift MLT implementation, enable only `EnableMLT`:
+
+```bash
+swift build --traits EnableMLT
+```
 
 ## Usage
 
