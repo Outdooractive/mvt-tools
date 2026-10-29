@@ -98,6 +98,25 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func mortonCodesRoundTrip() throws {
+        let vertices = [
+            MLTTileCoordinate(x: 0, y: 0),
+            MLTTileCoordinate(x: 10, y: 20),
+            MLTTileCoordinate(x: -5, y: 3),
+            MLTTileCoordinate(x: 100, y: 200),
+        ]
+        let settings = try #require(MLTMortonEncoder.settings(for: vertices))
+        for vertex in vertices {
+            let code = MLTMortonEncoder.code(
+                x: vertex.x, y: vertex.y, settings: settings)
+            let x = MLTMorton.decode(code, numBits: settings.bits) &- settings.coordinateShift
+            let y = MLTMorton.decode(code >> 1, numBits: settings.bits) &- settings.coordinateShift
+            #expect(x == vertex.x)
+            #expect(y == vertex.y)
+        }
+    }
+
+    @Test
     func repeatedVerticesRoundTrip() throws {
         let ring = [
             MLTTileCoordinate(x: 0, y: 0),
