@@ -27,9 +27,10 @@ and this project adheres to semantic versioning.
   columns when it reduces the encoded size. Related string columns such as
   `name`, `name_de` and `name_en` are grouped into shared dictionaries. Plain
   strings remain the fallback for unique values.
-- Geometry topology, string length/offset and `UINT_32` property streams now
-  choose between plain, delta, RLE and delta-RLE encodings based on the
-  smallest encoded size.
+- Geometry topology, string length/offset, feature ID and numeric property
+  streams now choose between plain, delta, RLE and delta-RLE encodings based on
+  the smallest encoded size. This includes `INT_32`, `INT_64`, `UINT_32` and
+  `UINT_64` property columns.
 
 ### Changed
 

@@ -61,9 +61,39 @@ struct MLTEncoderCoreTests {
         let data = try MLTEncoderCore.encode(layers: [
             MLTEncodableLayer(name: "test", extent: 4096, features: features),
         ])
-        let layer = try #require(try MLTDecoderCore.decode(data).first)
+        let layer = try #require(MLTDecoderCore.decode(data).first)
         for index in 0 ..< features.count {
             #expect(layer.properties["rank"]?[index] == .uint32(UInt32(index % 5)))
+        }
+    }
+
+    @Test
+    func repeatedSignedAnd64BitPropertiesRoundTrip() throws {
+        let features = (0 ..< 120).map { index -> MLTEncodableFeature in
+            let i32 = Int32((index % 5) - 2)
+            let i64 = Int64(9_000_000_000) + Int64(index % 7)
+            let u64 = UInt64(9_000_000_000) + UInt64(index % 3)
+            let properties: [String: any Sendable] = [
+                "i32": i32,
+                "i64": i64,
+                "u64": u64,
+            ]
+            return MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .point(MLTTileCoordinate(x: Int32(index), y: 0)),
+                properties: properties)
+        }
+
+        let data = try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+        let layer = try #require(MLTDecoderCore.decode(data).first)
+
+        for index in 0 ..< features.count {
+            #expect(layer.properties["i32"]?[index] == MLTValue.int32(Int32((index % 5) - 2)))
+            #expect(layer.properties["i64"]?[index] == MLTValue.int64(Int64(9_000_000_000) + Int64(index % 7)))
+            #expect(layer.properties["u64"]?[index] == MLTValue.uint64(UInt64(9_000_000_000) + UInt64(index % 3)))
         }
     }
 
