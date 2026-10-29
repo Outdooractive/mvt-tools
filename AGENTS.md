@@ -26,7 +26,7 @@ Key source areas:
 - **`Coders/MLT/Swift/`** — `VectorTile` adapters for the pure Swift backend
 - **`Coders/MLT/CXX/`** — optional C++ bridge backend (`EnableMLTCXX`)
 - **`Coders/Projections.swift`** — Shared forward/inverse projection helpers (tile-extent ↔ geographic)
-- **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
+- **`Coders/ExportOptions.swift`** — Buffer, compression, simplification and MLT encoder feature switches
 - **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`
 - **`Coders/GPX/VectorTile+GPX.swift`** — VectorTile GPX import/export init, `toGpxData()`, `writeGPX()`
 - **`Coders/CSV/VectorTile+CSV.swift`** — VectorTile CSV import/export init, `toCsvData()`, `writeCSV()`

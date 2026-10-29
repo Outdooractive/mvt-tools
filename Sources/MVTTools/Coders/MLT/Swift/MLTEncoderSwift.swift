@@ -11,10 +11,11 @@ import struct GISTools.Polygon
 /// Pure Swift MLT encoder.
 ///
 /// Converts `VectorTile` features into neutral ``MLTEncodableLayer`` values and
-/// delegates the wire format to ``MLTEncoderCore``. This first implementation
-/// emits a conservative, deterministic subset: plain varints for integers and
-/// lengths, componentwise-delta varints for vertices, plain strings, and
-/// boolean RLE for nullable/present streams.
+/// delegates the wire format to ``MLTEncoderCore``. For every stream it chooses
+/// the smallest of the enabled layouts: plain/delta/RLE/delta-RLE (plus FastPFOR
+/// when enabled) for integers, componentwise delta or a Hilbert/Morton vertex
+/// dictionary for geometry, and plain/dictionary/shared/FSST for strings. The
+/// feature switches come from ``VectorTile/ExportOptions/mlt``.
 enum MLTEncoderSwift {
 
     static func encode(
