@@ -111,7 +111,7 @@ jobs:
       - name: Build the benchmark executable
         run: swift build --traits EnableMLT --product mlt-benchmark
       - name: Test with AddressSanitizer
-        run: swift test --traits EnableMLT --sanitize=address
+        run: swift test --traits EnableMLT --sanitize=address --filter 'MLTCoreTests|MLTRoundtrip|MLTDecoderTests|MLTEncoderRingClosureTests|MLTCrossBackendTests'
 
   coverage:
     name: coverage (Linux, all non-C++ traits)

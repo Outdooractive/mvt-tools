@@ -210,18 +210,115 @@ package enum MLTEncoderCore {
                 logical: .length(.rings)))
         }
 
-        let vertexPayload = encodeVertices(vertices)
-        let vertexMetadata = MLTStreamMetadata(
-            physicalStreamType: .data,
-            logicalStreamType: .dictionary(.vertex),
-            logicalTechnique1: .componentwiseDelta,
-            logicalTechnique2: .none,
-            physicalTechnique: .varint,
-            numValues: vertices.count * 2,
-            byteLength: vertexPayload.count)
-        streams.append(MLTEncodedStream(metadata: vertexMetadata, payload: vertexPayload))
+        let plainVertex = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: .data,
+                logicalStreamType: .dictionary(.vertex),
+                logicalTechnique1: .componentwiseDelta,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: vertices.count * 2,
+                byteLength: encodeVertices(vertices).count),
+            payload: encodeVertices(vertices))
+
+        if let dictionary = makeVertexDictionary(vertices),
+           dictionary.offset.encodedSize + dictionary.data.encodedSize < plainVertex.encodedSize
+        {
+            streams.append(dictionary.offset)
+            streams.append(dictionary.data)
+        }
+        else {
+            streams.append(plainVertex)
+        }
 
         return .geometry(streams: streams)
+    }
+
+    private struct VertexDictionary {
+        var offset: MLTEncodedStream
+        var data: MLTEncodedStream
+    }
+
+    private static func makeVertexDictionary(
+        _ vertices: [MLTTileCoordinate]
+    ) -> VertexDictionary? {
+        guard vertices.count > 1 else { return nil }
+
+        var indexByVertex: [MLTTileCoordinate: UInt32] = [:]
+        var uniqueVertices: [MLTTileCoordinate] = []
+        var offsets: [UInt32] = []
+        offsets.reserveCapacity(vertices.count)
+
+        for vertex in vertices {
+            if let index = indexByVertex[vertex] {
+                offsets.append(index)
+            }
+            else {
+                let index = UInt32(uniqueVertices.count)
+                indexByVertex[vertex] = index
+                uniqueVertices.append(vertex)
+                offsets.append(index)
+            }
+        }
+
+        guard uniqueVertices.count < vertices.count else {
+            return nil
+        }
+
+        let minX = uniqueVertices.map(\.x).min() ?? 0
+        let minY = uniqueVertices.map(\.y).min() ?? 0
+        let maxX = uniqueVertices.map(\.x).max() ?? 0
+        let maxY = uniqueVertices.map(\.y).max() ?? 0
+        let range = max(Int64(maxX) - Int64(minX), Int64(maxY) - Int64(minY))
+        let bits = MLTHilbert.bits(for: range)
+
+        let sorted = uniqueVertices.indices.sorted { lhsIndex, rhsIndex in
+            let lhs = uniqueVertices[lhsIndex]
+            let rhs = uniqueVertices[rhsIndex]
+            let lhsCode = MLTHilbert.index(
+                x: lhs.x, y: lhs.y, minX: minX, minY: minY, bits: bits)
+            let rhsCode = MLTHilbert.index(
+                x: rhs.x, y: rhs.y, minX: minX, minY: minY, bits: bits)
+            if lhsCode != rhsCode { return lhsCode < rhsCode }
+            if lhs.x != rhs.x { return lhs.x < rhs.x }
+            return lhs.y < rhs.y
+        }
+
+        var oldToNew = [UInt32](repeating: 0, count: uniqueVertices.count)
+        for (newIndex, oldIndex) in sorted.enumerated() {
+            oldToNew[oldIndex] = UInt32(newIndex)
+        }
+        let sortedVertices = sorted.map { uniqueVertices[$0] }
+        let sortedOffsets = offsets.map { oldToNew[Int($0)] }
+
+        let vertexPayload = encodeVertices(sortedVertices)
+        let data = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: .data,
+                logicalStreamType: .dictionary(.vertex),
+                logicalTechnique1: .componentwiseDelta,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: sortedVertices.count * 2,
+                byteLength: vertexPayload.count),
+            payload: vertexPayload)
+
+        var offsetWriter = MLTByteWriter()
+        for offset in sortedOffsets {
+            offsetWriter.writeVarint32(offset)
+        }
+        let offset = MLTEncodedStream(
+            metadata: MLTStreamMetadata(
+                physicalStreamType: .offset,
+                logicalStreamType: .offset(.vertex),
+                logicalTechnique1: .none,
+                logicalTechnique2: .none,
+                physicalTechnique: .varint,
+                numValues: sortedOffsets.count,
+                byteLength: offsetWriter.count),
+            payload: offsetWriter.bytes)
+
+        return VertexDictionary(offset: offset, data: data)
     }
 
     private static func encodeVertices(_ vertices: [MLTTileCoordinate]) -> [UInt8] {

@@ -98,6 +98,37 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func repeatedVerticesRoundTrip() throws {
+        let ring = [
+            MLTTileCoordinate(x: 0, y: 0),
+            MLTTileCoordinate(x: 100, y: 0),
+            MLTTileCoordinate(x: 100, y: 100),
+            MLTTileCoordinate(x: 0, y: 100),
+            MLTTileCoordinate(x: 0, y: 0),
+        ]
+        let features = (0 ..< 100).map { index in
+            MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .polygon([ring]),
+                properties: ["rank": Int32(index)])
+        }
+
+        let data = try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+        let layer = try #require(MLTDecoderCore.decode(data).first)
+        #expect(layer.featureCount == features.count)
+        for geometry in layer.geometries {
+            guard case let .polygon(rings) = geometry else {
+                Issue.record("Expected a polygon")
+                continue
+            }
+            #expect(rings == [ring])
+        }
+    }
+
+    @Test
     func relatedStringColumnsUseSharedDictionary() throws {
         let features = (0 ..< 80).map { index -> MLTEncodableFeature in
             MLTEncodableFeature(

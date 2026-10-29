@@ -3,7 +3,7 @@ import Foundation
 // Geometry topology rules follow the upstream `maplibre-tile-spec`
 // specification and decoder (MIT OR Apache-2.0).
 /// A coordinate in the tile's integer grid (before projection).
-package struct MLTTileCoordinate: Equatable, Sendable {
+package struct MLTTileCoordinate: Equatable, Hashable, Sendable {
     package var x: Int32
     package var y: Int32
 
