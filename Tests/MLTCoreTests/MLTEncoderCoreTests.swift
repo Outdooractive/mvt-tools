@@ -98,6 +98,29 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func fsstEncoderRoundTrip() throws {
+        let strings = Array(repeating: [
+            "motorway_link",
+            "motorway",
+            "primary_link",
+            "primary",
+            "residential",
+            "residential_link",
+            "secondary",
+            "secondary_link",
+            "service",
+            "tertiary",
+        ], count: 50).flatMap { $0 }
+        let result = try #require(MLTFSSTEncoder.encode(strings))
+        let decoded = try MLTFSST.decode(
+            symbols: result.symbols,
+            symbolLengths: result.symbolLengths,
+            compressedData: result.compressedData,
+            decompressedLength: result.decompressedLength)
+        #expect(decoded == Array(strings.joined().utf8))
+    }
+
+    @Test
     func fastPFORRoundTrip() throws {
         let values = (0 ..< 512).map { UInt32(1_000_000 + $0 * 17) }
         let payload = try #require(MLTFastPFOREncoder.encode(values))
