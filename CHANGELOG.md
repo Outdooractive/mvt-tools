@@ -7,6 +7,23 @@ and this project adheres to semantic versioning.
 
 ## Unreleased
 
+### Added
+
+- Pure Swift MLT decoder and encoder behind `EnableMLT`. The trait no longer
+  requires Swift/C++ interoperability, a C++20 toolchain, or the
+  `maplibre-tile-spec` submodule. The decoder supports plain, delta,
+  componentwise-delta, RLE, Morton, Hilbert dictionary, FastPFOR, FSST and
+  shared-dictionary streams for the tag `0x01` format.
+- `EnableMLTCXX` keeps the existing C++ MLT bridge available as an optional
+  backend. It implies `EnableMLT`; when both traits are enabled the public API
+  uses C++, while tests can compare both implementations.
+- Cross-backend MLT tests, upstream `0x01` corpus conformance tests, binary/RLE/
+  metadata unit tests, and truncated/mutated-input robustness tests.
+- Updated the `maplibre-tile-spec` submodule to the current `main` revision
+  (`71f20ee8`) for the optional C++ backend and conformance fixtures.
+- `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
+  removed in the next major release.
+
 ### Changed
 
 - Moved development setup, build, test, coverage and DocC instructions from
@@ -20,6 +37,10 @@ and this project adheres to semantic versioning.
   `swift-log`, and `swift-protobuf` remain at their latest compatible releases.
 - `VectorTile.layerNames` is now sorted, and MVT/MLT/GeoJSON encoding uses
   sorted layer order so repeated runs produce deterministic output.
+- MLT encoding now defaults to the pure Swift implementation. Its first
+  release uses conservative deterministic encodings (plain varints, plain
+  strings, componentwise-delta vertices and gzip) and normalizes polygon
+  winding in tile space.
 - MVT geometry command encoding uses a correct signed 32-bit zigzag encoder.
   Coordinates or deltas outside the signed 32-bit range are rejected instead
   of trapping in `UInt32` conversion.

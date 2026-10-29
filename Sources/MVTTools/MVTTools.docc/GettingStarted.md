@@ -19,7 +19,8 @@ targets: [
 
 Optional format coders are package traits. Enable them in the consuming
 package with `--enable-all-traits`, or select individual traits such as
-`EnableCSV` or `EnableMLT`.
+`EnableCSV` or `EnableMLT`. MLT is pure Swift by default; enable
+`EnableMLTCXX` only if you want the optional C++ backend.
 
 ## Read MVT
 

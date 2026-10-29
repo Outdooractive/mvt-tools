@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Print MVTTools line coverage from SwiftPM's codecov JSON.
+"""Print MVTTools and MLTCore line coverage.
 
-Run ``swift test --enable-all-traits --enable-code-coverage`` first. The
-optional ``--minimum`` turns the summary into a CI gate.
+Run a coverage-enabled ``swift test`` first. The optional ``--minimum`` turns
+the summary into a CI gate.
+
+SwiftPM writes a separate codecov JSON per test target, so this script merges
+all test binaries with ``llvm-cov export`` when possible. It falls back to
+SwiftPM's codecov JSON on platforms where the test binaries are not ``.so``
+files.
 """
 
 from __future__ import annotations
@@ -14,11 +19,43 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE_MARKER = "/Sources/MVTTools/"
+SOURCE_MARKERS = ("/Sources/MVTTools/", "/Sources/MLTCore/")
 EXCLUDED_FILES = {"VectorTile_Tile.swift"}
 
 
-def coverage_path() -> Path:
+def load_report() -> dict:
+    profdata = next(ROOT.glob(".build/**/default.profdata"), None)
+    bin_path = Path(
+        subprocess.check_output(
+            ["swift", "build", "--show-bin-path"],
+            cwd=ROOT,
+            text=True,
+        ).strip()
+    )
+    objects = [
+        bin_path / name
+        for name in ("MVTToolsTests.so", "MVTCLITests.so", "MLTCoreTests.so")
+        if (bin_path / name).exists()
+    ]
+
+    if profdata and objects:
+        command = [
+            "llvm-cov",
+            "export",
+            f"-instr-profile={profdata}",
+        ]
+        for object_file in objects:
+            command.extend(["-object", str(object_file)])
+        command.append("--format=text")
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return json.loads(result.stdout)
+
     output = subprocess.check_output(
         ["swift", "test", "--show-codecov-path"],
         cwd=ROOT,
@@ -27,7 +64,7 @@ def coverage_path() -> Path:
     path = Path(output)
     if not path.exists():
         raise SystemExit(f"Coverage file not found: {path}")
-    return path
+    return json.loads(path.read_text())
 
 
 def main() -> None:
@@ -40,12 +77,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    report = json.loads(coverage_path().read_text())
+    report = load_report()
     data = report.get("data", [])
     files = [
         file
         for file in (data[0].get("files", []) if data else [])
-        if SOURCE_MARKER in file["filename"]
+        if any(marker in file["filename"] for marker in SOURCE_MARKERS)
         and Path(file["filename"]).name not in EXCLUDED_FILES
     ]
 
@@ -73,7 +110,14 @@ def main() -> None:
         total_regions += int(regions["count"])
         covered_regions += int(regions["covered"])
 
-        relative = file["filename"].split(SOURCE_MARKER, 1)[1]
+        relative = next(
+            (
+                file["filename"].split(marker, 1)[1]
+                for marker in SOURCE_MARKERS
+                if marker in file["filename"]
+            ),
+            file["filename"],
+        )
         percent = (
             100.0 * int(lines["covered"]) / int(lines["count"])
             if int(lines["count"]) else 0.0

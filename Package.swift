@@ -21,7 +21,11 @@ let package = Package(
     traits: [
         .trait(
             name: "EnableMLT",
-            description: "Enables the MapLibre tile specification (MLT) decoder/encoder backed by a C++ bridge (FastPFOR + FSST). Requires Swift C++ interoperability."),
+            description: "Enables the pure Swift MapLibre tile specification (MLT) decoder/encoder. No C++ toolchain or C++ interoperability required."),
+        .trait(
+            name: "EnableMLTCXX",
+            description: "Uses the C++ maplibre-tile-spec bridge (FastPFOR + FSST) for MLT instead of the pure Swift implementation. Implies EnableMLT and requires Swift C++ interoperability.",
+            enabledTraits: ["EnableMLT"]),
         .trait(
             name: "EnableCSV",
             description: "Enables CSV vector tile import/export."),
@@ -60,7 +64,10 @@ let package = Package(
                 .product(name: "GISToolsCSV", package: "gis-tools-csv"),
                 .target(name: "MVTTools"),
             ],
-            swiftSettings: [.interoperabilityMode(.Cxx)]),
+            swiftSettings: [.interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"]))]),
+        .target(
+            name: "MLTCore",
+            path: "Sources/MLTCore"),
         .target(
             name: "MVTTools",
             dependencies: [
@@ -78,25 +85,29 @@ let package = Package(
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .target(name: "CMLT", condition: .when(traits: ["EnableMLT"])),
+                .target(name: "MLTCore", condition: .when(traits: ["EnableMLT"])),
+                .target(name: "CMLT", condition: .when(traits: ["EnableMLTCXX"])),
             ],
             swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
             ]),
 
+        .testTarget(
+            name: "MLTCoreTests",
+            dependencies: ["MLTCore"],
+            exclude: ["Fixtures"]),
         .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
             exclude: ["TestData"],
             swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLT"])),
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
             ]),
         .testTarget(
             name: "MVTCLITests",
             dependencies: ["MVTCLI"],
             swiftSettings: [
-                // MVTCLI itself always uses C++ interoperability.
-                .interoperabilityMode(.Cxx),
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
             ]),
 
         // MARK: - MLT C++ bridge (decoder + encoder + FastPFOR + FSST)

@@ -41,8 +41,62 @@ jobs:
       - name: Build and test
         run: swift test --enable-all-traits
 
+  mlt-swift-macos:
+    name: MLT pure Swift (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.3.3'
+      - name: Build and test pure Swift MLT
+        run: swift test --traits EnableMLT
+
+  mlt-swift-linux:
+    name: MLT pure Swift (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build and test pure Swift MLT
+        run: swift test --traits EnableMLT
+
+  mlt-swift-clean:
+    name: MLT pure Swift without submodules (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build the executable without C++ sources
+        run: swift build --traits EnableMLT --product mvt
+
+  mlt-cxx:
+    name: MLT C++ backend (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Test C++ MLT backend
+        run: swift test --traits EnableMLTCXX
+
   coverage:
-    name: coverage (Linux, all traits)
+    name: coverage (Linux, all non-C++ traits)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container: swift:6.3.3
@@ -54,7 +108,7 @@ jobs:
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
       - name: Run tests with coverage
-        run: swift test --enable-all-traits --enable-code-coverage
+        run: swift test --traits EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --enable-code-coverage
       - name: Ensure Python
         run: command -v python3 >/dev/null || (apt-get update && apt-get install -y python3)
       - name: Report library coverage

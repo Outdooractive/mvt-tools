@@ -62,7 +62,7 @@ jobs:
             printf 'Cflags: -I${includedir}\n'
           } > "$PC_DIR/sqlite3.pc"
           export PKG_CONFIG_PATH="$PC_DIR:${PKG_CONFIG_PATH:-}"
-          swift build -c release --enable-all-traits --arch arm64 --arch x86_64 --product mvt
+          swift build -c release --traits EnableMLT,EnableCSV,EnableFIT,EnableGPX,EnableShapefile,EnableGeoPackage --arch arm64 --arch x86_64 --product mvt
 
       - name: Compress the archive
         run: tar -czf mvt.tar.gz -C .build/apple/Products/Release mvt
