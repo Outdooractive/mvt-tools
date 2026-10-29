@@ -49,6 +49,25 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func repeatedUInt32PropertiesRoundTrip() throws {
+        let features = (0 ..< 200).map { index -> MLTEncodableFeature in
+            MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .point(MLTTileCoordinate(x: Int32(index), y: 0)),
+                properties: ["rank": UInt32(index % 5)])
+        }
+
+        let data = try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+        let layer = try #require(try MLTDecoderCore.decode(data).first)
+        for index in 0 ..< features.count {
+            #expect(layer.properties["rank"]?[index] == .uint32(UInt32(index % 5)))
+        }
+    }
+
+    @Test
     func relatedStringColumnsUseSharedDictionary() throws {
         let features = (0 ..< 80).map { index -> MLTEncodableFeature in
             MLTEncodableFeature(
