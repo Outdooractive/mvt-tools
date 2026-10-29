@@ -49,6 +49,32 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func sharedStringFSSTRoundTrip() throws {
+        let features = (0 ..< 200).map { index -> MLTEncodableFeature in
+            let properties: [String: any Sendable] = [
+                "name": "shared_name_prefix_\(index)_with_a_common_suffix",
+                "name_de": "shared_name_prefix_de_\(index)_with_a_common_suffix",
+                "name_en": "shared_name_prefix_en_\(index)_with_a_common_suffix",
+            ]
+            return MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .point(MLTTileCoordinate(x: Int32(index), y: 0)),
+                properties: properties)
+        }
+
+        let data = try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+        let layer = try #require(MLTDecoderCore.decode(data).first)
+        for index in 0 ..< features.count {
+            #expect(layer.properties["name"]?[index] == .string("shared_name_prefix_\(index)_with_a_common_suffix"))
+            #expect(layer.properties["name_de"]?[index] == .string("shared_name_prefix_de_\(index)_with_a_common_suffix"))
+            #expect(layer.properties["name_en"]?[index] == .string("shared_name_prefix_en_\(index)_with_a_common_suffix"))
+        }
+    }
+
+    @Test
     func repeatedUInt32PropertiesRoundTrip() throws {
         let features = (0 ..< 200).map { index -> MLTEncodableFeature in
             MLTEncodableFeature(

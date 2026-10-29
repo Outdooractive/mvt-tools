@@ -141,7 +141,7 @@ struct MLTCrossBackendTests {
             properties: ["nullable": true] as [String: Sendable])
 
         let classes = ["alpha", "beta", "gamma"]
-        let dictionaryFeatures = (0 ..< 20).map { index -> Feature in
+        let dictionaryFeatures = (0 ..< 200).map { index -> Feature in
             let x = Double(index * 10)
             let y = Double(index * 5)
             let polygon = Polygon([[
