@@ -190,7 +190,10 @@ struct MLTCrossBackendTests {
             let value = UInt32(1_000_000_000) &+ UInt32(truncatingIfNeeded: index &* 2_654_435_761)
             return Feature(
                 square,
-                properties: ["value": value] as [String: Sendable])
+                properties: [
+                    "value": value,
+                    "label": "highway_classification_\(index)_with_a_common_prefix",
+                ] as [String: Sendable])
         }
 
         return [
