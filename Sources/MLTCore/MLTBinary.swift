@@ -389,13 +389,19 @@ enum MLTByteRLE {
             if runLength >= 3 {
                 // Repeated runs: header 0...127, length = header + 3.
                 var remaining = runLength
-                while remaining > 0 {
-                    let chunk = min(remaining, 130)
+                while remaining >= 3 {
+                    var chunk = min(remaining, 130)
+                    // A repeated run must have at least three bytes. Leave a
+                    // shorter tail to the literal run below instead of
+                    // emitting an invalid header.
+                    if remaining - chunk > 0, remaining - chunk < 3 {
+                        chunk = remaining - 3
+                    }
                     result.append(UInt8(chunk - 3))
                     result.append(value)
                     remaining -= chunk
                 }
-                index += runLength
+                index += runLength - remaining
             }
             else {
                 // Literal runs: header 128...255, length = 256 - header.
