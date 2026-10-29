@@ -44,6 +44,36 @@ struct MLTFSSTTests {
     }
 
     @Test
+    func trainingIsDeterministic() throws {
+        let strings = (0 ..< 200).map { index in
+            "prefix_\(index % 17)_common_suffix_\(index)"
+        }
+        let first = try #require(MLTFSSTEncoder.encode(strings))
+        let second = try #require(MLTFSSTEncoder.encode(strings))
+        #expect(first.symbols == second.symbols)
+        #expect(first.symbolLengths == second.symbolLengths)
+        #expect(first.compressedData == second.compressedData)
+        #expect(first.decompressedLength == second.decompressedLength)
+    }
+
+    @Test
+    func trainingRoundTripsLargeCorpus() throws {
+        let strings = (0 ..< 2_000).map { index in
+            "some_long_common_prefix_\(index % 251)_with_a_tail_\(index)"
+        }
+        let result = try #require(MLTFSSTEncoder.encode(strings))
+        #expect(!result.symbols.isEmpty)
+        #expect(result.symbolLengths.allSatisfy { (1 ... 8).contains($0) })
+
+        let decoded = try MLTFSST.decode(
+            symbols: result.symbols,
+            symbolLengths: result.symbolLengths,
+            compressedData: result.compressedData,
+            decompressedLength: result.decompressedLength)
+        #expect(decoded == strings.flatMap { Array($0.utf8) })
+    }
+
+    @Test
     func emptyCorpusReturnsEmptyOutput() throws {
         let decoded = try MLTFSST.decode(
             symbols: [],

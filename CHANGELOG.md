@@ -54,10 +54,14 @@ and this project adheres to semantic versioning.
   vertices for each dictionary candidate and recomputing codes in the
   comparator. Default-mode encoding of the benchmark MVT tile is roughly 30%
   faster with unchanged output.
-- FSST symbol training now uses allocation-free fixed-size substring keys
-  instead of one byte array per candidate. Encoding the benchmark MLT fixture
-  is about 35% faster with byte-identical output; FSST training remains the
-  dominant encoder cost on small tiles, which is why `useFSST` can be disabled.
+- FSST symbol training now uses allocation-free fixed-size substring keys, an
+  open-addressing frequency table and a bounded top-k selection instead of a
+  dictionary plus a full sort. Encoding the benchmark MVT tile dropped from
+  60 ms to 50 ms and the `0_0_0.mlt` fixture from 33 ms to 16 ms, with
+  byte-identical output.
+- Integer stream candidates are only built when their feature is enabled, so
+  enabling FastPFOR without delta/RLE no longer constructs discarded delta,
+  RLE and delta-RLE payloads.
 - MLT v2 (`0x02`) tiles are explicitly rejected with an unsupported-feature
   error instead of being silently treated as empty tiles.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be

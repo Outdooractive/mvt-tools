@@ -1038,75 +1038,77 @@ package enum MLTEncoderCore {
             return plain
         }
 
-        var deltaWriter = MLTByteWriter()
-        var previous: UInt32 = 0
-        for value in values {
-            deltaWriter.writeVarint32(MLTZigZag.encode(Int32(bitPattern: value &- previous)))
-            previous = value
-        }
-        let delta = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .delta,
-                logicalTechnique2: .none,
-                physicalTechnique: .varint,
-                numValues: values.count,
-                byteLength: deltaWriter.count),
-            payload: deltaWriter.bytes)
-
-        let runs = buildRuns(values)
-        guard !runs.isEmpty else {
-            return plain
-        }
-
-        var rleWriter = MLTByteWriter()
-        for run in runs {
-            rleWriter.writeVarint32(run.length)
-        }
-        for run in runs {
-            rleWriter.writeVarint32(run.value)
-        }
-        let rle = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .rle,
-                logicalTechnique2: .none,
-                physicalTechnique: .varint,
-                numValues: runs.count * 2,
-                byteLength: rleWriter.count,
-                runs: runs.count,
-                numRleValues: values.count),
-            payload: rleWriter.bytes)
-
-        var deltaRleWriter = MLTByteWriter()
-        for run in runs {
-            deltaRleWriter.writeVarint32(run.length)
-        }
-        var previousRunValue: UInt32 = 0
-        for run in runs {
-            let deltaValue = run.value &- previousRunValue
-            deltaRleWriter.writeVarint32(MLTZigZag.encode(Int32(bitPattern: deltaValue)))
-            previousRunValue = run.value
-        }
-        let deltaRle = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .delta,
-                logicalTechnique2: .rle,
-                physicalTechnique: .varint,
-                numValues: runs.count * 2,
-                byteLength: deltaRleWriter.count,
-                runs: runs.count,
-                numRleValues: values.count),
-            payload: deltaRleWriter.bytes)
-
         var candidates = [plain]
+
         if options.useIntegerDeltaRLE {
+            var deltaWriter = MLTByteWriter()
+            var previous: UInt32 = 0
+            for value in values {
+                deltaWriter.writeVarint32(MLTZigZag.encode(Int32(bitPattern: value &- previous)))
+                previous = value
+            }
+            let delta = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .delta,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: values.count,
+                    byteLength: deltaWriter.count),
+                payload: deltaWriter.bytes)
+
+            let runs = buildRuns(values)
+            guard !runs.isEmpty else {
+                return plain
+            }
+
+            var rleWriter = MLTByteWriter()
+            for run in runs {
+                rleWriter.writeVarint32(run.length)
+            }
+            for run in runs {
+                rleWriter.writeVarint32(run.value)
+            }
+            let rle = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .rle,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: runs.count * 2,
+                    byteLength: rleWriter.count,
+                    runs: runs.count,
+                    numRleValues: values.count),
+                payload: rleWriter.bytes)
+
+            var deltaRleWriter = MLTByteWriter()
+            for run in runs {
+                deltaRleWriter.writeVarint32(run.length)
+            }
+            var previousRunValue: UInt32 = 0
+            for run in runs {
+                let deltaValue = run.value &- previousRunValue
+                deltaRleWriter.writeVarint32(MLTZigZag.encode(Int32(bitPattern: deltaValue)))
+                previousRunValue = run.value
+            }
+            let deltaRle = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .delta,
+                    logicalTechnique2: .rle,
+                    physicalTechnique: .varint,
+                    numValues: runs.count * 2,
+                    byteLength: deltaRleWriter.count,
+                    runs: runs.count,
+                    numRleValues: values.count),
+                payload: deltaRleWriter.bytes)
+
             candidates.append(contentsOf: [delta, rle, deltaRle])
         }
+
         if options.useFastPFOR,
            let fastPFOR = fastPFORStream(values: values, physical: physical, logical: logical) {
             candidates.append(fastPFOR)
@@ -1260,74 +1262,76 @@ package enum MLTEncoderCore {
             return plain
         }
 
-        var deltaWriter = MLTByteWriter()
-        var previous: Int32 = 0
-        for value in values {
-            deltaWriter.writeVarint32(MLTZigZag.encode(value &- previous))
-            previous = value
-        }
-        let delta = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .delta,
-                logicalTechnique2: .none,
-                physicalTechnique: .varint,
-                numValues: values.count,
-                byteLength: deltaWriter.count),
-            payload: deltaWriter.bytes)
-
-        let runs = buildRuns32(values)
-        guard !runs.isEmpty else {
-            return plain
-        }
-
-        var rleWriter = MLTByteWriter()
-        for run in runs {
-            rleWriter.writeVarint32(UInt32(run.length))
-        }
-        for run in runs {
-            rleWriter.writeVarint32(MLTZigZag.encode(run.value))
-        }
-        let rle = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .rle,
-                logicalTechnique2: .none,
-                physicalTechnique: .varint,
-                numValues: runs.count * 2,
-                byteLength: rleWriter.count,
-                runs: runs.count,
-                numRleValues: values.count),
-            payload: rleWriter.bytes)
-
-        var deltaRleWriter = MLTByteWriter()
-        for run in runs {
-            deltaRleWriter.writeVarint32(UInt32(run.length))
-        }
-        var previousRunValue: Int32 = 0
-        for run in runs {
-            deltaRleWriter.writeVarint32(MLTZigZag.encode(run.value &- previousRunValue))
-            previousRunValue = run.value
-        }
-        let deltaRle = MLTEncodedStream(
-            metadata: MLTStreamMetadata(
-                physicalStreamType: physical,
-                logicalStreamType: logical,
-                logicalTechnique1: .delta,
-                logicalTechnique2: .rle,
-                physicalTechnique: .varint,
-                numValues: runs.count * 2,
-                byteLength: deltaRleWriter.count,
-                runs: runs.count,
-                numRleValues: values.count),
-            payload: deltaRleWriter.bytes)
-
         var candidates = [plain]
+
         if options.useIntegerDeltaRLE {
+            var deltaWriter = MLTByteWriter()
+            var previous: Int32 = 0
+            for value in values {
+                deltaWriter.writeVarint32(MLTZigZag.encode(value &- previous))
+                previous = value
+            }
+            let delta = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .delta,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: values.count,
+                    byteLength: deltaWriter.count),
+                payload: deltaWriter.bytes)
+
+            let runs = buildRuns32(values)
+            guard !runs.isEmpty else {
+                return plain
+            }
+
+            var rleWriter = MLTByteWriter()
+            for run in runs {
+                rleWriter.writeVarint32(UInt32(run.length))
+            }
+            for run in runs {
+                rleWriter.writeVarint32(MLTZigZag.encode(run.value))
+            }
+            let rle = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .rle,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: runs.count * 2,
+                    byteLength: rleWriter.count,
+                    runs: runs.count,
+                    numRleValues: values.count),
+                payload: rleWriter.bytes)
+
+            var deltaRleWriter = MLTByteWriter()
+            for run in runs {
+                deltaRleWriter.writeVarint32(UInt32(run.length))
+            }
+            var previousRunValue: Int32 = 0
+            for run in runs {
+                deltaRleWriter.writeVarint32(MLTZigZag.encode(run.value &- previousRunValue))
+                previousRunValue = run.value
+            }
+            let deltaRle = MLTEncodedStream(
+                metadata: MLTStreamMetadata(
+                    physicalStreamType: physical,
+                    logicalStreamType: logical,
+                    logicalTechnique1: .delta,
+                    logicalTechnique2: .rle,
+                    physicalTechnique: .varint,
+                    numValues: runs.count * 2,
+                    byteLength: deltaRleWriter.count,
+                    runs: runs.count,
+                    numRleValues: values.count),
+                payload: deltaRleWriter.bytes)
+
             candidates.append(contentsOf: [delta, rle, deltaRle])
         }
+
         if options.useFastPFOR,
            let fastPFOR = fastPFORStream(
                values: values.map { MLTZigZag.encode($0) },
