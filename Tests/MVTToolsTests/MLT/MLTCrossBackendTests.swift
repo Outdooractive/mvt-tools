@@ -187,7 +187,7 @@ struct MLTCrossBackendTests {
                 Coordinate3D(x: x, y: y + 10, projection: .noSRID),
                 Coordinate3D(x: x, y: y, projection: .noSRID),
             ]])!
-            let value = UInt32(1_000_000_000) &+ UInt32(truncatingIfNeeded: index &* 2_654_435_761)
+            let value = index % 64 == 0 ? UInt32(0xF000_0000) : UInt32(1_000_000_000) &+ UInt32(truncatingIfNeeded: index &* 2_654_435_761)
             return Feature(
                 square,
                 properties: [

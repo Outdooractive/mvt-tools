@@ -2,9 +2,10 @@ import Foundation
 
 /// Minimal SIMD-FastPFOR encoder for 32-bit integer streams.
 ///
-/// The encoder uses fixed pages of 256-value blocks and writes bit-packed
-/// blocks without exception streams. This is a valid FastPFOR stream; it is
-/// selected only when it is smaller than the other integer encodings.
+/// The encoder uses fixed pages of 256-value blocks. It writes both a plain
+/// bit-packed variant and a one-bit exception variant, and returns the smaller
+/// one. This is a valid FastPFOR stream; it is selected only when it is smaller
+/// than the other integer encodings.
 enum MLTFastPFOREncoder {
 
     private static let blockSize = 256
@@ -15,6 +16,17 @@ enum MLTFastPFOREncoder {
             return nil
         }
 
+        let plain = encode(values, useExceptions: false)
+        let withExceptions = encode(values, useExceptions: true)
+        return [plain, withExceptions]
+            .compactMap { $0 }
+            .min { $0.count < $1.count }
+    }
+
+    private static func encode(
+        _ values: [UInt32],
+        useExceptions: Bool
+    ) -> [UInt8]? {
         var words: [UInt32] = [UInt32(values.count)]
         var offset = 0
 
@@ -24,17 +36,48 @@ enum MLTFastPFOREncoder {
             var packedWords: [UInt32] = []
             var byteContainer: [UInt8] = []
             packedWords.reserveCapacity(blockCount * 8)
-            byteContainer.reserveCapacity(blockCount * 2)
+            byteContainer.reserveCapacity(blockCount * 4)
 
             for block in 0 ..< blockCount {
                 let start = offset + block * blockSize
                 let slice = Array(values[start ..< (start + blockSize)])
-                let bitWidth = slice.reduce(0) { result, value in
+                let maximumBits = slice.reduce(0) { result, value in
                     max(result, 32 - value.leadingZeroBitCount)
                 }
+
+                var bitWidth = maximumBits
+                var exceptionPositions: [UInt8] = []
+                if useExceptions, maximumBits > 0 {
+                    let positions = slice.indices.compactMap { index -> UInt8? in
+                        let bits = 32 - slice[index].leadingZeroBitCount
+                        return bits == maximumBits ? UInt8(index) : nil
+                    }
+                    if positions.count <= 255 {
+                        bitWidth = maximumBits - 1
+                        exceptionPositions = positions
+                    }
+                }
+
                 byteContainer.append(UInt8(bitWidth))
-                byteContainer.append(0)
-                packedWords.append(contentsOf: pack(slice, bitWidth: bitWidth))
+                byteContainer.append(UInt8(exceptionPositions.count))
+                if !exceptionPositions.isEmpty {
+                    byteContainer.append(UInt8(maximumBits))
+                    byteContainer.append(contentsOf: exceptionPositions)
+                }
+
+                let mask: UInt32
+                if bitWidth == 0 {
+                    mask = 0
+                }
+                else if bitWidth == 32 {
+                    mask = UInt32.max
+                }
+                else {
+                    mask = (UInt32(1) << UInt32(bitWidth)) &- 1
+                }
+                packedWords.append(contentsOf: pack(
+                    slice.map { $0 & mask },
+                    bitWidth: bitWidth))
             }
 
             let whereMeta = UInt32(1 + packedWords.count)

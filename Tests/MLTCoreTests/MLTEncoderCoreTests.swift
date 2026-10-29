@@ -160,6 +160,20 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func fastPFORExceptionRoundTrip() throws {
+        let values = (0 ..< 512).map { index -> UInt32 in
+            index % 100 == 0 ? 0xF000_0000 : UInt32(index)
+        }
+        let payload = try #require(MLTFastPFOREncoder.encode(values))
+        var reader = MLTByteReader(payload)
+        let decoded = try MLTFastPFOR.decode(
+            from: &reader,
+            byteLength: payload.count,
+            numValues: values.count)
+        #expect(decoded == values)
+    }
+
+    @Test
     func mortonCodesRoundTrip() throws {
         let vertices = [
             MLTTileCoordinate(x: 0, y: 0),

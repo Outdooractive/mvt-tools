@@ -84,7 +84,7 @@ try tile.writeMLT(to: outputURL, options: options)
 
 The pure Swift encoder writes a conservative, deterministic subset:
 
-- plain, delta, RLE, delta-RLE or bit-packed FastPFOR for integer and length streams, choosing the smallest,
+- plain, delta, RLE, delta-RLE or bit-packed FastPFOR with optional one-bit exceptions for integer and length streams, choosing the smallest,
 - componentwise-delta varints for vertices, with an optional Hilbert-sorted or Morton vertex dictionary when smaller,
 - plain, single-dictionary, shared-dictionary or FSST strings, including FSST-compressed shared dictionaries, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
