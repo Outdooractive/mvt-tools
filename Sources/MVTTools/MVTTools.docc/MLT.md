@@ -82,10 +82,10 @@ let options = VectorTile.ExportOptions(
 try tile.writeMLT(to: outputURL, options: options)
 ```
 
-The pure Swift encoder writes a conservative, deterministic subset:
+The pure Swift encoder writes the tag `0x01` format with adaptive encodings:
 
-- plain, delta, RLE, delta-RLE or bit-packed FastPFOR with optional one-bit exceptions for integer and length streams, choosing the smallest,
-- componentwise-delta varints for vertices, with an optional Hilbert-sorted or Morton vertex dictionary when smaller,
+- plain, delta, RLE, delta-RLE or bit-packed FastPFOR with optional one-bit exceptions for integer and length streams, choosing the smallest (FastPFOR is opt-in),
+- componentwise-delta varints for vertices, plus an optional Hilbert-sorted or Morton vertex dictionary when smaller (opt-in),
 - plain, single-dictionary, shared-dictionary or FSST strings, including FSST-compressed shared dictionaries, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
 - gzip compression through `ExportOptions.compression`,
@@ -98,8 +98,8 @@ and C++ decoders.
 
 Hilbert and Morton vertex dictionaries, and FSST string dictionaries, are only
 used when they reduce the encoded size. They cost encode time but never change
-the decoded content, so they can be disabled individually when that trade-off is
-not wanted.
+the decoded content; the switches below control which of them the encoder is
+allowed to use.
 
 ### Encoder feature switches
 
@@ -164,8 +164,8 @@ effective set.
 
 The two backends are semantically compatible but not byte-identical. The C++
 encoder enables its own topology heuristics and may sort points/line strings by
-Hilbert order. The pure Swift encoder preserves feature order and emits plain
-encodings, trading size for predictability and interoperability.
+Hilbert order. The pure Swift encoder preserves feature order, supports the
+feature switches above, and chooses the smallest enabled encoding per stream.
 
 ## Experimental feature policy
 

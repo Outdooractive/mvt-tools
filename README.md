@@ -100,7 +100,8 @@ targets: [
 ```
 
 This package pins [gis-tools](https://github.com/Outdooractive/gis-tools) and the
-`gis-tools-*` format packages to `3.0.0-beta.5`. It is used by the
+`gis-tools-*` format packages to `3.0.0-beta.6` (`gis-tools-csv` to
+`3.0.0-beta.7`). It is used by the
 [mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library; please have
 a look at that project as well.
 
@@ -566,7 +567,7 @@ OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJ
 
 A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
 This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
-Tile coordinates are not necessary for GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
+Tile coordinates are not necessary for GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files (a tile coordinate will be calculated from the bounding box).
 
 Examples:
 - Tests/MVTToolsTests/TestData/14_8716_8015.vector.mvt
@@ -580,14 +581,14 @@ OPTIONS:
 
 SUBCOMMANDS:
   dump (default)          Print the input file (MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage) as pretty-printed GeoJSON to the console
-  info                    Print information about the input file
-  query                   Query the features in the input file
+  info                    Print information about the input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage)
+  query                   Query the features in the input file (MLT, MVT, GeoJSON, GPX, FIT, CSV, Shapefile, or GeoPackage)
   merge                   Merge any number of input files into a single file of any supported format
-  import                  Alias for 'merge'
-  export                  Alias for 'merge'
+  import                  Alias for 'merge'. Import data into a file of any supported format.
+  export                  Alias for 'merge'. Export a file as GeoJSON.
   load                    Download all tiles within a bounding box from a tile URL template
   rezoom                  Overzoom or underzoom source tiles into a single output tile at a target zoom level
-  reproject               Reproject any supported input file to a target CRS
+  reproject               Reproject an MVT, MLT, GeoJSON, CSV, Shapefile, GeoPackage, GPX, or FIT file
 
   See 'mvt help <subcommand>' for detailed help.
 ```
@@ -770,6 +771,19 @@ mvt merge --output merged.geojson path/to/first.mvt path/to/second.mvt
 # All supported formats can be mixed:
 mvt merge --output merged.gpkg data.geojson tracks.gpx points.csv roads.shp tile.mvt
 ```
+
+When writing MLT, optional encoder features can be controlled with
+`--mlt-enable <features>` / `--mlt-disable <features>` (comma-separated,
+repeatable) or the `--mlt-plain` preset. Use `--verbose` to see the effective
+set.
+
+```bash
+# Favour encode speed over the last few percent of size
+mvt merge --output merged.mlt --mlt-disable fsst first.mvt second.mvt
+
+# Opt in to the expensive encodings
+mvt merge --output merged.mlt --mlt-enable fastpfor,vertex-dictionaries first.mvt second.mvt
+```
 ---
 ### mvt export
 
@@ -855,9 +869,10 @@ mvt reproject -op 4978 --output out.mvt --force-overwrite input.geojson
 ```
 
 `mvt reproject` accepts the same layer filters (`--layer`, `--drop-layer`), simplification
-(`-oSm`, `-oSe`), buffering (`-oBp`, `-oBe`), compression (`-oC`), and CSV options
-(`--csv-*`) as `mvt merge`. Reprojecting a tile changes the CRS of the stored coordinates,
-not the tile coordinate itself.
+(`-oSm`, `-oSe`), buffering (`-oBp`, `-oBe`), compression (`-oC`), MLT encoder features
+(`--mlt-enable`, `--mlt-disable`, `--mlt-plain`), and CSV options (`--csv-*`) as
+`mvt merge`. Reprojecting a tile changes the CRS of the stored coordinates, not
+the tile coordinate itself.
 
 ---
 ### Projections

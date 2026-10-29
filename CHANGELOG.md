@@ -27,9 +27,9 @@ and this project adheres to semantic versioning.
   and expected layer/feature counts for the curated MLT fixtures. The full
   upstream corpus is opt-in via `MLT_FULL_CORPUS=1`.
 - Documented the supported/rejected experimental MLT v1 feature matrix.
-- The pure Swift MLT encoder now uses a Hilbert-sorted or Morton vertex
+- The pure Swift MLT encoder can use a Hilbert-sorted or Morton vertex
   dictionary when repeated vertices make it smaller than the plain
-  componentwise-delta buffer.
+  componentwise-delta buffer (opt-in since the switches were added).
 - Large 32-bit integer streams can use a bit-packed FastPFOR encoding when it
   is smaller than the plain, delta, RLE or delta-RLE layouts. FastPFOR blocks
   can use one-bit exception streams for outliers.
@@ -80,15 +80,14 @@ and this project adheres to semantic versioning.
   guidance for actor- and lock-based synchronization of shared mutable tiles
   (#5).
 - Updated `gis-tools`, `gis-tools-fit`, `gis-tools-geopackage`,
-  `gis-tools-gpx`, and `gis-tools-shapefile` to `3.0.0-beta.5`, and
-  `gis-tools-csv` to `3.0.0-beta.6`. `GzipSwift`, `swift-argument-parser`,
+  `gis-tools-gpx`, and `gis-tools-shapefile` to `3.0.0-beta.6`, and
+  `gis-tools-csv` to `3.0.0-beta.7`. `GzipSwift`, `swift-argument-parser`,
   `swift-log`, and `swift-protobuf` remain at their latest compatible releases.
 - `VectorTile.layerNames` is now sorted, and MVT/MLT/GeoJSON encoding uses
   sorted layer order so repeated runs produce deterministic output.
-- MLT encoding now defaults to the pure Swift implementation. Its first
-  release uses conservative deterministic encodings (plain varints, plain
-  strings, componentwise-delta vertices and gzip) and normalizes polygon
-  winding in tile space.
+- MLT encoding now defaults to the pure Swift implementation. It chooses the
+  smallest enabled encoding per stream, normalizes polygon winding in tile
+  space, and is validated against both the pure Swift and C++ decoders.
 - MVT geometry command encoding uses a correct signed 32-bit zigzag encoder.
   Coordinates or deltas outside the signed 32-bit range are rejected instead
   of trapping in `UInt32` conversion.
