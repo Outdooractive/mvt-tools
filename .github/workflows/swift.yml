@@ -95,6 +95,24 @@ jobs:
       - name: Test C++ MLT backend
         run: swift test --traits EnableMLTCXX
 
+  mlt-sanitizers:
+    name: MLT sanitizers (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.3.3
+    env:
+      ASAN_OPTIONS: detect_leaks=0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build the benchmark executable
+        run: swift build --traits EnableMLT --product mlt-benchmark
+      - name: Test with AddressSanitizer
+        run: swift test --traits EnableMLT --sanitize=address
+
   coverage:
     name: coverage (Linux, all non-C++ traits)
     runs-on: ubuntu-latest

@@ -17,6 +17,9 @@ let package = Package(
         .library(
             name: "MVTTools",
             targets: ["MVTTools"]),
+        .executable(
+            name: "mlt-benchmark",
+            targets: ["MLTBenchmark"]),
     ],
     traits: [
         .trait(
@@ -65,6 +68,13 @@ let package = Package(
                 .target(name: "MVTTools"),
             ],
             swiftSettings: [.interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"]))]),
+        .executableTarget(
+            name: "MLTBenchmark",
+            dependencies: [.target(name: "MVTTools")],
+            path: "Benchmarks/MLTBenchmark",
+            swiftSettings: [
+                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
+            ]),
         .target(
             name: "MLTCore",
             path: "Sources/MLTCore"),
