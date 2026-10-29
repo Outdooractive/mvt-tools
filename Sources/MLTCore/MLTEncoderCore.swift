@@ -446,6 +446,13 @@ package enum MLTEncoderCore {
             }
         }
 
+        if type == .string {
+            return try makeStringColumn(
+                name: name,
+                values: encoded,
+                featureCount: featureCount)
+        }
+
         return .property(
             name: name,
             type: type,
@@ -459,12 +466,91 @@ package enum MLTEncoderCore {
         values: [(any Sendable)?],
         featureCount: Int
     ) throws -> MLTEncodedColumn {
-        .property(
+        try makeStringColumn(
             name: name,
-            type: .string,
-            nullable: values.contains { $0 == nil },
             values: values.map { $0.map { MLTEncodedValue.string(stringValue($0)) } },
             featureCount: featureCount)
+    }
+
+    private static func makeStringColumn(
+        name: String,
+        values: [MLTEncodedValue?],
+        featureCount: Int
+    ) throws -> MLTEncodedColumn {
+        let denseStrings = values.compactMap { value -> String? in
+            if case let .string(string) = value { return string }
+            return nil
+        }
+        let nullable = values.contains { $0 == nil }
+
+        let plainSize = encodedStringSize(denseStrings)
+        let dictionary = buildStringDictionary(denseStrings)
+        let dictionarySize = dictionary.map {
+            encodedStringSize($0.dictionary)
+                + encodedOffsetSize($0.offsets)
+                + 16
+        } ?? Int.max
+
+        let encoding: MLTStringEncoding
+        if dictionarySize < plainSize, let dictionary {
+            encoding = .dictionary(dictionary: dictionary.dictionary, offsets: dictionary.offsets)
+        }
+        else {
+            encoding = .plain
+        }
+
+        return .stringProperty(
+            name: name,
+            nullable: nullable,
+            values: values,
+            featureCount: featureCount,
+            encoding: encoding)
+    }
+
+    private static func buildStringDictionary(
+        _ strings: [String]
+    ) -> (dictionary: [String], offsets: [UInt32])? {
+        guard strings.count > 1 else { return nil }
+
+        var indexByString: [String: UInt32] = [:]
+        var dictionary: [String] = []
+        var offsets: [UInt32] = []
+        offsets.reserveCapacity(strings.count)
+
+        for string in strings {
+            if let index = indexByString[string] {
+                offsets.append(index)
+            }
+            else {
+                let index = UInt32(dictionary.count)
+                indexByString[string] = index
+                dictionary.append(string)
+                offsets.append(index)
+            }
+        }
+
+        return dictionary.count < strings.count
+            ? (dictionary, offsets)
+            : nil
+    }
+
+    private static func encodedStringSize(_ strings: [String]) -> Int {
+        var lengthWriter = MLTByteWriter()
+        var dataSize = 0
+        for string in strings {
+            let utf8 = Array(string.utf8)
+            lengthWriter.writeVarint32(UInt32(utf8.count))
+            dataSize += utf8.count
+        }
+        return lengthWriter.count + dataSize
+    }
+
+    private static func encodedOffsetSize(_ offsets: [UInt32]) -> Int {
+        var writer = MLTByteWriter()
+        for offset in offsets {
+            writer.writeVarint32(offset)
+        }
+        return writer.count
     }
 
     private static func int64Value(_ value: any Sendable, allowUnsigned: Bool) -> Int64? {
@@ -569,6 +655,16 @@ private enum MLTEncodedValue {
     case string(String)
 }
 
+private enum MLTStringEncoding {
+    case plain
+    case dictionary(dictionary: [String], offsets: [UInt32])
+
+    var isPlain: Bool {
+        if case .plain = self { return true }
+        return false
+    }
+}
+
 private enum MLTEncodedColumn {
     case id(nullable: Bool, longID: Bool, values: [UInt64?], featureCount: Int)
     case geometry(streams: [MLTEncodedStream])
@@ -578,6 +674,12 @@ private enum MLTEncodedColumn {
         nullable: Bool,
         values: [MLTEncodedValue?],
         featureCount: Int)
+    case stringProperty(
+        name: String,
+        nullable: Bool,
+        values: [MLTEncodedValue?],
+        featureCount: Int,
+        encoding: MLTStringEncoding)
 
     var metadata: MLTColumn {
         switch self {
@@ -601,6 +703,13 @@ private enum MLTEncodedColumn {
                 nullable: nullable,
                 scope: .feature,
                 kind: .scalar(type),
+                children: [])
+        case let .stringProperty(name, nullable, _, _, _):
+            return MLTColumn(
+                name: name,
+                nullable: nullable,
+                scope: .feature,
+                kind: .scalar(.string),
                 children: [])
         }
     }
@@ -639,10 +748,103 @@ private enum MLTEncodedColumn {
                 stream.write(to: &writer)
             }
 
-        case let .property(_, type, nullable, values, featureCount):
-            if type == .string {
-                writer.writeVarint32(UInt32(2 + (nullable ? 1 : 0)))
+        case let .stringProperty(_, nullable, values, featureCount, encoding):
+            let streamCount = (nullable ? 1 : 0) + (encoding.isPlain ? 2 : 3)
+            writer.writeVarint32(UInt32(streamCount))
+            if nullable {
+                try Self.writePresentStream(
+                    values: values.map { $0 != nil },
+                    featureCount: featureCount,
+                    to: &writer)
             }
+
+            let denseStrings = values.compactMap { value -> String? in
+                if case let .string(string) = value { return string }
+                return nil
+            }
+
+            switch encoding {
+            case .plain:
+                var lengthWriter = MLTByteWriter()
+                var data: [UInt8] = []
+                data.reserveCapacity(denseStrings.count * 8)
+                for string in denseStrings {
+                    let utf8 = Array(string.utf8)
+                    lengthWriter.writeVarint32(UInt32(utf8.count))
+                    data.append(contentsOf: utf8)
+                }
+                let lengthMetadata = MLTStreamMetadata(
+                    physicalStreamType: .length,
+                    logicalStreamType: .length(.varBinary),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: denseStrings.count,
+                    byteLength: lengthWriter.count)
+                MLTEncodedStream(metadata: lengthMetadata, payload: lengthWriter.bytes).write(to: &writer)
+
+                let dataMetadata = MLTStreamMetadata(
+                    physicalStreamType: .data,
+                    logicalStreamType: .dictionary(.none),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .none,
+                    numValues: denseStrings.count,
+                    byteLength: data.count)
+                MLTEncodedStream(metadata: dataMetadata, payload: data).write(to: &writer)
+
+            case let .dictionary(dictionary, offsets):
+                var dictionaryLengthWriter = MLTByteWriter()
+                var dictionaryData: [UInt8] = []
+                dictionaryData.reserveCapacity(dictionary.count * 8)
+                for string in dictionary {
+                    let utf8 = Array(string.utf8)
+                    dictionaryLengthWriter.writeVarint32(UInt32(utf8.count))
+                    dictionaryData.append(contentsOf: utf8)
+                }
+
+                let dictionaryLengthMetadata = MLTStreamMetadata(
+                    physicalStreamType: .length,
+                    logicalStreamType: .length(.dictionary),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: dictionary.count,
+                    byteLength: dictionaryLengthWriter.count)
+                MLTEncodedStream(
+                    metadata: dictionaryLengthMetadata,
+                    payload: dictionaryLengthWriter.bytes).write(to: &writer)
+
+                var offsetWriter = MLTByteWriter()
+                for offset in offsets {
+                    offsetWriter.writeVarint32(offset)
+                }
+                let offsetMetadata = MLTStreamMetadata(
+                    physicalStreamType: .offset,
+                    logicalStreamType: .offset(.string),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .varint,
+                    numValues: offsets.count,
+                    byteLength: offsetWriter.count)
+                MLTEncodedStream(
+                    metadata: offsetMetadata,
+                    payload: offsetWriter.bytes).write(to: &writer)
+
+                let dictionaryDataMetadata = MLTStreamMetadata(
+                    physicalStreamType: .data,
+                    logicalStreamType: .dictionary(.single),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .none,
+                    numValues: dictionary.count,
+                    byteLength: dictionaryData.count)
+                MLTEncodedStream(
+                    metadata: dictionaryDataMetadata,
+                    payload: dictionaryData).write(to: &writer)
+            }
+
+        case let .property(_, type, nullable, values, featureCount):
             if nullable {
                 try Self.writePresentStream(
                     values: values.map { $0 != nil },
@@ -741,40 +943,11 @@ private enum MLTEncodedColumn {
                     byteLength: payload.count)
                 MLTEncodedStream(metadata: metadata, payload: payload.bytes).write(to: &writer)
 
-            case .string:
-                var lengthWriter = MLTByteWriter()
-                var data: [UInt8] = []
-                data.reserveCapacity(dense.count * 8)
-                for value in dense {
-                    guard case let .string(string) = value else {
-                        throw MLTError.invalidData("Unexpected value type in string column")
-                    }
-                    let utf8 = Array(string.utf8)
-                    lengthWriter.writeVarint32(UInt32(utf8.count))
-                    data.append(contentsOf: utf8)
-                }
-                let lengthMetadata = MLTStreamMetadata(
-                    physicalStreamType: .length,
-                    logicalStreamType: .length(.varBinary),
-                    logicalTechnique1: .none,
-                    logicalTechnique2: .none,
-                    physicalTechnique: .varint,
-                    numValues: dense.count,
-                    byteLength: lengthWriter.count)
-                MLTEncodedStream(metadata: lengthMetadata, payload: lengthWriter.bytes).write(to: &writer)
-
-                let dataMetadata = MLTStreamMetadata(
-                    physicalStreamType: .data,
-                    logicalStreamType: .dictionary(.none),
-                    logicalTechnique1: .none,
-                    logicalTechnique2: .none,
-                    physicalTechnique: .none,
-                    numValues: dense.count,
-                    byteLength: data.count)
-                MLTEncodedStream(metadata: dataMetadata, payload: data).write(to: &writer)
-
             case .int8, .uint8:
                 throw MLTError.unsupported("8-bit property columns")
+
+            case .string:
+                throw MLTError.invalidData("String columns must use stringProperty")
             }
         }
     }

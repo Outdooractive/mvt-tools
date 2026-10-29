@@ -140,9 +140,28 @@ struct MLTCrossBackendTests {
             Point(Coordinate3D(x: 55.0, y: 66.0, projection: .noSRID)),
             properties: ["nullable": true] as [String: Sendable])
 
+        let classes = ["alpha", "beta", "gamma"]
+        let dictionaryFeatures = (0 ..< 20).map { index -> Feature in
+            let x = Double(index * 10)
+            let y = Double(index * 5)
+            let polygon = Polygon([[
+                Coordinate3D(x: x, y: y, projection: .noSRID),
+                Coordinate3D(x: x + 5, y: y, projection: .noSRID),
+                Coordinate3D(x: x + 5, y: y + 5, projection: .noSRID),
+                Coordinate3D(x: x, y: y + 5, projection: .noSRID),
+                Coordinate3D(x: x, y: y, projection: .noSRID),
+            ]])!
+            return Feature(
+                polygon,
+                properties: ["class": classes[index % classes.count]] as [String: Sendable])
+        }
+
         return [
             "mixed": VectorTile.LayerContainer(
                 features: [point, line, polygon, multiPolygon, noID],
+                boundingBox: nil),
+            "dictionary": VectorTile.LayerContainer(
+                features: dictionaryFeatures,
                 boundingBox: nil),
         ]
     }

@@ -1,0 +1,90 @@
+#if EnableMLT
+import Foundation
+@testable import MLTCore
+import Testing
+
+struct MLTEncoderCoreTests {
+
+    @Test
+    func repeatedStringsUseDictionaryAndRoundTrip() throws {
+        let strings = (0 ..< 120).map { index -> String? in
+            switch index % 4 {
+            case 0: return "motorway"
+            case 1: return "primary"
+            case 2: return "residential"
+            default: return nil
+            }
+        }
+
+        let data = try encode(strings: strings)
+        let layers = try MLTDecoderCore.decode(data)
+        let layer = try #require(layers.first)
+
+        #expect(layer.name == "test")
+        #expect(layer.featureCount == strings.count)
+        #expect(layer.properties["class"]?.count == strings.count)
+
+        for (index, expected) in strings.enumerated() {
+            if let expected {
+                #expect(layer.properties["class"]?[index] == .string(expected))
+            }
+            else {
+                #expect(layer.properties["class"]?[index] == nil)
+            }
+        }
+    }
+
+    @Test
+    func dictionaryIsSmallerThanPlainStrings() throws {
+        let repeated = (0 ..< 200).map { index -> String? in
+            ["alpha", "beta", "gamma"][index % 3]
+        }
+        let unique = (0 ..< 200).map { index -> String? in
+            "value-\(index)"
+        }
+
+        let repeatedData = try encode(strings: repeated)
+        let uniqueData = try encode(strings: unique)
+        #expect(repeatedData.count < uniqueData.count)
+    }
+
+    @Test
+    func uniqueStringsRemainRoundTrippable() throws {
+        let strings = (0 ..< 100).map { "value-\($0)" }
+        let data = try encode(strings: strings)
+        let layers = try MLTDecoderCore.decode(data)
+        let layer = try #require(layers.first)
+
+        for (index, expected) in strings.enumerated() {
+            #expect(layer.properties["class"]?[index] == .string(expected))
+        }
+    }
+
+    @Test
+    func singleStringAndEmptyStringRoundTrip() throws {
+        for strings in [["only"], [""], ["", "", ""], ["a", ""]] {
+            let data = try encode(strings: strings)
+            let layers = try MLTDecoderCore.decode(data)
+            let layer = try #require(layers.first)
+            for (index, expected) in strings.enumerated() {
+                #expect(layer.properties["class"]?[index] == .string(expected))
+            }
+        }
+    }
+
+    private func encode(strings: [String?]) throws -> Data {
+        let features = strings.enumerated().map { index, string in
+            MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .point(MLTTileCoordinate(x: Int32(index), y: 0)),
+                properties: string.map { ["class": $0] } ?? [:])
+        }
+        return try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+    }
+
+}
+
+#endif
