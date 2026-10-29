@@ -24,8 +24,9 @@ and this project adheres to semantic versioning.
 - `EnableMLTCXX` is deprecated in favour of the pure Swift backend and will be
   removed in the next major release.
 - The pure Swift MLT encoder now chooses single dictionary encoding for string
-  columns when it reduces the encoded size. Plain strings remain the fallback
-  for unique values.
+  columns when it reduces the encoded size. Related string columns such as
+  `name`, `name_de` and `name_en` are grouped into shared dictionaries. Plain
+  strings remain the fallback for unique values.
 
 ### Changed
 

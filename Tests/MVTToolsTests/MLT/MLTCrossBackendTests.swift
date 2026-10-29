@@ -153,7 +153,12 @@ struct MLTCrossBackendTests {
             ]])!
             return Feature(
                 polygon,
-                properties: ["class": classes[index % classes.count]] as [String: Sendable])
+                properties: [
+                    "class": classes[index % classes.count],
+                    "name": "Name \(index % 4)",
+                    "name_de": "Name DE \(index % 3)",
+                    "name_en": "Name EN \(index % 5)",
+                ] as [String: Sendable])
         }
 
         return [

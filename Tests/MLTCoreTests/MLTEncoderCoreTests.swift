@@ -49,6 +49,37 @@ struct MLTEncoderCoreTests {
     }
 
     @Test
+    func relatedStringColumnsUseSharedDictionary() throws {
+        let features = (0 ..< 80).map { index -> MLTEncodableFeature in
+            MLTEncodableFeature(
+                id: nil,
+                hasNumericID: false,
+                geometry: .point(MLTTileCoordinate(x: Int32(index), y: 0)),
+                properties: [
+                    "name": "Name \(index % 4)",
+                    "name_de": "Name DE \(index % 3)",
+                    "name_en": "Name EN \(index % 5)",
+                ])
+        }
+
+        let data = try MLTEncoderCore.encode(layers: [
+            MLTEncodableLayer(name: "test", extent: 4096, features: features),
+        ])
+        let layers = try MLTDecoderCore.decode(data)
+        let layer = try #require(layers.first)
+
+        #expect(layer.properties["name"]?.count == features.count)
+        #expect(layer.properties["name_de"]?.count == features.count)
+        #expect(layer.properties["name_en"]?.count == features.count)
+
+        for index in 0 ..< features.count {
+            #expect(layer.properties["name"]?[index] == .string("Name \(index % 4)"))
+            #expect(layer.properties["name_de"]?[index] == .string("Name DE \(index % 3)"))
+            #expect(layer.properties["name_en"]?[index] == .string("Name EN \(index % 5)"))
+        }
+    }
+
+    @Test
     func uniqueStringsRemainRoundTrippable() throws {
         let strings = (0 ..< 100).map { "value-\($0)" }
         let data = try encode(strings: strings)

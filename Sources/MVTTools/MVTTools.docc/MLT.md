@@ -86,7 +86,7 @@ The pure Swift encoder writes a conservative, deterministic subset:
 
 - plain varints for integer and length streams,
 - componentwise-delta varints for vertices,
-- plain length+data strings, or single-dictionary strings when that is smaller,
+- plain, single-dictionary or shared-dictionary strings, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
 - gzip compression through `ExportOptions.compression`,
 - numeric feature IDs only.
@@ -96,8 +96,7 @@ sees exterior rings and holes correctly, and stores rings without the
 redundant closing vertex. Its output is validated against both the pure Swift
 and C++ decoders.
 
-FSST, FastPFOR, shared string dictionaries and Morton/Hilbert vertex ordering
-are decoder-only for now. They can be added as encoder optimizations later without
+FSST, FastPFOR and Morton/Hilbert vertex ordering are decoder-only for now. They can be added as encoder optimizations later without
 changing the public API.
 
 ## Backend differences
