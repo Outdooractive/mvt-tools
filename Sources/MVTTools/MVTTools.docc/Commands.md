@@ -24,7 +24,8 @@ brew install Outdooractive/homebrew-tap/mvt-tools
 | `mvt rezoom` | Overzoom/underzoom source tiles into one target tile |
 | `mvt reproject` | Reproject any supported input to a target CRS |
 
-Tile coordinates are needed for MVT/MLT. They can be passed with `--x`,
+MVT and MLT require their package traits at build time. Tile coordinates are
+needed for MVT/MLT. They can be passed with `--x`,
 `--y`, `--z`, or parsed from a path such as `14/8716/8015.pbf` or
 `14_8716_8015.mvt`. Other formats derive a tile coordinate from their bounding
 box.

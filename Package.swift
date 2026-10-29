@@ -23,6 +23,9 @@ let package = Package(
     ],
     traits: [
         .trait(
+            name: "EnableMVT",
+            description: "Enables MVT (Mapbox Vector Tile) import/export."),
+        .trait(
             name: "EnableMLT",
             description: "Enables the pure Swift MapLibre tile specification (MLT) decoder/encoder. No C++ toolchain or C++ interoperability required."),
         .trait(
@@ -94,7 +97,8 @@ let package = Package(
                          condition: .when(traits: ["EnableShapefile"])),
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
-                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+                .product(name: "SwiftProtobuf", package: "swift-protobuf",
+                         condition: .when(traits: ["EnableMVT"])),
                 .target(name: "MLTCore", condition: .when(traits: ["EnableMLT"])),
                 .target(name: "CMLT", condition: .when(traits: ["EnableMLTCXX"])),
             ],

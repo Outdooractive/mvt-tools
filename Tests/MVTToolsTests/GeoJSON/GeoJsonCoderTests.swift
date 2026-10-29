@@ -7,6 +7,7 @@ struct GeoJsonFormatIOTests {
 
     /// Tests exporting a tile to GeoJSON with all layers and with a subset of layers,
     /// verifying that the correct layer names appear in the output feature properties.
+    #if EnableMVT
     @Test
     func toGeoJSON() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -26,9 +27,11 @@ struct GeoJsonFormatIOTests {
         #expect(Set(someLayers) == someLayersLayerList)
         #expect(someLayersFc.features.allSatisfy({ ($0.properties["test"] as? String) == "test" }))
     }
+    #endif
 
     /// Tests that MVT encoding/decoding round-trips a GeoJSON feature with null/m values correctly
     /// (note: MVT format does not preserve altitude or m values).
+    #if EnableMVT
     @Test
     func geoJSONWithNull() throws {
         let fc = FeatureCollection(Feature(Point(Coordinate3D(latitude: 47.56, longitude: 10.22, m: 1234))))
@@ -43,8 +46,10 @@ struct GeoJsonFormatIOTests {
         #expect(abs(decodedCoordinate.latitude - 47.56) < 0.00001)
         #expect(abs(decodedCoordinate.longitude - 10.22) < 0.00001)
     }
+    #endif
 
     /// Tests that a GeoJSON file can be loaded directly into a tile and produces valid MVT data.
+    #if EnableMVT
     @Test
     func loadGeoJson() throws {
         let geoJsonData = try TestData.dataFromFile(name: "14_8716_8015.geojson")
@@ -55,6 +60,7 @@ struct GeoJsonFormatIOTests {
         let mvtData = try #require(tile.mvtData())
         #expect(mvtData.isEmpty == false)
     }
+    #endif
 
     /// Tests writing GeoJSON to a file and reading it back.
     @Test

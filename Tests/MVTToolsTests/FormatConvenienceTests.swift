@@ -23,6 +23,7 @@ struct FormatConvenienceTests {
 
     // MARK: - MVT
 
+    #if EnableMVT
     @Test
     func mvtContentsOfMissingFileThrows() {
         let url = missingURL.appendingPathExtension("mvt")
@@ -30,7 +31,9 @@ struct FormatConvenienceTests {
             try VectorTile(contentsOfMVT: url, x: 0, y: 0, z: 0)
         }
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func mvtContentsOfInvalidDataThrows() throws {
         let url = try writeTemporary(Data([0xFF, 0xFF]), extension: "mvt")
@@ -40,7 +43,9 @@ struct FormatConvenienceTests {
             try VectorTile(contentsOfMVT: url, x: 0, y: 0, z: 0)
         }
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func mvtTileOverloadsAndAllowlist() throws {
         var tile = try VectorTile(x: 0, y: 0, z: 0)
@@ -68,7 +73,9 @@ struct FormatConvenienceTests {
         #expect(loaded.layerNames == ["one"])
         #expect(loaded.features(for: "one").count == 1)
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func mvtDataInitWithTileAndAllowlist() throws {
         var tile = try VectorTile(x: 0, y: 0, z: 0)
@@ -89,7 +96,9 @@ struct FormatConvenienceTests {
         #expect(loaded.isIndexed)
         #expect(loaded.layerNames == ["two"])
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func writeMVTToDirectoryFails() throws {
         let tile = try VectorTile(x: 0, y: 0, z: 0)
@@ -100,6 +109,7 @@ struct FormatConvenienceTests {
 
         #expect(tile.writeMVT(to: directory) == false)
     }
+    #endif
 
     // MARK: - MLT
 

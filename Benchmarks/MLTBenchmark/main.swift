@@ -16,6 +16,7 @@ struct MLTBenchmark {
         case invalidCoordinate(String)
         case invalidIterations(String)
         case encodingFailed
+        case mvtUnavailable
 
         var description: String {
             switch self {
@@ -27,6 +28,8 @@ struct MLTBenchmark {
                 return "invalid iteration count: \(value)"
             case .encodingFailed:
                 return "failed to encode MLT"
+            case .mvtUnavailable:
+                return "MVT input requires the EnableMVT trait"
             }
         }
     }
@@ -88,14 +91,23 @@ struct MLTBenchmark {
         let data = try Data(contentsOf: url)
         let extensionName = url.pathExtension.lowercased()
         let isMVT = extensionName == "mvt" || extensionName == "pbf"
+        #if !EnableMVT
+        guard !isMVT else {
+            throw BenchmarkError.mvtUnavailable
+        }
+        #endif
 
         var tile: VectorTile?
         var decodeSeconds = 0.0
         for _ in 0 ..< iterations {
             let start = Date()
+            #if EnableMVT
             let decoded = try isMVT
                 ? VectorTile(mvtData: data, x: x, y: y, z: z)
                 : VectorTile(mltData: data, x: x, y: y, z: z)
+            #else
+            let decoded = try VectorTile(mltData: data, x: x, y: y, z: z)
+            #endif
             decodeSeconds += Date().timeIntervalSince(start)
             tile = decoded
         }

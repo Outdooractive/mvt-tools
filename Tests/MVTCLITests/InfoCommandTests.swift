@@ -4,6 +4,7 @@ import Testing
 
 struct InfoCommandTests {
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func infoOnMvt() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -11,6 +12,7 @@ struct InfoCommandTests {
         #expect(output.contains("Name"))
         #expect(output.contains("road"))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func infoOnGeoJson() throws {
@@ -55,13 +57,16 @@ struct InfoCommandTests {
     }
     #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func infoWithProperty() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["info", "-p", "class", mvtPath])
         #expect(output.contains("class"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func infoTablesAcceptWhitespace() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -70,5 +75,6 @@ struct InfoCommandTests {
         #expect(output.contains("Property"))
         #expect(output.contains("hospital"))
     }
+    #endif
 
 }

@@ -6,12 +6,14 @@ struct QueryCommandTests {
 
     // MARK: Across all formats
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func queryMvtByText() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", mvtPath, "zzz_nonexistent"])
         #expect(output.contains("features") || output.contains("Nothing found"))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func queryGeoJsonByText() throws {
@@ -58,20 +60,25 @@ struct QueryCommandTests {
 
     // MARK: Parameter variants
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func queryByCoordinate() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", mvtPath, "3.870163,11.518585,100"])
         #expect(output.contains("FeatureCollection") || output.contains("Nothing found"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func queryWithPropertyFilter() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", mvtPath, ".class=='hospital'"])
         #expect(output.contains("FeatureCollection") || output.contains("Nothing found"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func queryWithOutputFile() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -82,12 +89,15 @@ struct QueryCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(fc.features.isEmpty == false)
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func queryWithLayerFilter() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["query", "--layer", "road", mvtPath, "road"])
         #expect(output.contains("FeatureCollection") || output.contains("Nothing found"))
     }
+    #endif
 
 }

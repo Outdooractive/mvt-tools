@@ -1,3 +1,4 @@
+#if EnableMVT
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
@@ -331,3 +332,4 @@ struct MVTEncoderTests {
     }
 
 }
+#endif

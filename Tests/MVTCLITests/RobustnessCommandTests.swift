@@ -38,6 +38,7 @@ struct RobustnessCommandTests {
 
     // MARK: - Load
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func loadBoundingBoxCrossingAntimeridian() throws {
         let sourceDir = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -72,7 +73,9 @@ struct RobustnessCommandTests {
             #expect(FileManager.default.fileExists(atPath: file.path), "Missing tile \(x)/\(y)")
         }
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func loadZoomOptionOverridesUrlZoom() throws {
         let sourceDir = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -109,9 +112,11 @@ struct RobustnessCommandTests {
         #expect(FileManager.default.fileExists(
             atPath: outputDir.appendingPathComponent("2_0_0.pbf").path) == false)
     }
+    #endif
 
     // MARK: - Merge
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func mergeWithoutInputsStillUsesOutputExtension() throws {
         let outputUrl = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -128,5 +133,6 @@ struct RobustnessCommandTests {
         #expect(tile.origin == .mvt)
         #expect(tile.isEmpty)
     }
+    #endif
 
 }

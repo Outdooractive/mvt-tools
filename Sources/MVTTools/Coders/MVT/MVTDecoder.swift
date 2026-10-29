@@ -1,3 +1,4 @@
+#if EnableMVT
 #if canImport(CoreLocation)
 import CoreLocation
 #endif
@@ -438,3 +439,4 @@ enum MVTDecoder {
     }
 
 }
+#endif

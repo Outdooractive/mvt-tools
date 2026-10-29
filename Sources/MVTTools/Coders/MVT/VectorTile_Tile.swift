@@ -1,3 +1,4 @@
+#if EnableMVT
 // DO NOT EDIT.
 // swift-format-ignore-file
 // swiftlint:disable all
@@ -474,3 +475,4 @@ nonisolated extension VectorTile_Tile.Layer: SwiftProtobuf.Message, SwiftProtobu
     return true
   }
 }
+#endif

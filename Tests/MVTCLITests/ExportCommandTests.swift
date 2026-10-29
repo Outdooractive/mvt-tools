@@ -4,6 +4,7 @@ import Testing
 
 struct ExportCommandTests {
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func exportMvtToGeoJson() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -13,6 +14,7 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func exportGeoJsonToGeoJson() throws {
@@ -84,6 +86,7 @@ struct ExportCommandTests {
     }
     #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func exportWithCompression() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -93,7 +96,9 @@ struct ExportCommandTests {
         let data = try Data(contentsOf: outUrl)
         #expect(!data.isEmpty)
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func exportWithSimplify() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
@@ -103,5 +108,6 @@ struct ExportCommandTests {
         let fc = try assertGeoJsonFile(at: outUrl)
         #expect(!fc.features.isEmpty)
     }
+    #endif
 
 }

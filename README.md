@@ -110,10 +110,11 @@ a look at that project as well.
 
 ### Format traits
 
-MVT and GeoJSON are always available. The remaining coders are package traits:
+GeoJSON is always available. MVT and the remaining coders are package traits:
 
 | Format | Trait | Notes |
 | --- | --- | --- |
+| MVT | `EnableMVT` | Mapbox Vector Tile 2.1 import/export. Pulls in `swift-protobuf`. |
 | MLT | `EnableMLT` | Pure Swift decoder/encoder. No C++ toolchain or C++ interoperability required. |
 | MLT (C++ backend) | `EnableMLTCXX` | Optional. Implies `EnableMLT` and uses the upstream C++ bridge. |
 | CSV | `EnableCSV` | |
@@ -123,7 +124,9 @@ MVT and GeoJSON are always available. The remaining coders are package traits:
 | GeoPackage | `EnableGeoPackage` | |
 
 Enable every format in a build with `swift build --enable-all-traits` or
-`swift test --enable-all-traits`. In a consuming package, declare the trait on
+`swift test --enable-all-traits`. The released `mvt` binary ships with every
+non-C++ coder; to build the CLI locally with all of them use
+`swift build --enable-all-traits --product mvt`. In a consuming package, declare the trait on
 the product dependency or enable it from the command line. To use the pure
 Swift MLT implementation, enable only `EnableMLT`:
 
@@ -136,6 +139,8 @@ swift build --traits EnableMLT
 See the [API documentation](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools) (via Swift Package Index).
 
 ### Read MVT
+
+MVT support is behind the `EnableMVT` package trait:
 
 ```swift
 import MVTTools
@@ -179,6 +184,8 @@ let mvtData = tile.mvtData()
 ```
 
 ### Write MVT
+
+MVT support is behind the `EnableMVT` package trait:
 
 ```swift
 var tile = try VectorTile(x: 8716, y: 8015, z: 14)

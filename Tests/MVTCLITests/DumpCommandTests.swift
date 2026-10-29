@@ -7,12 +7,14 @@ struct DumpCommandTests {
 
     // MARK: Format smoke tests
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpMvt() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func dumpGeoJson() throws {
@@ -68,19 +70,23 @@ struct DumpCommandTests {
 
     // MARK: Parameters
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpMvtWithLayerFilter() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "--layer", "road", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpMvtWithDropLayer() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "--drop-layer", "water", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func dumpGeoJsonWithLayerProperty() throws {
@@ -89,26 +95,32 @@ struct DumpCommandTests {
         #expect(output.contains("FeatureCollection"))
     }
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpWithSimplify() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "--simplify-meters", "100", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpWithVerbose() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "--verbose", mvtPath])
         #expect(output.contains("Dumping"))
     }
+    #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func dumpDisableOutputLayer() throws {
         let mvtPath = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt").path
         let output = try runCLI(args: ["dump", "-Do", mvtPath])
         #expect(output.contains("FeatureCollection"))
     }
+    #endif
 
     // MARK: CSV options
 

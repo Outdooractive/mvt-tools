@@ -67,6 +67,7 @@ struct ReprojectCommandTests {
     }
     #endif
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func reprojectFiltersLayers() throws {
         let input = testDataDir.appendingPathComponent("14_8716_8015.vector.mvt")
@@ -89,6 +90,7 @@ struct ReprojectCommandTests {
             $0.properties["vt_layer"] as? String == "road"
         })
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func reprojectRequiresOutputProjection() throws {

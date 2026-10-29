@@ -27,7 +27,7 @@ def target_triple() -> str:
 
 
 def build_symbol_graph() -> Path:
-    subprocess.run(["swift", "build", "--traits", "EnableMLT"], cwd=ROOT, check=True)
+    subprocess.run(["swift", "build", "--traits", "EnableMVT,EnableMLT"], cwd=ROOT, check=True)
     bin_path = subprocess.check_output(
         ["swift", "build", "--show-bin-path"],
         cwd=ROOT,

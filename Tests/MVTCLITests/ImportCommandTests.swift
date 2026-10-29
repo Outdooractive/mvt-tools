@@ -6,6 +6,7 @@ struct ImportCommandTests {
 
     // MARK: Input formats
 
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importGeoJsonToMvt() throws {
         let input = try generateSmallGeoJson()
@@ -15,6 +16,7 @@ struct ImportCommandTests {
         #expect(output.contains("mvt"))
         try assertMvtFile(at: outUrl)
     }
+    #endif
 
     #if EnableMLT
     @Test(.timeLimit(.minutes(1)))
@@ -23,7 +25,7 @@ struct ImportCommandTests {
         let outUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("imp_\(UUID().uuidString).mlt")
         defer { try? FileManager.default.removeItem(at: outUrl) }
         _ = try runCLI(args: ["import", "-x", "5", "-y", "13", "-z", "4", "--output", outUrl.path, "--force-overwrite", input.path])
-        try assertMvtFile(at: outUrl)
+        try assertNonEmptyFile(at: outUrl)
     }
     #endif
 
@@ -73,6 +75,7 @@ struct ImportCommandTests {
     // MARK: Input from other formats
 
     #if EnableGPX
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importGpxToMvt() throws {
         let input = try generateSmallGpx()
@@ -83,7 +86,10 @@ struct ImportCommandTests {
     }
     #endif
 
+    #endif
+
     #if EnableCSV
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importCsvToMvt() throws {
         let input = try generateSmallCsv()
@@ -92,6 +98,7 @@ struct ImportCommandTests {
         _ = try runCLI(args: ["import", "-x", "0", "-y", "0", "-z", "0", "--output", outUrl.path, "--force-overwrite", input.path])
         try assertMvtFile(at: outUrl)
     }
+    #endif
 
     @Test(.timeLimit(.minutes(1)))
     func importCsvToGeoJson() throws {
@@ -144,6 +151,7 @@ struct ImportCommandTests {
     #endif
 
     #if EnableShapefile
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importShapefileToMvt() throws {
         let input = try generateSmallShapefile()
@@ -154,7 +162,10 @@ struct ImportCommandTests {
     }
     #endif
 
+    #endif
+
     #if EnableGeoPackage
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importGeoPackageToMvt() async throws {
         let input = try await generateSmallGeoPackage()
@@ -165,7 +176,10 @@ struct ImportCommandTests {
     }
     #endif
 
+    #endif
+
     #if EnableMLT
+    #if EnableMVT
     @Test(.timeLimit(.minutes(1)))
     func importMltToMvt() throws {
         let input = try generateSmallMlt()
@@ -174,6 +188,8 @@ struct ImportCommandTests {
         _ = try runCLI(args: ["import", "-x", "0", "-y", "0", "-z", "0", "--output", outUrl.path, "--force-overwrite", input.path])
         try assertMvtFile(at: outUrl)
     }
+    #endif
+
     #endif
 
 }

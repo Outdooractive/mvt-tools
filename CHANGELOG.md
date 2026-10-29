@@ -49,6 +49,10 @@ and this project adheres to semantic versioning.
 
 ### Changed
 
+- MVT import/export is now behind the `EnableMVT` package trait, like the other
+  format coders. Consumers that use MVT must enable the trait (or
+  `--enable-all-traits`); the released `mvt` binary keeps every non-C++ coder.
+  Builds without MVT no longer compile `swift-protobuf`.
 - The pure Swift MLT encoder builds the vertex index map once per geometry
   column and precomputes Hilbert codes for sorting, instead of hashing the
   vertices for each dictionary candidate and recomputing codes in the

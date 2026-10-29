@@ -97,12 +97,16 @@ extension TileFormat {
     ) async throws -> VectorTile {
         switch self {
         case .mvt(let x, let y, let z):
+            #if EnableMVT
             return try VectorTile(
                 contentsOfMVT: url,
                 x: x, y: y, z: z,
                 projection: inputProjection ?? .epsg4326,
                 layerAllowlist: layerAllowlist,
                 logger: logger)
+            #else
+            throw unavailableError
+            #endif
 
         case .mlt(let x, let y, let z):
             #if EnableMLT

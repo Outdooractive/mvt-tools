@@ -80,6 +80,7 @@ struct OverzoomTests {
 
     // MARK: - Overzoom
 
+    #if EnableMVT
     @Test
     func overzoomByOne() throws {
         let source = try makeSourceTile(x: 1, y: 1, z: 2)
@@ -101,7 +102,9 @@ struct OverzoomTests {
         #expect(names.contains("nw"))
         #expect(!names.contains("se"))
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func overzoomByTwo() throws {
         let source = try makeSourceTile(x: 1, y: 1, z: 2)
@@ -123,6 +126,7 @@ struct OverzoomTests {
         let names = Set(features.compactMap { $0.properties["name"] as? String })
         #expect(!names.contains("se"))
     }
+    #endif
 
     @Test
     func overzoomNonAncestorReturnsNil() throws {
@@ -134,6 +138,7 @@ struct OverzoomTests {
 
     // MARK: - Underzoom
 
+    #if EnableMVT
     @Test
     func underzoomByOne() throws {
         // Source at z=3/x=2/y=2 (a child of z=2/x=1/y=1)
@@ -154,7 +159,9 @@ struct OverzoomTests {
         #expect(names.contains("nw"))
         #expect(names.contains("se"))
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func underzoomMultipleChildren() throws {
         // Create all 4 children of z=2/x=1/y=1 at z=3
@@ -179,6 +186,7 @@ struct OverzoomTests {
         // Each child contributed 2 features → 8 total
         #expect(features.count == 8)
     }
+    #endif
 
     @Test
     func underzoomNonAncestorReturnsNil() throws {
@@ -218,7 +226,6 @@ struct OverzoomTests {
             let source = try makeSourceTile(x: 1, y: 1, z: 2, projection: projection)
             let result = try #require(source.rezoom(toTargetX: 2, targetY: 2, targetZ: 3))
 
-
             #expect(result.projection == projection)
             #expect(result.z == 3)
             #expect(result.x == 2)
@@ -236,7 +243,6 @@ struct OverzoomTests {
             let source = try makeSourceTile(x: 2, y: 2, z: 3, projection: projection)
             let result = try #require(source.rezoom(toTargetX: 1, targetY: 1, targetZ: 2))
 
-
             #expect(result.projection == projection)
             #expect(result.z == 2)
 
@@ -247,6 +253,7 @@ struct OverzoomTests {
 
     // MARK: - Round-trip MVT
 
+    #if EnableMVT
     @Test
     func overzoomMvtRoundTrip() throws {
         // Use the real test data tile
@@ -264,7 +271,9 @@ struct OverzoomTests {
         let totalFeatures = decoded.layerNames.reduce(0) { $0 + decoded.features(for: $1).count }
         #expect(totalFeatures > 0)
     }
+    #endif
 
+    #if EnableMVT
     @Test
     func underzoomMvtRoundTrip() throws {
         let mvtData = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -281,6 +290,7 @@ struct OverzoomTests {
         let totalFeatures = decoded.layerNames.reduce(0) { $0 + decoded.features(for: $1).count }
         #expect(totalFeatures > 0)
     }
+    #endif
 
     // MARK: - Round-trip GeoJSON
 

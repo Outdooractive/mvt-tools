@@ -19,6 +19,7 @@ struct QueryTests {
 
     /// Tests performing a spatial query on a non-indexed tile,
     /// verifying the expected number of results and layer names.
+    #if EnableMVT
     @Test
     func query() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -30,9 +31,11 @@ struct QueryTests {
         let result = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
         #expect(result.count == 107)
     }
+    #endif
 
     /// Tests that a spatial query on an indexed (R-Tree) tile returns
     /// the same number of results as a non-indexed query.
+    #if EnableMVT
     @Test
     func queryWithIndex() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -44,8 +47,10 @@ struct QueryTests {
         let resultWithIndex = tile.query(at: Coordinate3D(latitude: 3.870163, longitude: 11.518585), tolerance: 100.0)
         #expect(resultWithIndex.count == 107)
     }
+    #endif
 
     /// Tests performing a text-based search across feature properties.
+    #if EnableMVT
     @Test
     func textSearch() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -56,8 +61,10 @@ struct QueryTests {
         #expect(results.allSatisfy({ $0.layerName.isNotEmpty }))
         #expect(results.contains(where: { ($0.feature.properties["class"] as? String) == "motorway" }))
     }
+    #endif
 
     /// Tests that a text search with a non-matching term returns empty results.
+    #if EnableMVT
     @Test
     func textSearchNoMatch() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -66,8 +73,10 @@ struct QueryTests {
         let results = tile.query(term: "zzzxxxyyy_nonexistent")
         #expect(results.isEmpty)
     }
+    #endif
 
     /// Tests querying within a specific layer by name.
+    #if EnableMVT
     @Test
     func queryInSpecificLayer() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -77,8 +86,10 @@ struct QueryTests {
         #expect(results.isNotEmpty)
         #expect(results.allSatisfy({ $0.layerName == "road" }))
     }
+    #endif
 
     /// Tests the queryMany function with a single coordinate.
+    #if EnableMVT
     @Test
     func queryMany() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -92,8 +103,10 @@ struct QueryTests {
         #expect(results.isNotEmpty)
         #expect(features.isEmpty == false)
     }
+    #endif
 
     /// Tests querying with a feature filter that excludes certain features.
+    #if EnableMVT
     @Test
     func queryWithFeatureFilter() throws {
         let mvt = try TestData.dataFromFile(name: "14_8716_8015.vector.mvt")
@@ -108,6 +121,7 @@ struct QueryTests {
         #expect(filteredResults.isEmpty)
         #expect(allResults.isNotEmpty)
     }
+    #endif
 
     /// Tests that createIndex with a Hilbert sort option produces an indexed tile.
     @Test

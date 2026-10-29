@@ -1,3 +1,4 @@
+#if EnableMVT
 import Foundation
 import GISTools
 import Logging
@@ -209,3 +210,4 @@ extension VectorTile {
     }
 
 }
+#endif
