@@ -107,14 +107,26 @@ encoder enables its own topology heuristics and may sort points/line strings by
 Hilbert order. The pure Swift encoder preserves feature order and emits plain
 encodings, trading size for predictability and interoperability.
 
+## Experimental feature policy
+
+Experimental MLT v1 features are intentionally not implemented yet. The
+current behavior is conservative and explicit:
+
+| Feature | Behavior |
+| --- | --- |
+| Nested/struct properties | Shared string dictionaries are supported. Other struct shapes are rejected with an unsupported-feature error. |
+| Vertex-scoped properties / M-values | Not supported. The tag `0x01` decoder has no vertex-scope path; do not use vertex-scoped columns with this codec. |
+| RangeMap and binary columns | Rejected by the metadata decoder. |
+| Tessellation streams | Triangle and index streams are parsed but ignored. Geometry must still be decodable from the normal topology streams. |
+| `GEOMETRY_Z` | Rejected as an unsupported geometry type. |
+| 128-bit integers | Rejected as unsupported scalar types. |
+| Logical date/timestamp/JSON types | Rejected as unsupported logical scalar types. |
+| External tileset metadata | Not supported. Only embedded tag `0x01` metadata is read. |
+| MLT v2 (`0x02`) | Rejected with an unsupported-feature error until the upstream format stabilizes. |
+
 ## Known limitations
 
-- Only the tag `0x01` tile format is decoded. MLT v2 (`0x02`) is still
-  experimental and is rejected with an unsupported-feature error; v2 support is
-  a separate follow-up. External tileset metadata is not supported.
+- Only the tag `0x01` tile format is decoded.
 - String feature IDs and altitude are not preserved.
-- Experimental MLT types (nested structs beyond shared string dictionaries,
-  vertex-scoped properties, RangeMap, tessellation, `GEOMETRY_Z`, 128-bit
-  integers) are not fully supported.
-- The first pure Swift encoder release does not implement compression
-  optimizations beyond gzip.
+- The encoder uses gzip plus the implemented adaptive encodings; it does not
+  implement MLT v2 encodings.

@@ -17,3 +17,5 @@ Arguments:
 The benchmark prints decode and encode time per iteration plus the resulting
 MLT size. It uses the public `VectorTile` API and therefore exercises the same
 path as library consumers.
+
+See [RESULTS.md](RESULTS.md) for a recent release-mode benchmark run.

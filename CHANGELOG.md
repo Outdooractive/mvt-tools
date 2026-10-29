@@ -23,6 +23,10 @@ and this project adheres to semantic versioning.
   (`71f20ee8`) for the optional C++ backend and conformance fixtures.
 - Added an `mlt-benchmark` executable for MLT decode/encode timing and size
   measurements, plus an AddressSanitizer CI job for the pure Swift codec.
+- Recorded release-mode benchmark results and added a manifest with checksums
+  and expected layer/feature counts for the curated MLT fixtures. The full
+  upstream corpus is opt-in via `MLT_FULL_CORPUS=1`.
+- Documented the supported/rejected experimental MLT v1 feature matrix.
 - The pure Swift MLT encoder now uses a Hilbert-sorted or Morton vertex
   dictionary when repeated vertices make it smaller than the plain
   componentwise-delta buffer.

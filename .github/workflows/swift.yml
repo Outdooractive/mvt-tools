@@ -60,6 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container: swift:6.3.3
+    env:
+      MLT_FULL_CORPUS: "1"
     steps:
       - uses: actions/checkout@v4
         with:

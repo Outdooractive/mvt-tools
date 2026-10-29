@@ -130,6 +130,17 @@ struct MLTMetadataTests {
     }
 
     @Test
+    func unknownColumnTypeCodeIsRejected() {
+        var writer = MLTByteWriter()
+        writer.writeVarint32(31)
+        var reader = MLTByteReader(writer.bytes)
+
+        #expect(throws: MLTError.unsupported("column type code 31")) {
+            _ = try MLTColumn.decode(from: &reader)
+        }
+    }
+
+    @Test
     func emptyLayerNameIsRejected() {
         let table = MLTFeatureTable(name: "", extent: 4096, columns: [])
         #expect(throws: (any Error).self) {

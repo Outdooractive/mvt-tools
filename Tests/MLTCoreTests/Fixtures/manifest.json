@@ -1,0 +1,55 @@
+{
+  "upstream": {
+    "repository": "https://github.com/maplibre/maplibre-tile-spec",
+    "revision": "71f20ee897a285f54bc461974c07713af04aeb7b",
+    "path": "test/expected/0x01/omt"
+  },
+  "checksum": "fnv1a64",
+  "fixtures": [
+    {
+      "file": "0_0_0.mlt",
+      "bytes": 66727,
+      "checksum": "cabf4523a9e0c48c",
+      "layers": {
+        "boundary": 372,
+        "landcover": 22,
+        "place": 74,
+        "water": 48,
+        "water_name": 16
+      }
+    },
+    {
+      "file": "7_66_84.mlt",
+      "bytes": 179687,
+      "checksum": "7af81081e79cd9de",
+      "layers": {
+        "landcover": 1008,
+        "landuse": 234,
+        "mountain_peak": 220,
+        "park": 200,
+        "place": 444,
+        "transportation": 23792,
+        "transportation_name": 16,
+        "water": 58,
+        "waterway": 10
+      }
+    },
+    {
+      "file": "9_264_342.mlt",
+      "bytes": 71356,
+      "checksum": "1e2dd392111777c3",
+      "layers": {
+        "landcover": 99,
+        "landuse": 178,
+        "mountain_peak": 41,
+        "park": 154,
+        "place": 284,
+        "transportation": 6844,
+        "transportation_name": 24,
+        "water": 125,
+        "water_name": 2,
+        "waterway": 24
+      }
+    }
+  ]
+}
