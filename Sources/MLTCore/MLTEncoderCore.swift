@@ -515,10 +515,95 @@ package enum MLTEncoderCore {
             return MLTSharedStringChild(name: suffix, values: values)
         }
 
+        guard let dictionary = buildSharedDictionary(children) else {
+            return .sharedStringProperty(
+                rootName: root,
+                children: children,
+                featureCount: features.count,
+                encoding: .plain(dictionary: [], offsets: []))
+        }
+
+        var candidates: [MLTSharedStringEncoding] = [
+            .plain(dictionary: dictionary.dictionary, offsets: dictionary.offsets),
+        ]
+        if let fsst = MLTFSSTEncoder.encode(dictionary.dictionary) {
+            candidates.append(.fsst(
+                dictionary: dictionary.dictionary,
+                offsets: dictionary.offsets,
+                symbols: fsst.symbols,
+                symbolLengths: fsst.symbolLengths,
+                compressedData: fsst.compressedData))
+        }
+
+        let encoding = candidates.min { lhs, rhs in
+            sharedStringColumnSize(
+                root: root,
+                children: children,
+                featureCount: features.count,
+                encoding: lhs)
+                < sharedStringColumnSize(
+                    root: root,
+                    children: children,
+                    featureCount: features.count,
+                    encoding: rhs)
+        } ?? candidates[0]
+
         return .sharedStringProperty(
             rootName: root,
             children: children,
-            featureCount: features.count)
+            featureCount: features.count,
+            encoding: encoding)
+    }
+
+    private static func buildSharedDictionary(
+        _ children: [MLTSharedStringChild]
+    ) -> (dictionary: [String], offsets: [[UInt32]])? {
+        var dictionary: [String] = []
+        var indexByString: [String: UInt32] = [:]
+        var offsets: [[UInt32]] = []
+        var hasValue = false
+
+        for child in children {
+            var childOffsets: [UInt32] = []
+            for value in child.values {
+                guard let value else { continue }
+                guard case let .string(string) = value else { return nil }
+                hasValue = true
+                if let index = indexByString[string] {
+                    childOffsets.append(index)
+                }
+                else {
+                    let index = UInt32(dictionary.count)
+                    indexByString[string] = index
+                    dictionary.append(string)
+                    childOffsets.append(index)
+                }
+            }
+            offsets.append(childOffsets)
+        }
+
+        return hasValue ? (dictionary, offsets) : nil
+    }
+
+    private static func sharedStringColumnSize(
+        root: String,
+        children: [MLTSharedStringChild],
+        featureCount: Int,
+        encoding: MLTSharedStringEncoding
+    ) -> Int {
+        let column = MLTEncodedColumn.sharedStringProperty(
+            rootName: root,
+            children: children,
+            featureCount: featureCount,
+            encoding: encoding)
+        var writer = MLTByteWriter()
+        do {
+            try column.writeStreams(to: &writer)
+        }
+        catch {
+            return Int.max
+        }
+        return writer.count
     }
 
     private struct PropertyInference {
@@ -1394,6 +1479,23 @@ private struct MLTSharedStringChild {
     var values: [MLTEncodedValue?]
 }
 
+private enum MLTSharedStringEncoding {
+    case plain(dictionary: [String], offsets: [[UInt32]])
+    case fsst(
+        dictionary: [String],
+        offsets: [[UInt32]],
+        symbols: [UInt8],
+        symbolLengths: [UInt32],
+        compressedData: [UInt8])
+
+    var dictionaryStreamCount: Int {
+        switch self {
+        case .plain: return 2
+        case .fsst: return 4
+        }
+    }
+}
+
 private enum MLTEncodedColumn {
     case id(nullable: Bool, longID: Bool, values: [UInt64?], featureCount: Int)
     case geometry(streams: [MLTEncodedStream])
@@ -1412,7 +1514,8 @@ private enum MLTEncodedColumn {
     case sharedStringProperty(
         rootName: String,
         children: [MLTSharedStringChild],
-        featureCount: Int)
+        featureCount: Int,
+        encoding: MLTSharedStringEncoding)
 
     var metadata: MLTColumn {
         switch self {
@@ -1444,7 +1547,7 @@ private enum MLTEncodedColumn {
                 scope: .feature,
                 kind: .scalar(.string),
                 children: [])
-        case let .sharedStringProperty(rootName, children, _):
+        case let .sharedStringProperty(rootName, children, _, _):
             return MLTColumn(
                 name: rootName,
                 nullable: false,
@@ -1490,76 +1593,86 @@ private enum MLTEncodedColumn {
                 stream.write(to: &writer)
             }
 
-        case let .sharedStringProperty(rootName, children, featureCount):
+        case let .sharedStringProperty(rootName, children, featureCount, encoding):
             _ = rootName
-            var dictionary: [String] = []
-            var indexByString: [String: UInt32] = [:]
-            var childOffsets: [[UInt32]] = []
-            childOffsets.reserveCapacity(children.count)
+            writer.writeVarint32(UInt32(encoding.dictionaryStreamCount + children.count * 2))
 
-            for child in children {
-                var offsets: [UInt32] = []
-                for value in child.values {
-                    guard let value else { continue }
-                    guard case let .string(string) = value else {
-                        throw MLTError.invalidData("Unexpected value type in shared dictionary column")
-                    }
-                    if let index = indexByString[string] {
-                        offsets.append(index)
-                    }
-                    else {
-                        let index = UInt32(dictionary.count)
-                        indexByString[string] = index
-                        dictionary.append(string)
-                        offsets.append(index)
-                    }
+            switch encoding {
+            case let .plain(dictionary, offsets):
+                var dictionaryLengths: [UInt32] = []
+                var dictionaryData: [UInt8] = []
+                for string in dictionary {
+                    let utf8 = Array(string.utf8)
+                    dictionaryLengths.append(UInt32(utf8.count))
+                    dictionaryData.append(contentsOf: utf8)
                 }
-                childOffsets.append(offsets)
-            }
+                MLTEncoderCore.encodedUInt32Stream(
+                    values: dictionaryLengths,
+                    physical: .length,
+                    logical: .length(.dictionary)).write(to: &writer)
+                let metadata = MLTStreamMetadata(
+                    physicalStreamType: .data,
+                    logicalStreamType: .dictionary(.shared),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .none,
+                    numValues: dictionary.count,
+                    byteLength: dictionaryData.count)
+                MLTEncodedStream(metadata: metadata, payload: dictionaryData).write(to: &writer)
 
-            writer.writeVarint32(UInt32(2 + children.count * 2))
-
-            var dictionaryLengths: [UInt32] = []
-            var dictionaryData: [UInt8] = []
-            for string in dictionary {
-                let utf8 = Array(string.utf8)
-                dictionaryLengths.append(UInt32(utf8.count))
-                dictionaryData.append(contentsOf: utf8)
-            }
-            MLTEncoderCore.encodedUInt32Stream(
-                values: dictionaryLengths,
-                physical: .length,
-                logical: .length(.dictionary)).write(to: &writer)
-
-            let dictionaryDataMetadata = MLTStreamMetadata(
-                physicalStreamType: .data,
-                logicalStreamType: .dictionary(.shared),
-                logicalTechnique1: .none,
-                logicalTechnique2: .none,
-                physicalTechnique: .none,
-                numValues: dictionary.count,
-                byteLength: dictionaryData.count)
-            MLTEncodedStream(
-                metadata: dictionaryDataMetadata,
-                payload: dictionaryData).write(to: &writer)
-
-            for (index, child) in children.enumerated() {
-                let dense = child.values.compactMap { $0 }
-                if dense.isEmpty {
-                    writer.writeVarint32(0)
-                    continue
+                for (index, child) in children.enumerated() {
+                    try Self.writeSharedStringChild(
+                        child,
+                        offsets: offsets[index],
+                        featureCount: featureCount,
+                        to: &writer)
                 }
 
-                writer.writeVarint32(2)
-                try Self.writePresentStream(
-                    values: child.values.map { $0 != nil },
-                    featureCount: featureCount,
-                    to: &writer)
+            case let .fsst(dictionary, offsets, symbols, symbolLengths, compressedData):
+                var dictionaryLengths: [UInt32] = []
+                for string in dictionary {
+                    dictionaryLengths.append(UInt32(string.utf8.count))
+                }
 
                 MLTEncoderCore.encodedUInt32Stream(
-                    values: childOffsets[index],
-                    physical: .offset,
-                    logical: .offset(.string)).write(to: &writer)
+                    values: symbolLengths,
+                    physical: .length,
+                    logical: .length(.symbol)).write(to: &writer)
+
+                let symbolMetadata = MLTStreamMetadata(
+                    physicalStreamType: .data,
+                    logicalStreamType: .dictionary(.fsst),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .none,
+                    numValues: symbolLengths.count,
+                    byteLength: symbols.count)
+                MLTEncodedStream(metadata: symbolMetadata, payload: symbols).write(to: &writer)
+
+                MLTEncoderCore.encodedUInt32Stream(
+                    values: dictionaryLengths,
+                    physical: .length,
+                    logical: .length(.dictionary)).write(to: &writer)
+
+                let corpusMetadata = MLTStreamMetadata(
+                    physicalStreamType: .data,
+                    logicalStreamType: .dictionary(.shared),
+                    logicalTechnique1: .none,
+                    logicalTechnique2: .none,
+                    physicalTechnique: .none,
+                    numValues: dictionary.count,
+                    byteLength: compressedData.count)
+                MLTEncodedStream(
+                    metadata: corpusMetadata,
+                    payload: compressedData).write(to: &writer)
+
+                for (index, child) in children.enumerated() {
+                    try Self.writeSharedStringChild(
+                        child,
+                        offsets: offsets[index],
+                        featureCount: featureCount,
+                        to: &writer)
+                }
             }
 
         case let .stringProperty(_, nullable, values, featureCount, encoding):
@@ -1796,6 +1909,29 @@ private enum MLTEncodedColumn {
                 throw MLTError.invalidData("String columns must use stringProperty")
             }
         }
+    }
+
+    private static func writeSharedStringChild(
+        _ child: MLTSharedStringChild,
+        offsets: [UInt32],
+        featureCount: Int,
+        to writer: inout MLTByteWriter
+    ) throws {
+        let dense = child.values.compactMap { $0 }
+        if dense.isEmpty {
+            writer.writeVarint32(0)
+            return
+        }
+
+        writer.writeVarint32(2)
+        try writePresentStream(
+            values: child.values.map { $0 != nil },
+            featureCount: featureCount,
+            to: &writer)
+        MLTEncoderCore.encodedUInt32Stream(
+            values: offsets,
+            physical: .offset,
+            logical: .offset(.string)).write(to: &writer)
     }
 
     private static func writePresentStream(

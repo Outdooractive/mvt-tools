@@ -86,7 +86,7 @@ The pure Swift encoder writes a conservative, deterministic subset:
 
 - plain, delta, RLE, delta-RLE or bit-packed FastPFOR for integer and length streams, choosing the smallest,
 - componentwise-delta varints for vertices, with an optional Hilbert-sorted or Morton vertex dictionary when smaller,
-- plain, single-dictionary, shared-dictionary or FSST strings, choosing the smallest layout,
+- plain, single-dictionary, shared-dictionary or FSST strings, including FSST-compressed shared dictionaries, choosing the smallest layout,
 - boolean RLE for nullable/present streams,
 - gzip compression through `ExportOptions.compression`,
 - numeric feature IDs only.
