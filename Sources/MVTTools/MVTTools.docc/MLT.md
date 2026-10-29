@@ -6,7 +6,9 @@ Reading and writing [MapLibre Tiles](https://maplibre.org/maplibre-tile-spec/).
 
 MLT support is gated behind the `EnableMLT` package trait. The default
 implementation is pure Swift and does not require Swift/C++ interoperability,
-a C++ toolchain, or the `maplibre-tile-spec` submodule.
+a C++ toolchain, or the `maplibre-tile-spec` submodule. The format codec lives
+in the Foundation-only `MLTCore` target; `MVTTools` contains the `VectorTile`
+adapters.
 
 ```bash
 swift build --traits EnableMLT

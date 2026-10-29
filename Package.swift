@@ -66,6 +66,9 @@ let package = Package(
             ],
             swiftSettings: [.interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"]))]),
         .target(
+            name: "MLTCore",
+            path: "Sources/MLTCore"),
+        .target(
             name: "MVTTools",
             dependencies: [
                 .product(name: "GISTools", package: "gis-tools"),
@@ -82,6 +85,7 @@ let package = Package(
                 .product(name: "Gzip", package: "GzipSwift"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
+                .target(name: "MLTCore", condition: .when(traits: ["EnableMLT"])),
                 .target(name: "CMLT", condition: .when(traits: ["EnableMLTCXX"])),
             ],
             swiftSettings: [
@@ -89,9 +93,13 @@ let package = Package(
             ]),
 
         .testTarget(
+            name: "MLTCoreTests",
+            dependencies: ["MLTCore"],
+            exclude: ["Fixtures"]),
+        .testTarget(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
-            exclude: ["TestData", "MLT/Fixtures"],
+            exclude: ["TestData"],
             swiftSettings: [
                 .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
             ]),

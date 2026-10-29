@@ -1,14 +1,13 @@
-#if EnableMLT
 import Foundation
 
 /// A decoded MLT layer, still using tile-grid coordinates.
-struct MLTDecodedLayer {
-    var name: String
-    var extent: Int
-    var featureCount: Int
-    var ids: [UInt64?]
-    var geometries: [MLTGeometry]
-    var properties: [String: [MLTValue?]]
+package struct MLTDecodedLayer {
+    package var name: String
+    package var extent: Int
+    package var featureCount: Int
+    package var ids: [UInt64?]
+    package var geometries: [MLTGeometry]
+    package var properties: [String: [MLTValue?]]
 }
 
 enum MLTLayerDecoder {
@@ -50,7 +49,7 @@ enum MLTLayerDecoder {
                     numStreams: numStreams)
                 for (name, values) in decoded {
                     properties[name] = values
-                    if values.isNotEmpty {
+                    if !values.isEmpty {
                         propertyFeatureCount = values.count
                     }
                 }
@@ -169,5 +168,3 @@ enum MLTLayerDecoder {
     }
 
 }
-
-#endif

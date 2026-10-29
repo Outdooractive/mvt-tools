@@ -1,6 +1,7 @@
 import Foundation
 import GISTools
 import Logging
+import MLTCore
 
 #if EnableMLT
 

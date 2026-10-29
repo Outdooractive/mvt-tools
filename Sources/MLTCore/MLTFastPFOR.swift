@@ -1,4 +1,3 @@
-#if EnableMLT
 import Foundation
 
 // FastPFOR wire-format decoding follows the upstream `maplibre-tile-spec`
@@ -532,5 +531,3 @@ private struct FastPFORWorkspace {
     }
 
 }
-
-#endif

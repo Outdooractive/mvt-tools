@@ -1,6 +1,6 @@
 #if EnableMLT
 import Foundation
-@testable import MVTTools
+@testable import MLTCore
 import Testing
 
 /// Conformance tests against the upstream MLT `0x01` corpus.
@@ -8,7 +8,6 @@ struct MLTCorpusTests {
 
     private static var corpusRoot: URL {
         URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -39,15 +38,10 @@ struct MLTCorpusTests {
 
             count += 1
             let data = try Data(contentsOf: url)
-            let decoded = try MLTDecoderSwift.decode(
-                from: data,
-                x: parts[1],
-                y: parts[2],
-                z: parts[0])
-
-            for (name, container) in decoded {
-                #expect(!name.isEmpty)
-                #expect(container.features.isNotEmpty)
+            let layers = try MLTDecoderCore.decode(data)
+            for layer in layers {
+                #expect(!layer.name.isEmpty)
+                #expect(layer.featureCount > 0)
             }
         }
 

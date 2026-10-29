@@ -1,6 +1,6 @@
 #if EnableMLT
 import Foundation
-@testable import MVTTools
+@testable import MLTCore
 import Testing
 
 struct MLTIntegerDecoderTests {

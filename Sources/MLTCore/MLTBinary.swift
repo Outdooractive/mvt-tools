@@ -1,15 +1,14 @@
-#if EnableMLT
 import Foundation
 
 /// Errors thrown by the pure Swift MLT codec.
-enum MLTError: Error, Equatable, CustomStringConvertible {
+package enum MLTError: Error, Equatable, CustomStringConvertible {
     case unexpectedEnd(offset: Int, needed: Int, available: Int)
     case invalidVarint(offset: Int)
     case varintOverflow(offset: Int)
     case invalidData(String)
     case unsupported(String)
 
-    var description: String {
+    package var description: String {
         switch self {
         case let .unexpectedEnd(offset, needed, available):
             return "Unexpected end of MLT data at byte \(offset): needed \(needed), available \(available)"
@@ -486,5 +485,3 @@ enum MLTIntegerArray {
     }
 
 }
-
-#endif

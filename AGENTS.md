@@ -21,8 +21,10 @@ Key source areas:
   tile coordinates (z/x/y), projection, bounding box. All operations extend this type.
 - **`Coders/MVT/MVTDecoder.swift`** — MVT protobuf → `[Feature]` per layer (zigzag decoding, projection)
 - **`Coders/MVT/MVTEncoder.swift`** — `[Feature]` per layer → MVT protobuf (zigzag encoding, clipping, simplification)
-- **`Coders/MLT/MLTDecoder.swift`** — MLT decoder (C++ bridge, zigzag decoding, projection)
-- **`Coders/MLT/MLTEncoder.swift`** — MLT encoder (C++ bridge, zigzag encoding, clipping, simplification)
+- **`Sources/MLTCore/`** — pure Swift MLT codec: binary/metadata/stream codecs, FastPFOR, FSST, geometry, properties and neutral tile models
+- **`Coders/MLT/MLTDecoder.swift`** / **`MLTEncoder.swift`** — backend-selecting facades
+- **`Coders/MLT/Swift/`** — `VectorTile` adapters for the pure Swift backend
+- **`Coders/MLT/CXX/`** — optional C++ bridge backend (`EnableMLTCXX`)
 - **`Coders/Projections.swift`** — Shared forward/inverse projection helpers (tile-extent ↔ geographic)
 - **`Coders/ExportOptions.swift`** — Buffer, compression, simplification options
 - **`Coders/GeoJSON/VectorTile+GeoJSON.swift`** — VectorTile GeoJSON import/export init, `toGeoJson()`, `writeGeoJson()`

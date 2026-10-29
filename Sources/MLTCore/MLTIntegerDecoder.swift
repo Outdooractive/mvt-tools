@@ -1,4 +1,3 @@
-#if EnableMLT
 import Foundation
 
 /// Decodes MLT integer streams (physical + logical layers).
@@ -401,5 +400,3 @@ enum MLTMorton {
     }
 
 }
-
-#endif

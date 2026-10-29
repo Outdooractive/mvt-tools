@@ -1,4 +1,3 @@
-#if EnableMLT
 import Foundation
 
 // FSST decoding follows the upstream `maplibre-tile-spec` / FSST
@@ -63,5 +62,3 @@ enum MLTFSST {
     }
 
 }
-
-#endif

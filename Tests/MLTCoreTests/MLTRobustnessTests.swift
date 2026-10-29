@@ -1,6 +1,6 @@
 #if EnableMLT
 import Foundation
-@testable import MVTTools
+@testable import MLTCore
 import Testing
 
 struct MLTRobustnessTests {
@@ -8,9 +8,8 @@ struct MLTRobustnessTests {
     private static var fixture: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("TestData")
-            .appendingPathComponent("gruenten_14_8661_5725.mlt")
+            .appendingPathComponent("Fixtures")
+            .appendingPathComponent("0_0_0.mlt")
     }
 
     @Test
@@ -23,11 +22,7 @@ struct MLTRobustnessTests {
         while index < data.count {
             let truncated = Data(data.prefix(index))
             do {
-                _ = try MLTDecoderSwift.decode(
-                    from: truncated,
-                    x: 8661,
-                    y: 5725,
-                    z: 14)
+                _ = try MLTDecoderCore.decode(truncated)
             }
             catch {
                 failures += 1
@@ -48,11 +43,7 @@ struct MLTRobustnessTests {
             mutated[position] ^= UInt8.random(in: 1 ... 255, using: &generator)
 
             // Either decoding succeeds or it throws; neither path may trap.
-            _ = try? MLTDecoderSwift.decode(
-                from: Data(mutated),
-                x: 8661,
-                y: 5725,
-                z: 14)
+            _ = try? MLTDecoderCore.decode(Data(mutated))
         }
     }
 
@@ -63,9 +54,7 @@ struct MLTRobustnessTests {
             let bytes = (0 ..< length).map { _ in
                 UInt8.random(in: 0 ... 255, using: &generator)
             }
-            _ = try? MLTDecoderSwift.decode(
-                from: Data(bytes),
-                x: 0, y: 0, z: 0)
+            _ = try? MLTDecoderCore.decode(Data(bytes))
         }
     }
 

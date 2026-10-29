@@ -1,4 +1,3 @@
-#if EnableMLT
 import Foundation
 
 // String dictionary and shared-dictionary layouts follow the upstream
@@ -6,7 +5,7 @@ import Foundation
 // MARK: - Property values
 
 /// A typed MLT property value.
-enum MLTValue: Equatable, Sendable {
+package enum MLTValue: Equatable, Sendable {
     case bool(Bool)
     case int8(Int8)
     case uint8(UInt8)
@@ -18,7 +17,7 @@ enum MLTValue: Equatable, Sendable {
     case double(Double)
     case string(String)
 
-    var sendableValue: any Sendable {
+    package var sendableValue: any Sendable {
         switch self {
         case let .bool(value): return value
         case let .int8(value): return Int64(value)
@@ -237,7 +236,7 @@ enum MLTPropertyDecoder {
         column: MLTColumn,
         numStreams: Int
     ) throws -> [(String, [MLTValue?])] {
-        guard column.isStructure, column.children.isNotEmpty else {
+        guard column.isStructure, !column.children.isEmpty else {
             throw MLTError.invalidData("Shared dictionary column has no children")
         }
 
@@ -540,5 +539,3 @@ enum MLTStringDecoder {
     }
 
 }
-
-#endif

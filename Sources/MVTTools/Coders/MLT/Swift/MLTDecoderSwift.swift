@@ -3,6 +3,7 @@ import Foundation
 import GISTools
 import Gzip
 import Logging
+import MLTCore
 
 /// Pure Swift MLT decoder.
 enum MLTDecoderSwift {
@@ -26,35 +27,10 @@ enum MLTDecoderSwift {
             data = decompressed
         }
 
-        var reader = MLTByteReader(data)
+        let layers = try MLTDecoderCore.decode(data)
         var result: [String: VectorTile.LayerContainer] = [:]
 
-        while !reader.isAtEnd {
-            let length = Int(try reader.readVarint32())
-            guard length >= 0, length <= reader.remaining else {
-                throw MLTError.unexpectedEnd(
-                    offset: reader.offset,
-                    needed: length,
-                    available: reader.remaining)
-            }
-
-            var block = try reader.readSubReader(length)
-            let tag = try block.readVarint32()
-            switch tag {
-            case MLTTileFraming.tag0x01:
-                break
-            case 2:
-                throw MLTError.unsupported("MLT tag 0x02")
-            default:
-                continue
-            }
-
-            let layer = try MLTLayerDecoder.decode(from: &block)
-            guard block.isAtEnd else {
-                throw MLTError.invalidData(
-                    "\(block.remaining) trailing bytes in layer '\(layer.name)'")
-            }
-
+        for layer in layers {
             guard layerAllowlist?.contains(layer.name) ?? true else {
                 continue
             }

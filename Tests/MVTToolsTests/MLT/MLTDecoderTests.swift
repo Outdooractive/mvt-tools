@@ -9,6 +9,9 @@ import Testing
 private var testFixturesDir: URL {
     URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .appendingPathComponent("MLTCoreTests")
         .appendingPathComponent("Fixtures")
 }
 

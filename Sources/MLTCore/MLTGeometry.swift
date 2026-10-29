@@ -1,14 +1,13 @@
-#if EnableMLT
 import Foundation
 
 // Geometry topology rules follow the upstream `maplibre-tile-spec`
 // specification and decoder (MIT OR Apache-2.0).
 /// A coordinate in the tile's integer grid (before projection).
-struct MLTTileCoordinate: Equatable, Sendable {
-    var x: Int32
-    var y: Int32
+package struct MLTTileCoordinate: Equatable, Sendable {
+    package var x: Int32
+    package var y: Int32
 
-    init(x: Int32, y: Int32) {
+    package init(x: Int32, y: Int32) {
         self.x = x
         self.y = y
     }
@@ -16,7 +15,7 @@ struct MLTTileCoordinate: Equatable, Sendable {
 }
 
 /// An MLT geometry with coordinates still in the tile grid.
-enum MLTGeometry: Equatable, Sendable {
+package enum MLTGeometry: Equatable, Sendable {
     case point(MLTTileCoordinate)
     case multiPoint([MLTTileCoordinate])
     case lineString([MLTTileCoordinate])
@@ -713,5 +712,3 @@ private struct MLTVertexReader {
     }
 
 }
-
-#endif

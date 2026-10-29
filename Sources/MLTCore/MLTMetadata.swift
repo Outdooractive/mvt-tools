@@ -1,4 +1,3 @@
-#if EnableMLT
 import Foundation
 
 // MARK: - Stream metadata
@@ -433,5 +432,3 @@ enum MLTTileFraming {
     }
 
 }
-
-#endif
