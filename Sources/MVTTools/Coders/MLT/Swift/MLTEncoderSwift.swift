@@ -340,7 +340,7 @@ enum MLTEncoderSwift {
 
         var columns: [MLTEncodedColumn] = []
         for key in keys.sorted() {
-            let values: [any Sendable?] = features.map { $0.properties[key] }
+            let values: [(any Sendable)?] = features.map { $0.properties[key] }
             guard values.contains(where: { $0 != nil }) else { continue }
             let inferred = inferScalarType(values)
             columns.append(
@@ -367,7 +367,7 @@ enum MLTEncoderSwift {
         var maxUInt: UInt64 = 0
     }
 
-    private static func inferScalarType(_ values: [any Sendable?]) -> MLTScalarType {
+    private static func inferScalarType(_ values: [(any Sendable)?]) -> MLTScalarType {
         var state = PropertyInference()
 
         for value in values {
@@ -472,7 +472,7 @@ enum MLTEncoderSwift {
     private static func makePropertyColumn(
         name: String,
         type: MLTScalarType,
-        values: [any Sendable?],
+        values: [(any Sendable)?],
         featureCount: Int
     ) throws -> MLTEncodedColumn {
         let nullable = values.contains { $0 == nil }
@@ -533,7 +533,7 @@ enum MLTEncoderSwift {
 
     private static func stringColumn(
         name: String,
-        values: [any Sendable?],
+        values: [(any Sendable)?],
         featureCount: Int
     ) throws -> MLTEncodedColumn {
         .property(
