@@ -7,6 +7,8 @@ and this project adheres to semantic versioning.
 
 ## Unreleased
 
+## 3.0.0 - 2026-10-30
+
 ### Added
 
 - Pure Swift MLT decoder and encoder behind `EnableMLT`. The trait no longer
