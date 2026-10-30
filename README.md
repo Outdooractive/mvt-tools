@@ -968,10 +968,6 @@ Please [create an issue](https://github.com/Outdooractive/mvt-tools/issues) or
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for local build and test setup.
 
-## TODOs and future improvements
-
-- Locking (when updating/deleting features, indexing)
-
 ## License
 
 MIT
