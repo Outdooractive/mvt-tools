@@ -27,11 +27,9 @@ a C++ toolchain.
 swift build                       # GeoJSON and the CLI
 swift build --traits EnableMVT    # MVT import/export
 swift build --traits EnableMLT    # pure Swift MLT (no C++ interop)
-swift build --traits EnableMLTCXX # optional C++ MLT backend
 swift build --enable-all-traits   # every format coder
 swift test                        # default trait set (GeoJSON only)
 swift test --traits EnableMLT     # pure Swift MLT
-swift test --traits EnableMLTCXX  # C++ MLT backend + cross-backend tests
 MLT_FULL_CORPUS=1 swift test --traits EnableMLT --filter MLTCorpusTests
 swift test --enable-all-traits    # all format coders
 ```

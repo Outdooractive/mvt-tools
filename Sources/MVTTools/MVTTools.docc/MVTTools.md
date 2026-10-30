@@ -8,7 +8,7 @@ Read, write, convert, inspect, and query Mapbox/MapLibre vector tiles.
 vector tile data as GeoJSON-style `Feature` values. It supports:
 
 - MVT (Mapbox Vector Tile 2.1, with version-1 layers decoded as well; behind the `EnableMVT` trait)
-- MLT (MapLibre Tiles, behind the `EnableMLT` trait; optional C++ backend via `EnableMLTCXX`)
+- MLT (MapLibre Tiles, behind the `EnableMLT` trait; pure Swift)
 - GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage conversion
 - Web Mercator tile coordinates, overzoom/underzoom, merging, and spatial
   queries

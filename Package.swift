@@ -29,10 +29,6 @@ let package = Package(
             name: "EnableMLT",
             description: "Enables the pure Swift MapLibre tile specification (MLT) decoder/encoder. No C++ toolchain or C++ interoperability required."),
         .trait(
-            name: "EnableMLTCXX",
-            description: "Uses the C++ maplibre-tile-spec bridge (FastPFOR + FSST) for MLT instead of the pure Swift implementation. Implies EnableMLT and requires Swift C++ interoperability.",
-            enabledTraits: ["EnableMLT"]),
-        .trait(
             name: "EnableCSV",
             description: "Enables CSV vector tile import/export."),
         .trait(
@@ -70,14 +66,12 @@ let package = Package(
                 .product(name: "GISToolsCSV", package: "gis-tools-csv"),
                 .target(name: "MVTTools"),
             ],
-            swiftSettings: [.interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"]))]),
+            swiftSettings: []),
         .executableTarget(
             name: "MLTBenchmark",
             dependencies: [.target(name: "MVTTools")],
             path: "Benchmarks/MLTBenchmark",
-            swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
-            ]),
+            swiftSettings: []),
         .target(
             name: "MLTCore",
             path: "Sources/MLTCore"),
@@ -100,11 +94,8 @@ let package = Package(
                 .product(name: "SwiftProtobuf", package: "swift-protobuf",
                          condition: .when(traits: ["EnableMVT"])),
                 .target(name: "MLTCore", condition: .when(traits: ["EnableMLT"])),
-                .target(name: "CMLT", condition: .when(traits: ["EnableMLTCXX"])),
             ],
-            swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
-            ]),
+            swiftSettings: []),
 
         .testTarget(
             name: "MLTCoreTests",
@@ -114,53 +105,11 @@ let package = Package(
             name: "MVTToolsTests",
             dependencies: ["MVTTools"],
             exclude: ["TestData"],
-            swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
-            ]),
+            swiftSettings: []),
         .testTarget(
             name: "MVTCLITests",
             dependencies: ["MVTCLI"],
-            swiftSettings: [
-                .interoperabilityMode(.Cxx, .when(traits: ["EnableMLTCXX"])),
-            ]),
+            swiftSettings: []),
 
-        // MARK: - MLT C++ bridge (decoder + encoder + FastPFOR + FSST)
-
-        .target(
-            name: "CMLT",
-            dependencies: [],
-            path: ".",  // package root — sources are listed explicitly
-            sources: [
-                "Sources/CMLT/Bridge.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/decoder.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/feature.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/geometry_vector.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/layer.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/properties.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/metadata/stream.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/metadata/tileset.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/util/rle.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/decode/int.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/encoder.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/src/mlt/encode/int.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor/fastpfor/bitpacking.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/vendor/fsst/libfsst.cpp",
-                "Dependencies/maplibre-tile-spec/cpp/vendor/fsst/fsst_avx512.cpp",
-            ],
-            publicHeadersPath: "Sources/CMLT/include",
-            cxxSettings: [
-                .headerSearchPath("Sources/CMLT/patches"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/include"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/src"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/fastpfor"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/fsst"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/json/include"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut/include"),
-                .headerSearchPath("Dependencies/maplibre-tile-spec/cpp/vendor/earcut"),
-                .define("MLT_WITH_FASTPFOR", to: "1"),
-                .unsafeFlags(["-std=c++20"]),
-                .define("__SSE4_2__", .when(platforms: [.linux])),
-            ],
-        ),
     ]
 )

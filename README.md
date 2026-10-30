@@ -116,7 +116,6 @@ GeoJSON is always available. MVT and the remaining coders are package traits:
 | --- | --- | --- |
 | MVT | `EnableMVT` | Mapbox Vector Tile 2.1 import/export. Pulls in `swift-protobuf`. |
 | MLT | `EnableMLT` | Pure Swift decoder/encoder. No C++ toolchain or C++ interoperability required. |
-| MLT (C++ backend) | `EnableMLTCXX` | Optional. Implies `EnableMLT` and uses the upstream C++ bridge. |
 | CSV | `EnableCSV` | |
 | GPX | `EnableGPX` | |
 | FIT | `EnableFIT` | |
@@ -234,7 +233,7 @@ tile.writeMLT(to: URL(fileURLWithPath: "output.mlt"), options: options)
 
 See the [MLT guide](https://swiftpackageindex.com/Outdooractive/mvt-tools/main/documentation/mvttools/mlt)
 for the supported streams, encoder feature switches and experimental-feature
-policy. The optional `EnableMLTCXX` trait provides the deprecated C++ backend.
+policy.
 
 ### Read GPX
 

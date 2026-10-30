@@ -136,20 +136,6 @@ jobs:
             --triple arm64_32-apple-watchos9.0 \
             --sdk "$(xcrun --sdk watchos --show-sdk-path)"
 
-  mlt-cxx:
-    name: MLT C++ backend (Linux)
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    container: swift:6.3.3
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Install SQLite development files
-        run: apt-get update && apt-get install -y libsqlite3-dev
-      - name: Test C++ MLT backend
-        run: swift test --traits EnableMLTCXX
-
   mlt-sanitizers:
     name: MLT sanitizers (Linux)
     runs-on: ubuntu-latest
@@ -166,10 +152,10 @@ jobs:
       - name: Build the benchmark executable
         run: swift build --traits EnableMLT --product mlt-benchmark
       - name: Test with AddressSanitizer
-        run: swift test --traits EnableMLT --sanitize=address --filter 'MLTCoreTests|MLTRoundtrip|MLTDecoderTests|MLTEncoderRingClosureTests|MLTCrossBackendTests'
+        run: swift test --traits EnableMLT --sanitize=address --filter 'MLTCoreTests|MLTRoundtrip|MLTDecoderTests|MLTEncoderRingClosureTests'
 
   coverage:
-    name: coverage (Linux, all non-C++ traits)
+    name: coverage (Linux, all traits)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     container: swift:6.3.3

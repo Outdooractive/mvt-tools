@@ -15,25 +15,9 @@ swift build --traits EnableMLT
 swift test --traits EnableMLT
 ```
 
-Building the `mvt` executable or the `MVTTools` product does not build the
-optional CMLT target even when the `maplibre-tile-spec` submodule is checked
-out. Running a package-wide `swift build` also compiles unused root targets, so
-use `swift build --product mvt` (or omit the submodule) for a strict pure
-Swift build.
-
-An optional C++ backend is available behind the `EnableMLTCXX` trait. It
-implies `EnableMLT` and links the upstream `maplibre-tile-spec` C++
-implementation (including FastPFOR and FSST). Enable it only when you want to
-compare implementations or need the C++ encoder:
-
-```bash
-swift build --traits EnableMLTCXX
-```
-
-When both traits are enabled, the public API uses the C++ backend. Both
-implementations remain compiled, so tests can compare them. The C++ backend is
-deprecated and will be removed in the next major release; `EnableMLT` is the
-supported path.
+MLT is implemented in pure Swift. The former C++ backend (the `EnableMLTCXX`
+trait, backed by the upstream `maplibre-tile-spec` bridge) has been removed;
+`EnableMLT` is the only MLT backend.
 
 Reading or writing an MLT file without the `EnableMLT` trait is unavailable at
 compile time (library) or throws a CLI error.
