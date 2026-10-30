@@ -119,6 +119,22 @@ jobs:
             swift build --package-path "$consumer"
           done
 
+  watchos:
+    name: build (watchOS, MLT)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v3
+        with:
+          swift-version: '6.3.3'
+      - name: Build MVTTools for watchOS
+        run: |
+          swift build \
+            --traits EnableMVT,EnableMLT \
+            --triple arm64_32-apple-watchos9.0 \
+            --sdk "$(xcrun --sdk watchos --show-sdk-path)"
+
   mlt-cxx:
     name: MLT C++ backend (Linux)
     runs-on: ubuntu-latest
