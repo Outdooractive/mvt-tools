@@ -1,9 +1,9 @@
 import Foundation
 import GISTools
 import Logging
-import MLTCore
 
 #if EnableMLT
+import MLTCore
 
 /// Errors thrown by MLT decoding.
 enum MLTDecoderError: Error, Equatable {

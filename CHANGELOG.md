@@ -7,6 +7,16 @@ and this project adheres to semantic versioning.
 
 ## Unreleased
 
+## 3.0.1 - 2026-10-30
+
+### Fixed
+
+- `MVTTools` failed to build when the enabled traits excluded `EnableMLT`.
+  `MLTDecoder.swift` imported `MLTCore` outside its `#if EnableMLT` block, so
+  consumers that narrow the trait set (for example `traits: ["EnableMVT"]`)
+  got `no such module 'MLTCore'`. The import is now conditional, and a CI job
+  builds a consumer package with narrow trait sets.
+
 ## 3.0.0 - 2026-10-30
 
 ### Added
