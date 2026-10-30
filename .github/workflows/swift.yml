@@ -83,6 +83,41 @@ jobs:
       - name: Build the executable without C++ sources
         run: swift build --traits EnableMLT --product mvt
 
+  consumer-traits:
+    name: consumer traits (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.3.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SQLite development files
+        run: apt-get update && apt-get install -y libsqlite3-dev
+      - name: Build a package that enables only some traits
+        run: |
+          set -euo pipefail
+          consumer=/tmp/consumer
+          mkdir -p "$consumer/Sources/Consumer"
+          printf 'import MVTTools\n' > "$consumer/Sources/Consumer/Consumer.swift"
+          for traits in '"EnableMVT"' '"EnableMLT"' '"EnableCSV"' '"EnableMVT", "EnableMLT"'; do
+            cat > "$consumer/Package.swift" <<EOF
+          // swift-tools-version: 6.3
+          import PackageDescription
+
+          let package = Package(
+              name: "Consumer",
+              dependencies: [
+                  .package(path: "$GITHUB_WORKSPACE", traits: [$traits]),
+              ],
+              targets: [
+                  .target(
+                      name: "Consumer",
+                      dependencies: [.product(name: "MVTTools", package: "mvt-tools")]),
+              ])
+          EOF
+            echo "Building with traits: $traits"
+            swift build --package-path "$consumer"
+          done
+
   mlt-cxx:
     name: MLT C++ backend (Linux)
     runs-on: ubuntu-latest
