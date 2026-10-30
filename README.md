@@ -102,8 +102,8 @@ targets: [
 ]
 ```
 
-This package requires [gis-tools](https://github.com/Outdooractive/gis-tools) 3.0 or
-newer and the `gis-tools-*` format packages 3.0 or newer (within the 3.x
+This package requires [gis-tools](https://github.com/Outdooractive/gis-tools) 3.0.1
+or newer and the `gis-tools-*` format packages 3.0 or newer (within the 3.x
 series). It is used by the
 [mvt-postgis](https://github.com/Outdooractive/mvt-postgis) library; please have
 a look at that project as well.
