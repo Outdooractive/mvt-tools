@@ -599,7 +599,7 @@ You can install the command line tool `mvt` either
 - with homebrew: `brew install Outdooractive/homebrew-tap/mvt-tools`
 - or locally to `/usr/local/bin` with `./install_mvt.sh`
 
-`mvt` works with MVT, MLT, GeoJSON, GPX, CSV, Shapefile, and GeoPackage files from local disk or served from a web server.
+Despite its name, `mvt` is not limited to vector tiles: every command accepts MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile and GeoPackage files from local disk or a web server, and `merge`, `import` and `export` convert between all of them.
 
 GeoJSONs can contain a layer name in their Feature properties (default name is `vt_layer`), and any resulting GeoJSON will automatically include this property.
 This can be controlled with the options `--property-name` (or `-P`), `--disable-input-layer-property` (or `-Di`) and `--disable-output-layer-property` (or `-Do`).
@@ -612,7 +612,9 @@ Use `--input-projection` (`-ip`) and `--output-projection` (`-op`) to select inp
 
 ```bash
 # mvt -h
-OVERVIEW: A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
+OVERVIEW: Inspect, query, and convert vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.
+
+Despite its name, mvt is not limited to vector tiles: every command accepts any supported format, and merge, import and export convert between MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile and GeoPackage.
 
 A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
 This tile coordinate can be extracted from the file path/URL if it's either in the form '/z/x/y' or 'z_x_y'.

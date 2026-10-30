@@ -15,8 +15,12 @@ struct CLI: AsyncParsableCommand {
 
     static let configuration = CommandConfiguration(
         commandName: "mvt",
-        abstract: "A utility for inspecting and working with vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.",
+        abstract: "Inspect, query, and convert vector tiles (MVT/MLT), GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files.",
         discussion: """
+        Despite its name, mvt is not limited to vector tiles: every command
+        accepts any supported format, and merge, import and export convert
+        between MVT, MLT, GeoJSON, GPX, FIT, CSV, Shapefile and GeoPackage.
+
         A x/y/z tile coordinate is needed for encoding/decoding MVT/MLT tiles.
         This tile coordinate can be extracted from the path/URL if it's either in the form '/z/x/y' or 'z_x_y'.
         Tile coordinates are not necessary for GeoJSON, GPX, FIT, CSV, Shapefile, and GeoPackage files (a tile coordinate will be calculated from the bounding box).
