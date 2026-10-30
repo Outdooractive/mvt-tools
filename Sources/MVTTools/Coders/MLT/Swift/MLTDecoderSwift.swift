@@ -65,7 +65,7 @@ enum MLTDecoderSwift {
                     calculateBoundingBox: calculateBoundingBox)
 
                 if index < layer.ids.count, let id = layer.ids[index] {
-                    if let value = UInt(exactly: id) {
+                    if let value = Feature.Identifier.UIntId(exactly: id) {
                         feature.id = .uint(value)
                     }
                     else {

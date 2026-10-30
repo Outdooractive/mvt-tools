@@ -16,6 +16,10 @@ and this project adheres to semantic versioning.
   consumers that narrow the trait set (for example `traits: ["EnableMVT"]`)
   got `no such module 'MLTCore'`. The import is now conditional, and a CI job
   builds a consumer package with narrow trait sets.
+- `EnableMLT` now compiles for watchOS (`arm64_32`). The Swift MLT decoder
+  narrowed feature ids to `UInt`, which is 32 bits there while
+  `Feature.Identifier.UIntId` is `UInt64`; it now converts through the gis-tools
+  alias. A CI job builds `MVTTools` for watchOS with MLT enabled.
 
 ## 3.0.0 - 2026-10-30
 
