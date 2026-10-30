@@ -1,6 +1,9 @@
 # Command line tool
 
 The `mvt` executable wraps the library for file inspection and conversion.
+Despite its name, it is not limited to vector tiles: every command accepts any
+supported format, and `merge`, `import` and `export` convert between MVT, MLT,
+GeoJSON, GPX, FIT, CSV, Shapefile and GeoPackage.
 
 ## Installation
 
