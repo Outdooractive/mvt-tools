@@ -131,6 +131,7 @@ jobs:
       - name: Build MVTTools for watchOS
         run: |
           swift build \
+            --target MVTTools \
             --traits EnableMVT,EnableMLT \
             --triple arm64_32-apple-watchos9.0 \
             --sdk "$(xcrun --sdk watchos --show-sdk-path)"
