@@ -7,6 +7,20 @@ and this project adheres to semantic versioning.
 
 ## Unreleased
 
+### Removed
+
+- The deprecated `EnableMLTCXX` C++ MLT backend, along with the `CMLT` target,
+  the `Dependencies/maplibre-tile-spec` C++ bridge sources and the
+  cross-backend parity tests. `EnableMLT` (pure Swift) is the only MLT backend.
+  The pure Swift decoder is already covered by the upstream `0x01` corpus
+  conformance tests, so reference coverage is unchanged.
+
+  The C++ target also broke DocC generation: SwiftPM runs
+  `clang -extract-api -x objective-c-header` over every target's headers, and
+  the vendored C++ headers cannot be parsed that way, so the Swift Package
+  Index documentation build failed for the whole package. Removing the target
+  makes the hosted docs build again.
+
 ## 3.0.1 - 2026-10-30
 
 ### Changed

@@ -15,7 +15,6 @@ enum MLTDecoderError: Error, Equatable {
 /// grouped by layer name.
 ///
 /// The actual implementation is selected at compile time:
-/// - `EnableMLTCXX` uses the C++ `maplibre-tile-spec` bridge.
 /// - `EnableMLT` alone uses the pure Swift implementation.
 enum MLTDecoder {
 
@@ -46,17 +45,6 @@ enum MLTDecoder {
         calculateBoundingBox: Bool = false,
         logger: Logger? = nil
     ) throws -> [String: VectorTile.LayerContainer] {
-        #if EnableMLTCXX
-        return try MLTDecoderCXX.decode(
-            from: mltData,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            layerAllowlist: layerAllowlist,
-            calculateBoundingBox: calculateBoundingBox,
-            logger: logger)
-        #else
         do {
             return try MLTDecoderSwift.decode(
                 from: mltData,
@@ -72,7 +60,6 @@ enum MLTDecoder {
             logger?.warning("\(z)/\(x)/\(y): \(error)")
             throw MLTDecoderError.decodeFailed
         }
-        #endif
     }
 
 }

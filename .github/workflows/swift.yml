@@ -147,8 +147,6 @@ jobs:
           submodules: recursive
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
-      - name: Test C++ MLT backend
-        run: swift test --traits EnableMLTCXX
 
   mlt-sanitizers:
     name: MLT sanitizers (Linux)

@@ -6,7 +6,6 @@ import GISTools
 /// Encodes GISTools features into the MapLibre Tile (MLT) binary format.
 ///
 /// The actual implementation is selected at compile time:
-/// - `EnableMLTCXX` uses the C++ `maplibre-tile-spec` bridge.
 /// - `EnableMLT` alone uses the pure Swift implementation.
 enum MLTEncoder {
 
@@ -29,15 +28,6 @@ enum MLTEncoder {
         projection: Projection = .epsg4326,
         options: VectorTile.ExportOptions = .init()
     ) -> Data? {
-        #if EnableMLTCXX
-        return MLTEncoderCXX.encode(
-            layers: layers,
-            x: x,
-            y: y,
-            z: z,
-            projection: projection,
-            options: options)
-        #else
         return MLTEncoderSwift.encode(
             layers: layers,
             x: x,
@@ -45,7 +35,6 @@ enum MLTEncoder {
             z: z,
             projection: projection,
             options: options)
-        #endif
     }
 
 }

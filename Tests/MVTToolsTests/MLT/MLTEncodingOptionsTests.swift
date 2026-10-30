@@ -1,4 +1,4 @@
-#if EnableMLT && !EnableMLTCXX
+#if EnableMLT
 import Foundation
 import GISTools
 @testable import MVTTools
