@@ -49,7 +49,7 @@ let package = Package(
             description: "Enables Shapefile vector tile import/export."),
     ],
     dependencies: [
-        .package(url: "https://github.com/Outdooractive/gis-tools", from: "3.0.0"),
+        .package(url: "https://github.com/Outdooractive/gis-tools", from: "3.0.1"),
         // The gis-tools package and the gis-tools-* format packages follow
         // semantic versioning within 3.x, so the dependency ranges stay open.
         .package(url: "https://github.com/Outdooractive/gis-tools-csv", from: "3.0.0"),

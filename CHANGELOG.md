@@ -9,6 +9,13 @@ and this project adheres to semantic versioning.
 
 ## 3.0.1 - 2026-10-30
 
+### Changed
+
+- Requires `gis-tools` 3.0.1. It fixes antimeridian line clipping, where
+  `LineString.clipped(to:)` and `MultiLineString.clipped(to:)` dropped half of a
+  segment spanning more than 180° of longitude, and a crash when clipping
+  polygons against a box whose latitude reaches ±90°.
+
 ### Fixed
 
 - `MVTTools` failed to build when the enabled traits excluded `EnableMLT`.
