@@ -93,6 +93,7 @@ jobs:
       - name: Install SQLite development files
         run: apt-get update && apt-get install -y libsqlite3-dev
       - name: Build a package that enables only some traits
+        shell: bash
         run: |
           set -euo pipefail
           consumer=/tmp/consumer
