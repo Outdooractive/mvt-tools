@@ -87,7 +87,7 @@ See [CHANGELOG.md](CHANGELOG.md) for notable changes.
 
 ## Requirements
 
-This package requires Swift 6.3 or higher (Xcode 26 or newer), and compiles on iOS (\>= iOS 15), macOS (\>= macOS 15), tvOS (\>= tvOS 15), watchOS (\>= watchOS 8) as well as Linux.
+This package requires Swift 6.3 or higher (Xcode 26 or newer), and compiles on iOS (\>= iOS 16), macOS (\>= macOS 15), tvOS (\>= tvOS 16), watchOS (\>= watchOS 9) as well as Linux.
 
 ## Installation with Swift Package Manager
 

@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
     name: "mvt-tools",
     platforms: [
-        .iOS(.v15),
+        .iOS(.v16),
         .macOS(.v15),
-        .tvOS(.v15),
-        .watchOS(.v8),
+        .tvOS(.v16),
+        .watchOS(.v9),
     ],
     products: [
         .executable(

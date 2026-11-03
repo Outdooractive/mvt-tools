@@ -4,7 +4,6 @@ import CoreLocation
 import Foundation
 import GISTools
 @testable import MVTTools
-import Synchronization
 import Testing
 
 /// Tests for the projection-agnostic tile coordinate handling introduced
@@ -18,14 +17,10 @@ struct ProjectionHandlingTests {
 
     /// SRID pool for this suite: unique per test call, since registration is
     /// add-only and process-global.
-    private static let sridCounter = Mutex(902_500)
+    private static let sridCounter = SRIDCounter(902_500)
 
     private static func nextSrid(_ count: Int = 1) -> Int {
-        sridCounter.withLock { value -> Int in
-            let start = value
-            value += count
-            return start
-        }
+        sridCounter.next(count)
     }
 
     /// A simple planar "scaled degrees" projection: degrees × 1_000,
