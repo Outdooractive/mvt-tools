@@ -7,6 +7,21 @@ and this project adheres to semantic versioning.
 
 ## Unreleased
 
+### Changed
+
+- Raised the minimum deployment targets to iOS 16, tvOS 16 and watchOS 9.
+  The command line tool uses `ContinuousClock`, and the CSV dependency uses
+  `String.replacing(_:with:)`, both of which require iOS 16, tvOS 16 and
+  watchOS 9. This fixes the iOS and tvOS builds on the Swift Package Index.
+  macOS remains at 15.
+
+### Fixed
+
+- The test target now uses an `NSLock`-based counter instead of
+  `Synchronization.Mutex`, and avoids 64-bit-only integer literals. Tests
+  therefore build on the minimum deployment targets and on watchOS
+  (`arm64_32`).
+
 ### Removed
 
 - The deprecated `EnableMLTCXX` C++ MLT backend, along with the `CMLT` target,
