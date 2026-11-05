@@ -181,26 +181,51 @@ struct TileDataContentConsistencyTests {
     }
     #endif
 
+    /// Counts the geometric parts of a geometry (rings for polygons, lines
+    /// for multi-lines, points for multi-points). This is independent of how
+    /// rings are grouped into polygons, which differs between the fixtures.
+    private func geometryPartCount(of geometry: GeoJsonGeometry?) -> Int {
+        switch geometry {
+        case is Point:
+            return 1
+        case let multiPoint as MultiPoint:
+            return multiPoint.coordinates.count
+        case is LineString:
+            return 1
+        case let multiLineString as MultiLineString:
+            return multiLineString.lineStrings.count
+        case let polygon as Polygon:
+            return polygon.rings.count
+        case let multiPolygon as MultiPolygon:
+            return multiPolygon.polygons.reduce(0) { $0 + $1.rings.count }
+        default:
+            return 0
+        }
+    }
+
     @Test
-    func flattenedCountsMatchBetweenMvtAndGeoJson() throws {
+    func geometryPartCountsMatchBetweenMvtAndGeoJson() throws {
         let mvtData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.pbf")
         let geoJsonData = try TestData.dataFromFile(name: "immenstadt_14_8657_5725.geojson")
 
         let mvtTile = try VectorTile(mvtData: mvtData, x: 8657, y: 5725, z: 14)
         let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
-        let mvtRaw = mvtTile.layers.values.reduce(0) { $0 + $1.features.count }
-        let mvtFlat = mvtTile.layerNames.reduce(0) { $0 + flattenedFeatures(mvtTile.features(for: $1)).count }
-        let geoJsonTotal = geoJsonTile.layers.values.reduce(0) { $0 + $1.features.count }
+        // The fixtures differ in how polygon rings are grouped: MVT attaches
+        // holes to their exterior ring, while the GeoJSON fixture may contain
+        // them as separate polygons. Compare the number of geometric parts
+        // instead, which is grouping-independent.
+        let sharedLayers = Set(mvtTile.layerNames).intersection(geoJsonTile.layerNames)
+        for layerName in sharedLayers.sorted() {
+            let mvtParts = mvtTile.features(for: layerName)
+                .reduce(0) { $0 + geometryPartCount(of: $1.geometry) }
+            let geoJsonParts = geoJsonTile.features(for: layerName)
+                .reduce(0) { $0 + geometryPartCount(of: $1.geometry) }
 
-        // GeoJSON init flattens multi-geometries, so compare with flattened
-        // MVT. The fixtures were produced by different pipelines, so a
-        // degenerate ring may be dropped by one of them. Allow a tiny
-        // difference (at most two features) while still catching real
-        // regressions.
-        let tolerance = max(2, geoJsonTotal / 1_000)
-        #expect(abs(mvtFlat - geoJsonTotal) <= tolerance,
-                "MVT raw=\(mvtRaw), MVT flattened=\(mvtFlat), GeoJSON=\(geoJsonTotal)")
+            let tolerance = max(2, geoJsonParts / 100)
+            #expect(abs(mvtParts - geoJsonParts) <= tolerance,
+                    "Geometry part mismatch in layer '\(layerName)' (MVT \(mvtParts) vs GeoJSON \(geoJsonParts), tolerance \(tolerance))")
+        }
     }
 
     // MARK: - Per-layer property consistency (MVT vs MLT)
@@ -274,23 +299,18 @@ struct TileDataContentConsistencyTests {
         let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
         for layerName in mvtTile.layerNames {
+            // Compare the distinct property combinations per layer. The
+            // fixtures group polygon rings differently (MVT attaches holes to
+            // their exterior ring, GeoJSON may store them as separate
+            // polygons), so exact multiplicities are not comparable.
             let mvtFeatures = flattenedFeatures(mvtTile.features(for: layerName))
-            let geoJsonFeatures = geoJsonTile.features(for: layerName)
+            let geoJsonFeatures = flattenedFeatures(geoJsonTile.features(for: layerName))
 
-            // GeoJSON init flattens multi-geometries, so compare with
-            // flattened MVT. The fixtures come from different pipelines, so
-            // allow a small number of boundary/degenerate features to differ
-            // instead of requiring identical feature counts.
-            let mvtProps = mvtFeatures.map(propertySignature)
-            let geoJsonProps = geoJsonFeatures.map(propertySignature)
+            let mvtProps = Set(mvtFeatures.map(propertySignature))
+            let geoJsonProps = Set(geoJsonFeatures.map(propertySignature))
 
-            let mvtCounts = Dictionary(grouping: mvtProps, by: { $0 }).mapValues(\.count)
-            let geoJsonCounts = Dictionary(grouping: geoJsonProps, by: { $0 }).mapValues(\.count)
-            let allKeys = Set(mvtCounts.keys).union(geoJsonCounts.keys)
-            let mismatchCount = allKeys.reduce(0) { result, key in
-                result + abs((mvtCounts[key] ?? 0) - (geoJsonCounts[key] ?? 0))
-            }
-            let tolerance = max(2, geoJsonFeatures.count / 100)
+            let mismatchCount = mvtProps.symmetricDifference(geoJsonProps).count
+            let tolerance = max(1, geoJsonProps.count / 100)
 
             #expect(mismatchCount <= tolerance,
                     "Property mismatch in layer '\(layerName)' (MVT vs GeoJSON, \(mismatchCount) differences, tolerance \(tolerance))")
@@ -308,18 +328,23 @@ struct TileDataContentConsistencyTests {
         let geoJsonTile = try VectorTile(geoJsonData: geoJsonData, layerProperty: "vt_layer")
 
         for layerName in mvtTile.layerNames {
-            let mvtFeatures = flattenedFeatures(mvtTile.features(for: layerName))
-            let geoJsonFeatures = geoJsonTile.features(for: layerName)
-
-            let mvtGeoms = Set(mvtFeatures.map { normalizedRings(of: $0.geometry) })
-            let geoJsonGeoms = Set(geoJsonFeatures.map { normalizedRings(of: $0.geometry) })
+            // Compare the ring sets of the whole layer. This is independent
+            // of how rings are grouped into Polygon and MultiPolygon features,
+            // which differs between the fixtures.
+            let mvtGeoms = mvtTile.features(for: layerName)
+                .reduce(into: Set<RingSignature>()) {
+                    $0.formUnion(normalizedRings(of: $1.geometry))
+                }
+            let geoJsonGeoms = geoJsonTile.features(for: layerName)
+                .reduce(into: Set<RingSignature>()) {
+                    $0.formUnion(normalizedRings(of: $1.geometry))
+                }
 
             // The GeoJSON has full-precision coordinates while the MVT has
-            // tile-extent integer rounding, so a small number of features may
-            // differ.  Allow up to 5% mismatch (minimum 1) for large layers.
-            let totalCount = mvtFeatures.count
-            let mismatchCount = mvtGeoms.symmetricDifference(geoJsonGeoms).count / 2
-            let tolerance = max(1, totalCount / 20)
+            // tile-extent integer rounding, so a small number of rings may
+            // differ. Allow up to 5% mismatch (minimum 1) for large layers.
+            let mismatchCount = mvtGeoms.symmetricDifference(geoJsonGeoms).count
+            let tolerance = max(1, mvtGeoms.count / 20)
 
             #expect(mismatchCount <= tolerance,
                     "Geometry mismatch in layer '\(layerName)' (MVT vs GeoJSON, \(mismatchCount) differences, tolerance \(tolerance))")

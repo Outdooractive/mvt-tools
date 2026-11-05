@@ -21,4 +21,14 @@ extension Ring {
         !isCounterClockwise
     }
 
+    /// A Boolean value indicating whether the ring is an MVT exterior ring.
+    ///
+    /// MVT defines exterior rings as having a positive signed area in tile
+    /// coordinates. `.noSRID` coordinates are already in tile space; all
+    /// projections with an SRID use a Y-up coordinate system in which the same
+    /// ring is clockwise.
+    var isMVTExterior: Bool {
+        projection.hasSRID ? isClockwise : isUnprojectedClockwise
+    }
+
 }

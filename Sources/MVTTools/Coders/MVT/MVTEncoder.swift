@@ -239,22 +239,27 @@ enum MVTEncoder {
 
         case let polygon as Polygon:
             geometryType = .polygon
-            // MVT requires exterior rings to be clockwise in tile space and
-            // holes counter-clockwise. `withWindingOrder(.counterClockwise)`
-            // produces that orientation in geographic/GeoJSON coordinates,
-            // which the decoder's `isUnprojectedClockwise` check expects.
-            let normalized = polygon.withWindingOrder(.counterClockwise)
+            // MVT defines exterior rings as having a positive signed area in
+            // tile coordinates (Y grows downward), i.e. they are clockwise on
+            // screen, and holes as having a negative signed area. The winding
+            // must therefore be normalized after projecting to tile space:
+            // projecting a geographic ring flips the Y axis and with it the
+            // orientation.
+            let normalized = MVTEncoder.normalizedPolygonCoordinates(
+                [polygon.coordinates],
+                projectionFunction: projectionFunction)
             geometryIntegers = self.geometryIntegers(
-                fromMultiCoordinates: normalized.coordinates,
+                fromMultiCoordinates: normalized,
                 ofType: .polygon,
                 projectionFunction: projectionFunction)
 
         case let multiPolygon as MultiPolygon:
             geometryType = .polygon
-            let normalized = multiPolygon.withWindingOrder(.counterClockwise)
-            let multiCoordinates: [[Coordinate3D]] = Array(normalized.polygons.map({ $0.coordinates }).joined())
+            let normalized = MVTEncoder.normalizedPolygonCoordinates(
+                multiPolygon.polygons.map(\.coordinates),
+                projectionFunction: projectionFunction)
             geometryIntegers = self.geometryIntegers(
-                fromMultiCoordinates: multiCoordinates,
+                fromMultiCoordinates: normalized,
                 ofType: .polygon,
                 projectionFunction: projectionFunction)
 
@@ -277,6 +282,60 @@ enum MVTEncoder {
         }
 
         return nil
+    }
+
+    /// Normalizes polygon rings to the winding MVT requires in tile space.
+    ///
+    /// The first ring of every polygon is its exterior ring and must have a
+    /// positive signed area in tile coordinates. All following rings are holes
+    /// and must have a negative signed area.
+    ///
+    /// - Parameters:
+    ///   - polygons: One array of rings per polygon.
+    ///   - projectionFunction: A closure that converts a `Coordinate3D` to
+    ///     tile-local (x, y) integers.
+    /// - Returns: The flattened rings with normalized winding.
+    private static func normalizedPolygonCoordinates(
+        _ polygons: [[[Coordinate3D]]],
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+    ) -> [[Coordinate3D]] {
+        polygons.flatMap { rings in
+            rings.enumerated().map { index, ring in
+                let area = MVTEncoder.tileSignedArea(
+                    ring,
+                    projectionFunction: projectionFunction)
+                guard area != 0.0 else { return ring }
+
+                let shouldBePositive = index == 0
+                return (area > 0.0) == shouldBePositive ? ring : ring.reversed()
+            }
+        }
+    }
+
+    /// Calculates the signed area of a ring using the surveyor's formula in
+    /// tile coordinates.
+    ///
+    /// - Parameters:
+    ///   - ring: The ring's coordinates.
+    ///   - projectionFunction: A closure that converts a `Coordinate3D` to
+    ///     tile-local (x, y) integers.
+    /// - Returns: The signed area. Positive values are exterior rings, negative
+    ///   values are holes.
+    private static func tileSignedArea(
+        _ ring: [Coordinate3D],
+        projectionFunction: ((Coordinate3D) -> (x: Int, y: Int))
+    ) -> Double {
+        guard ring.count > 2 else { return 0.0 }
+
+        let coordinates = ring.map(projectionFunction)
+        var sum = 0.0
+        for index in coordinates.indices {
+            let current = coordinates[index]
+            let next = coordinates[(index + 1) % coordinates.count]
+            sum += Double(current.x) * Double(next.y)
+                - Double(next.x) * Double(current.y)
+        }
+        return sum / 2.0
     }
 
     private static let commandIdMoveTo: UInt32 = 1

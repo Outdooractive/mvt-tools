@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to semantic versioning.
 
+## 3.1.1 - 2026-11-05
+
+### Fixed
+
+- MVT polygon winding now follows the MVT specification: exterior rings have
+  a positive signed area in tile coordinates and holes a negative one. The
+  previous normalization forced GeoJSON winding in geographic coordinates,
+  which inverted the winding after the Y-axis flip and broke fill-extrusion
+  rendering. Polygon ring grouping in `MVTDecoder` now uses the same
+  tile-space convention.
+
 ## 3.1.0 - 2026-11-03
 
 ### Changed

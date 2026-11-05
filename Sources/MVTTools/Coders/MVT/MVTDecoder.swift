@@ -306,7 +306,7 @@ enum MVTDecoder {
                 var currentRings: [Ring] = []
 
                 for ring in rings {
-                    if ring.isUnprojectedClockwise, currentRings.isNotEmpty {
+                    if ring.isMVTExterior, currentRings.isNotEmpty {
                         polygons.append(ifNotNil: Polygon(currentRings.map({ $0.coordinates })))
                         currentRings = []
                     }
