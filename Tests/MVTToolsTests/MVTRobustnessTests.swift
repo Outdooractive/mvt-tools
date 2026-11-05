@@ -320,7 +320,7 @@ struct MVTRobustnessTests {
 
     @Test(arguments: [Projection.epsg4326, .epsg3857, .epsg4978, .noSRID])
     func polygonWindingIsNormalizedForMVT(projection: Projection) throws {
-        // Deliberately wrong GeoJSON winding: clockwise exterior, CCW hole.
+        // MVT winding (opposite of GeoJSON): clockwise exterior, CCW hole.
         let outer = [
             tileCoordinate(0.0, 0.0, projection: projection),
             tileCoordinate(0.0, 10.0, projection: projection),
@@ -345,8 +345,8 @@ struct MVTRobustnessTests {
         let decodedPolygon = try #require(decoded.features(for: "test").first?.geometry as? Polygon)
 
         #expect(decodedPolygon.rings.count == 2)
-        #expect(decodedPolygon.rings[0].isUnprojectedClockwise)
-        #expect(decodedPolygon.rings[1].isUnprojectedCounterClockwise)
+        #expect(decodedPolygon.rings[0].isMVTExterior)
+        #expect(decodedPolygon.rings[1].isMVTExterior == false)
     }
 
     @Test
@@ -378,7 +378,7 @@ struct MVTRobustnessTests {
         let decodedMultiPolygon = try #require(decoded.features(for: "test").first?.geometry as? MultiPolygon)
 
         #expect(decodedMultiPolygon.polygons.count == 2)
-        #expect(decodedMultiPolygon.polygons.allSatisfy({ $0.rings[0].isUnprojectedClockwise }))
+        #expect(decodedMultiPolygon.polygons.allSatisfy({ $0.rings[0].isMVTExterior }))
     }
 
     // MARK: - Clipping and buffers

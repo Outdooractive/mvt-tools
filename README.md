@@ -93,7 +93,7 @@ This package requires Swift 6.3 or higher (Xcode 26 or newer), and compiles on i
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "3.0.0"),
+    .package(url: "https://github.com/Outdooractive/mvt-tools", from: "3.1.1"),
 ],
 targets: [
     .target(name: "MyTarget", dependencies: [
